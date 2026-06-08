@@ -173,7 +173,9 @@ export default function TeacherCourseLabsPage() {
   const loadServers = async () => {
     try {
       const { data } = await teacherAPI.listServers();
-      setServers(data); // 加载所有服务器，不只是在线的
+      const list = Array.isArray(data) ? data : [];
+      setServers(list);
+      setSelectedServer((prev) => prev || list[0]?.id || '');
     } catch (error) {
       console.error('Failed to load servers:', error);
       setServers([]);
@@ -193,7 +195,7 @@ export default function TeacherCourseLabsPage() {
   const getServerName = (serverId: string | null) => {
     if (!serverId) return null;
     const server = servers.find(s => s.id === serverId);
-    return server ? server.name : '未知服务器';
+    return server ? server.name : '本机 Docker';
   };
 
   const loadImages = async () => {
@@ -210,6 +212,8 @@ export default function TeacherCourseLabsPage() {
     setEditingLab(lab);
     if (lab.serverId) {
       setSelectedServer(lab.serverId);
+    } else if (servers[0]?.id) {
+      setSelectedServer(servers[0].id);
     }
     if (lab.videoUrl) {
       setVideoPreviewUrl(lab.videoUrl);
@@ -226,7 +230,7 @@ export default function TeacherCourseLabsPage() {
 
   const handleCancelEdit = () => {
     setEditingLab(null);
-    setSelectedServer('');
+    setSelectedServer(servers[0]?.id || '');
     setImages([]);
     setPortMappings([]);
     setEnvironmentVars([]);
@@ -399,7 +403,7 @@ export default function TeacherCourseLabsPage() {
 
   const getRandomPort = async (index: number) => {
     if (!selectedServer) {
-      alert('请先选择一个服务器');
+      alert('本机 Docker 暂不可用');
       return;
     }
 
@@ -409,7 +413,7 @@ export default function TeacherCourseLabsPage() {
       updatePortMapping(index, 'hostPort', port);
     } catch (error) {
       console.error('Failed to get available port:', error);
-      alert('获取可用端口失败（教师账号可能无服务器管理权限），请手动填写端口或联系管理员');
+      alert('获取可用端口失败，请确认本机 Docker 正在运行');
     }
   };
 
@@ -576,7 +580,7 @@ export default function TeacherCourseLabsPage() {
                           label: '实验',
                           onSelect: () => {
                             setEditingLab({ type: 'lab' });
-                            setSelectedServer('');
+                            setSelectedServer(servers[0]?.id || '');
                             setImages([]);
                             setPortMappings([]);
                             setEnvironmentVars([]);
@@ -587,7 +591,7 @@ export default function TeacherCourseLabsPage() {
                           label: '视频',
                           onSelect: () => {
                             setEditingLab({ type: 'video' });
-                            setSelectedServer('');
+                            setSelectedServer(servers[0]?.id || '');
                             setImages([]);
                             setPortMappings([]);
                             setEnvironmentVars([]);
@@ -598,7 +602,7 @@ export default function TeacherCourseLabsPage() {
                           label: '试卷',
                           onSelect: () => {
                             setEditingLab({ type: 'exam' });
-                            setSelectedServer('');
+                            setSelectedServer(servers[0]?.id || '');
                             setImages([]);
                             setPortMappings([]);
                             setEnvironmentVars([]);
@@ -768,7 +772,7 @@ export default function TeacherCourseLabsPage() {
                       <span className="bg-surface-container px-2 py-1 rounded">{lab.points} 分</span>
                       {lab.type === 'lab' && (
                         <span className="bg-surface-container px-2 py-1 rounded">
-                          {lab.serverId ? `${getServerName(lab.serverId)}已绑定` : '未绑定服务器'}
+                          {lab.serverId ? `${getServerName(lab.serverId)}已绑定` : '本机 Docker'}
                         </span>
                       )}
                     </div>
@@ -1038,19 +1042,22 @@ export default function TeacherCourseLabsPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm text-on-surface-variant mb-2">选择服务器</label>
+                      <label className="block text-sm text-on-surface-variant mb-2">本机 Docker</label>
+                      <input type="hidden" name="serverId" value={selectedServer} />
                       <select
-                        name="serverId"
                         value={selectedServer}
                         onChange={(e) => setSelectedServer(e.target.value)}
+                        disabled
                         className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                       >
-                        <option value="">不指定服务器（自动分配）</option>
                         {servers.filter(s => s.status === 'online').map(server => (
                           <option key={server.id} value={server.id}>
                             {server.name}
                           </option>
                         ))}
+                        {servers.filter(s => s.status === 'online').length === 0 && (
+                          <option value="">本机 Docker 暂不可用</option>
+                        )}
                       </select>
                     </div>
 
@@ -1064,7 +1071,7 @@ export default function TeacherCourseLabsPage() {
                           className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                         >
                           {images.length === 0 ? (
-                            <option value="">该服务器暂无镜像</option>
+                            <option value="">本机 Docker 暂无镜像</option>
                           ) : (
                             images.map((img) => (
                               <option key={img.id} value={img.tags?.[0] || img.id.slice(0, 12)}>

@@ -74,6 +74,10 @@ type dockerInfo struct {
 	Name              string `json:"Name"`
 	Containers        int    `json:"Containers"`
 	ContainersRunning int    `json:"ContainersRunning"`
+	ServerVersion     string `json:"ServerVersion"`
+	OperatingSystem   string `json:"OperatingSystem"`
+	KernelVersion     string `json:"KernelVersion"`
+	Architecture      string `json:"Architecture"`
 }
 
 type dockerContainerStats struct {

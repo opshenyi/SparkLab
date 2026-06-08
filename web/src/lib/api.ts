@@ -160,6 +160,9 @@ export const adminAPI = {
   getAvailablePort: (serverId: string) =>
     api.get(`/admin/servers/${serverId}/available-port`),
 
+  localStatus: () =>
+    api.get('/admin/local/status'),
+
   checkUpdates: () =>
     api.get('/admin/updates/check'),
 

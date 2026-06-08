@@ -1,17 +1,29 @@
 {
   "appId": "sparklab",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "channel": "main",
-  "releasedAt": "2026-06-09T05:54:48+08:00",
-  "title": "本机 Docker 管理收敛",
+  "releasedAt": "2026-06-09T06:04:31+08:00",
+  "title": "当前服务器仪表盘",
   "mandatory": false,
   "announcement": {
     "enabled": true,
     "level": "info",
-    "title": "SparkLab 已收敛为本机 Docker 管理",
-    "message": "管理后台不再展示多服务器容器入口，Docker 状态直接通过 unix:///var/run/docker.sock 读取，实验容器也会强制创建到本机 Docker。"
+    "title": "服务器管理已改为当前主机仪表盘",
+    "message": "管理后台的服务器管理现在展示当前主机状态面板，并默认通过 unix:///var/run/docker.sock 管理本机 Docker 容器。"
   },
   "changelog": [
+    {
+      "version": "0.4.4",
+      "date": "2026-06-09",
+      "title": "当前服务器仪表盘",
+      "items": [
+        "恢复管理员侧边栏中的服务器管理和容器管理入口，但两者都固定使用本机 Docker。",
+        "服务器管理改为当前主机仪表盘，展示负载、CPU、内存、磁盘、系统信息和 Docker 资源统计。",
+        "新增 /admin/local/status 接口，专门返回当前主机和 unix:///var/run/docker.sock 的状态。",
+        "所有 Docker 空状态提示改为检查本机 Docker 和 socket 挂载，不再引导新增节点。",
+        "教师端实验配置固定显示本机 Docker，避免继续出现远程节点选择。"
+      ]
+    },
     {
       "version": "0.4.3",
       "date": "2026-06-09",

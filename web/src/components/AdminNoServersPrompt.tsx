@@ -8,12 +8,8 @@ type Props = {
 };
 
 export function AdminNoServersPrompt({ context, variant = 'none' }: Props) {
-  const title =
-    variant === 'no-online' ? '本机 Docker 暂不可用' : '本机 Docker 未初始化';
-  const message =
-    variant === 'no-online'
-      ? `${context || '当前功能'} 只连接本机 Docker，请确认 Docker 服务正在运行，并且容器已挂载 /var/run/docker.sock。`
-      : `${context || '当前功能'} 使用本机 Docker，不需要添加服务器。系统会自动使用 unix:///var/run/docker.sock。`;
+  const title = variant === 'no-online' ? '本机 Docker 暂不可用' : '本机 Docker 未连接';
+  const message = `${context || '当前功能'} 直接使用 unix:///var/run/docker.sock，请确认 Docker 正在运行，并且后端容器已挂载 /var/run/docker.sock。`;
 
   return (
     <div className="app-card rounded-2xl border border-outline-variant/60 bg-surface-container/40 p-10 text-center dark:bg-surface-container/20">

@@ -1,34 +1,74 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { Activity, Cpu, HardDrive, RefreshCw, Server as ServerIcon } from 'lucide-react';
+import {
+  Activity,
+  Box,
+  Cpu,
+  Database,
+  HardDrive,
+  Layers,
+  Network,
+  RefreshCw,
+  Server as ServerIcon,
+} from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
-import api from '@/lib/api';
+import { adminAPI } from '@/lib/api';
+import { usePollWhileVisible } from '@/lib/usePollWhileVisible';
 import AdminSidebar from '@/components/AdminSidebar';
 import LoadingBar from '@/components/LoadingBar';
 
-interface LocalDockerInfo {
-  id: string;
-  name: string;
-  host: string;
-  status: string;
-  maxContainers: number;
-  activeContainers: number;
-  totalContainers?: number;
-  cpuUsage: number;
-  memoryUsage: number;
-  cpuCores: number;
-  cpuModel?: string;
-  totalMemory: number;
-  lastCheckAt: number | string;
-}
+type LocalStatus = {
+  checkedAt?: string;
+  docker?: {
+    id?: string;
+    name?: string;
+    host?: string;
+    status?: string;
+    version?: string;
+    operatingSystem?: string;
+    kernelVersion?: string;
+    architecture?: string;
+    containers?: number;
+    containersRunning?: number;
+    images?: number;
+    networks?: number;
+    volumes?: number;
+  };
+  host?: {
+    name?: string;
+    operatingSystem?: string;
+    kernelVersion?: string;
+    architecture?: string;
+    dockerVersion?: string;
+    bootTime?: number;
+    uptime?: number;
+  };
+  resource?: {
+    cpuUsage?: number;
+    cpuCores?: number;
+    cpuModel?: string;
+    loadAvg1?: number;
+    loadAvg5?: number;
+    loadAvg15?: number;
+    memoryTotal?: number;
+    memoryUsed?: number;
+    memoryUsage?: number;
+    diskTotal?: number;
+    diskUsed?: number;
+    diskUsage?: number;
+  };
+  network?: {
+    bytesSent?: number;
+    bytesRecv?: number;
+  };
+};
 
-export default function LocalDockerPage() {
+export default function LocalServerDashboardPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, isLoggingOut, checkAuth } = useAuthStore();
-  const [node, setNode] = useState<LocalDockerInfo | null>(null);
+  const [status, setStatus] = useState<LocalStatus | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
@@ -43,23 +83,26 @@ export default function LocalDockerPage() {
     }
   }, [isAuthenticated, isLoading, user, router]);
 
-  useEffect(() => {
-    if (isAuthenticated && (user?.role === 'ADMIN' || user?.role === 'AUTHOR')) {
-      void loadLocalDocker();
-    }
-  }, [isAuthenticated, user]);
+  const isAdminOrAuthor = isAuthenticated && (user?.role === 'ADMIN' || user?.role === 'AUTHOR');
 
-  const loadLocalDocker = async () => {
-    setDataLoading(true);
+  useEffect(() => {
+    if (isAdminOrAuthor) {
+      void loadStatus();
+    }
+  }, [isAdminOrAuthor]);
+
+  usePollWhileVisible(isAdminOrAuthor, () => void loadStatus(false), 5000, true);
+
+  const loadStatus = async (showLoading = true) => {
+    if (showLoading) setDataLoading(true);
     try {
-      const { data } = await api.get('/servers');
-      const list = Array.isArray(data) ? data : [];
-      setNode(list[0] || null);
+      const res = await adminAPI.localStatus();
+      setStatus(res.data);
     } catch (error) {
-      console.error('Failed to load local Docker status:', error);
-      setNode(null);
+      console.error('Failed to load local server dashboard:', error);
+      setStatus(null);
     } finally {
-      setDataLoading(false);
+      if (showLoading) setDataLoading(false);
     }
   };
 
@@ -71,25 +114,30 @@ export default function LocalDockerPage() {
     return null;
   }
 
-  const online = node?.status === 'online';
+  const dockerOnline = status?.docker?.status === 'online';
+  const loadPercent = clamp(((status?.resource?.loadAvg1 || 0) / Math.max(status?.resource?.cpuCores || 1, 1)) * 100);
+  const cpuPercent = clamp(status?.resource?.cpuUsage || 0);
+  const memoryPercent = clamp(status?.resource?.memoryUsage || 0);
+  const diskPercent = clamp(status?.resource?.diskUsage || 0);
 
   return (
     <div className="flex min-h-screen bg-background text-on-surface">
       <AdminSidebar />
+
       <main className="flex min-h-screen flex-1 flex-col pt-16 lg:ml-64 lg:pt-0">
-        <div className="flex-1 p-8">
-          <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex-1 p-8 lg:p-10">
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 className="mb-2 font-headline text-4xl font-extrabold tracking-tight text-page-title">
-                本机 Docker
+                服务器管理
               </h2>
               <p className="text-lg text-on-surface-variant">
-                SparkLab 只使用本机 Docker socket：unix:///var/run/docker.sock
+                当前主机仪表盘，Docker 通过 unix:///var/run/docker.sock 连接
               </p>
             </div>
             <button
               type="button"
-              onClick={() => void loadLocalDocker()}
+              onClick={() => void loadStatus()}
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary transition-opacity hover:opacity-95"
             >
               <RefreshCw className="h-4 w-4" />
@@ -98,63 +146,96 @@ export default function LocalDockerPage() {
           </div>
 
           {dataLoading ? (
-            <div className="py-16 text-center text-on-surface-variant">加载本机 Docker 状态中...</div>
-          ) : !node ? (
+            <div className="py-16 text-center text-on-surface-variant">加载当前服务器状态中...</div>
+          ) : !status ? (
             <div className="app-card p-8 text-center text-on-surface-variant">
-              未读取到本机 Docker 状态。请查看后端日志确认 Docker socket 挂载是否正常。
+              未读取到当前服务器状态
             </div>
           ) : (
-            <div className="space-y-6">
-              <div className="app-card p-6">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/20">
-                    <ServerIcon className="h-6 w-6 text-primary" />
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+              <div className="space-y-6">
+                <section className="grid gap-4 md:grid-cols-4">
+                  <OverviewCard
+                    icon={<ServerIcon className="h-5 w-5" />}
+                    label="主机名称"
+                    value={status.host?.name || status.docker?.name || '当前主机'}
+                    subValue={dockerOnline ? 'Docker 在线' : 'Docker 不可用'}
+                    good={dockerOnline}
+                  />
+                  <OverviewCard
+                    icon={<Cpu className="h-5 w-5" />}
+                    label="CPU"
+                    value={`${status.resource?.cpuCores || 0} 核`}
+                    subValue={status.resource?.cpuModel || status.host?.architecture || '-'}
+                  />
+                  <OverviewCard
+                    icon={<HardDrive className="h-5 w-5" />}
+                    label="内存"
+                    value={formatBytes(status.resource?.memoryTotal)}
+                    subValue={`${formatBytes(status.resource?.memoryUsed)} 已用`}
+                  />
+                  <OverviewCard
+                    icon={<Box className="h-5 w-5" />}
+                    label="Docker"
+                    value={status.docker?.version || '-'}
+                    subValue={status.docker?.host || 'unix:///var/run/docker.sock'}
+                  />
+                </section>
+
+                <section className="app-card p-6">
+                  <div className="mb-5 flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-primary" />
+                    <h3 className="text-xl font-bold text-page-title">状态</h3>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-1 flex items-center gap-2">
-                      <h3 className="text-xl font-bold text-page-title">{node.name || '本机 Docker'}</h3>
-                      <span
-                        className={`h-2 w-2 rounded-full ${online ? 'bg-green-500' : 'bg-red-500'}`}
-                      />
-                      <span className={online ? 'text-sm text-green-500' : 'text-sm text-red-500'}>
-                        {online ? '在线' : '不可用'}
-                      </span>
-                    </div>
-                    <p className="font-mono text-xs text-on-surface-variant">{node.host}</p>
+                  <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+                    <RingGauge label="负载" value={loadPercent} detail={`1 分钟 ${formatNumber(status.resource?.loadAvg1)}`} />
+                    <RingGauge label="CPU" value={cpuPercent} detail={`${formatNumber(status.resource?.cpuUsage)}%`} />
+                    <RingGauge
+                      label="内存"
+                      value={memoryPercent}
+                      detail={`${formatBytes(status.resource?.memoryUsed)} / ${formatBytes(status.resource?.memoryTotal)}`}
+                    />
+                    <RingGauge
+                      label="磁盘"
+                      value={diskPercent}
+                      detail={`${formatBytes(status.resource?.diskUsed)} / ${formatBytes(status.resource?.diskTotal)}`}
+                    />
                   </div>
-                </div>
+                </section>
+
+                <section className="grid gap-4 md:grid-cols-4">
+                  <DockerMetric icon={<Box className="h-5 w-5" />} label="容器" value={`${status.docker?.containersRunning || 0}/${status.docker?.containers || 0}`} />
+                  <DockerMetric icon={<Layers className="h-5 w-5" />} label="镜像" value={status.docker?.images || 0} />
+                  <DockerMetric icon={<Network className="h-5 w-5" />} label="网络" value={status.docker?.networks || 0} />
+                  <DockerMetric icon={<Database className="h-5 w-5" />} label="存储卷" value={status.docker?.volumes || 0} />
+                </section>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-4">
-                <MetricCard
-                  icon={<Activity className="h-4 w-4 text-primary" />}
-                  label="容器"
-                  value={`${node.activeContainers || 0}/${node.totalContainers || node.maxContainers || 0}`}
-                />
-                <MetricCard
-                  icon={<Cpu className="h-4 w-4 text-primary" />}
-                  label="CPU"
-                  value={`${Number(node.cpuUsage || 0).toFixed(1)}%`}
-                />
-                <MetricCard
-                  icon={<HardDrive className="h-4 w-4 text-primary" />}
-                  label="内存"
-                  value={`${Number(node.memoryUsage || 0).toFixed(1)}%`}
-                />
-                <MetricCard
-                  icon={<ServerIcon className="h-4 w-4 text-primary" />}
-                  label="规格"
-                  value={`${node.cpuCores || 0} 核 / ${node.totalMemory || 0} MB`}
-                />
-              </div>
+              <aside className="space-y-6">
+                <section className="app-card p-6">
+                  <div className="mb-5 flex items-center gap-2">
+                    <ServerIcon className="h-5 w-5 text-primary" />
+                    <h3 className="text-xl font-bold text-page-title">系统信息</h3>
+                  </div>
+                  <InfoRow label="发行版本" value={status.host?.operatingSystem || status.docker?.operatingSystem || '-'} />
+                  <InfoRow label="内核版本" value={status.host?.kernelVersion || status.docker?.kernelVersion || '-'} />
+                  <InfoRow label="系统类型" value={status.host?.architecture || status.docker?.architecture || '-'} />
+                  <InfoRow label="Docker 地址" value={status.docker?.host || 'unix:///var/run/docker.sock'} mono />
+                  <InfoRow label="启动时间" value={formatBootTime(status.host?.bootTime)} />
+                  <InfoRow label="运行时间" value={formatUptime(status.host?.uptime)} />
+                </section>
 
-              <div className="app-card p-5 text-sm text-on-surface-variant">
-                <p>现在不需要添加服务器，也不需要开放 tcp://0.0.0.0:2375。</p>
-                <p className="mt-2">
-                  如果状态不可用，请确认宿主机 Docker 正在运行，并且 compose 已挂载
-                  <span className="mx-1 font-mono text-on-surface">/var/run/docker.sock</span>。
-                </p>
-              </div>
+                <section className="app-card p-6">
+                  <div className="mb-5 flex items-center gap-2">
+                    <Network className="h-5 w-5 text-primary" />
+                    <h3 className="text-xl font-bold text-page-title">流量</h3>
+                  </div>
+                  <InfoRow label="总发送" value={formatBytes(status.network?.bytesSent)} />
+                  <InfoRow label="总接收" value={formatBytes(status.network?.bytesRecv)} />
+                  <InfoRow label="Load 5" value={formatNumber(status.resource?.loadAvg5)} />
+                  <InfoRow label="Load 15" value={formatNumber(status.resource?.loadAvg15)} />
+                </section>
+              </aside>
             </div>
           )}
         </div>
@@ -163,22 +244,102 @@ export default function LocalDockerPage() {
   );
 }
 
-function MetricCard({
+function OverviewCard({
   icon,
   label,
   value,
+  subValue,
+  good,
 }: {
-  icon: ReactNode;
+  icon: React.ReactNode;
   label: string;
   value: string;
+  subValue: string;
+  good?: boolean;
 }) {
   return (
-    <div className="app-card p-4">
-      <div className="mb-2 flex items-center gap-2">
-        {icon}
-        <p className="text-xs text-on-surface-variant">{label}</p>
+    <div className="app-card p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="text-primary">{icon}</div>
+        {good !== undefined ? (
+          <span className={`h-2.5 w-2.5 rounded-full ${good ? 'bg-status-success' : 'bg-status-error'}`} />
+        ) : null}
       </div>
-      <p className="text-2xl font-bold text-primary">{value}</p>
+      <p className="mb-1 text-xs text-on-surface-variant">{label}</p>
+      <p className="truncate text-xl font-bold text-on-surface" title={value}>{value}</p>
+      <p className="mt-1 truncate text-xs text-on-surface-variant" title={subValue}>{subValue}</p>
     </div>
   );
+}
+
+function RingGauge({ label, value, detail }: { label: string; value: number; detail: string }) {
+  const pct = clamp(value);
+  return (
+    <div className="flex flex-col items-center text-center">
+      <div
+        className="relative flex h-32 w-32 items-center justify-center rounded-full"
+        style={{ background: `conic-gradient(#3b82f6 ${pct}%, rgba(148, 163, 184, 0.16) 0)` }}
+      >
+        <div className="flex h-[104px] w-[104px] flex-col items-center justify-center rounded-full bg-background">
+          <span className="text-2xl font-bold tabular-nums text-on-surface">{pct.toFixed(1)}%</span>
+          <span className="text-sm text-on-surface-variant">{label}</span>
+        </div>
+      </div>
+      <p className="mt-3 text-sm text-on-surface-variant">{detail}</p>
+    </div>
+  );
+}
+
+function DockerMetric({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
+  return (
+    <div className="app-card p-5">
+      <div className="mb-4 text-primary">{icon}</div>
+      <p className="mb-1 text-xs text-on-surface-variant">{label}</p>
+      <p className="text-3xl font-bold tabular-nums text-on-surface">{value}</p>
+    </div>
+  );
+}
+
+function InfoRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex gap-4 border-b border-outline-variant/30 py-3 last:border-b-0">
+      <span className="w-20 shrink-0 text-sm text-on-surface-variant">{label}</span>
+      <span className={`min-w-0 flex-1 break-words text-sm text-on-surface ${mono ? 'font-mono' : ''}`}>{value}</span>
+    </div>
+  );
+}
+
+function clamp(value: number) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(100, value));
+}
+
+function formatNumber(value?: number) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '0.00';
+  return value.toFixed(2);
+}
+
+function formatBytes(value?: number) {
+  if (!value || value <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let size = value;
+  let idx = 0;
+  while (size >= 1024 && idx < units.length - 1) {
+    size /= 1024;
+    idx += 1;
+  }
+  return `${size.toFixed(idx === 0 ? 0 : 2)} ${units[idx]}`;
+}
+
+function formatBootTime(value?: number) {
+  if (!value) return '-';
+  return new Date(value * 1000).toLocaleString('zh-CN');
+}
+
+function formatUptime(value?: number) {
+  if (!value) return '-';
+  const days = Math.floor(value / 86400);
+  const hours = Math.floor((value % 86400) / 3600);
+  const minutes = Math.floor((value % 3600) / 60);
+  return `${days}天 ${hours}小时 ${minutes}分钟`;
 }
