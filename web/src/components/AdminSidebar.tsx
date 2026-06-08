@@ -3,18 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import {
-  LayoutDashboard,
-  Users,
-  Server,
-  Container,
-  LogOut,
-  Disc,
-  Network,
-  HardDrive,
-  Menu,
-  X,
-} from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { getUserAvatarOrInitial } from '@/lib/avatar';
 import { roleLabel } from '@/lib/roleLabels';
@@ -23,27 +11,14 @@ import LoadingBar from './LoadingBar';
 import ThemeToggleButton from './ThemeToggleButton';
 
 const adminNavItems = [
-  { icon: LayoutDashboard, label: '统计概览', href: '/admin' },
-  { icon: Users, label: '用户管理', href: '/admin/users' },
-  { icon: Server, label: '服务器管理', href: '/admin/servers' },
-  { icon: Container, label: '容器管理', href: '/admin/containers' },
-  { icon: Disc, label: '镜像管理', href: '/admin/images' },
-  { icon: Network, label: '网络管理', href: '/admin/networks' },
-  { icon: HardDrive, label: '存储卷管理', href: '/admin/volumes' },
+  { label: '统计概览', href: '/admin' },
+  { label: '用户管理', href: '/admin/users' },
+  { label: '服务器管理', href: '/admin/servers' },
+  { label: '容器管理', href: '/admin/containers' },
+  { label: '镜像管理', href: '/admin/images' },
+  { label: '网络管理', href: '/admin/networks' },
+  { label: '存储卷管理', href: '/admin/volumes' },
 ];
-
-function NavLinkIcon({ active, children }: { active: boolean; children: React.ReactNode }) {
-  return (
-    <span
-      className={cn(
-        'flex shrink-0 items-center justify-center transition-colors duration-200',
-        active ? 'text-primary' : 'text-on-surface-variant group-hover:text-primary'
-      )}
-    >
-      {children}
-    </span>
-  );
-}
 
 export default function AdminSidebar() {
   const pathname = usePathname();
@@ -62,9 +37,9 @@ export default function AdminSidebar() {
 
   const linkClass = (isActive: boolean) =>
     cn(
-      'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
+      'group flex items-center rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-200',
       isActive
-        ? 'bg-primary/[0.1] text-primary dark:bg-primary/[0.14]'
+        ? 'bg-surface-high text-on-surface shadow-[var(--shadow-ring)]'
         : 'text-on-surface-variant hover:bg-surface-lowest/85 hover:text-on-surface dark:hover:bg-surface-container/80'
     );
 
@@ -72,9 +47,9 @@ export default function AdminSidebar() {
     <>
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 rounded-xl bg-surface-lowest/90 p-2.5 text-primary shadow-soft-md backdrop-blur-md dark:bg-surface-container/90"
+        className="fixed left-4 top-4 z-50 rounded-full bg-surface-lowest/90 px-4 py-2 text-sm font-medium text-on-surface shadow-soft-md backdrop-blur-md dark:bg-surface-container/90 lg:hidden"
       >
-        {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        {isMobileMenuOpen ? '关闭导航' : '打开导航'}
       </button>
 
       {isMobileMenuOpen && (
@@ -91,10 +66,10 @@ export default function AdminSidebar() {
         )}
       >
         <div className="px-6 mb-8">
-          <h1 className="font-display text-page-title text-lg font-bold tracking-tight">
-            星火<span className="text-primary">实验室</span>
+          <h1 className="font-display text-page-title text-lg font-semibold tracking-tight">
+            星火实验室
           </h1>
-          <p className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+          <p className="mt-1.5 text-[11px] font-medium uppercase text-on-surface-variant">
             管理员控制台
           </p>
         </div>
@@ -114,9 +89,6 @@ export default function AdminSidebar() {
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={linkClass(isActive)}
               >
-                <NavLinkIcon active={isActive}>
-                  <item.icon className="h-[18px] w-[18px]" strokeWidth={2} />
-                </NavLinkIcon>
                 {item.label}
               </Link>
             );
@@ -155,10 +127,10 @@ export default function AdminSidebar() {
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-error/10 hover:text-error"
+                  className="rounded-full bg-surface-container px-3 py-2 text-xs font-medium text-on-surface-variant transition-colors hover:bg-error/10 hover:text-error"
                   title="退出登录"
                 >
-                  <LogOut className="h-4 w-4" />
+                  退出
                 </button>
               </div>
             </div>

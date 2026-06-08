@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { monitorAPI } from '@/lib/api';
 
 interface ResourceStats {
@@ -34,25 +34,21 @@ export default function ResourceMonitor() {
     };
 
     const pollStats = async () => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-        return;
-      }
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
       try {
         const response = await monitorAPI.getResourceStats();
         setStats(response.data);
         setLoading(false);
         setError(null);
       } catch {
-        setError('Failed to fetch resource stats');
+        setError('资源数据读取失败');
         setLoading(false);
       }
     };
 
     const startPollFallback = () => {
       stopPoll();
-      if (wsOpenRef.current) {
-        return;
-      }
+      if (wsOpenRef.current) return;
       void pollStats();
       pollIdRef.current = setInterval(() => void pollStats(), 5000);
     };
@@ -62,9 +58,7 @@ export default function ResourceMonitor() {
         stopPoll();
         return;
       }
-      if (!wsOpenRef.current) {
-        startPollFallback();
-      }
+      if (!wsOpenRef.current) startPollFallback();
     };
 
     const connectWebSocket = () => {
@@ -82,15 +76,14 @@ export default function ResourceMonitor() {
 
       ws.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data);
-          setStats(data);
+          setStats(JSON.parse(event.data));
         } catch {
           console.error('Failed to parse stats');
         }
       };
 
       ws.onerror = () => {
-        setError('WebSocket connection failed');
+        setError('资源流连接失败，已切换轮询');
         wsOpenRef.current = false;
         startPollFallback();
       };
@@ -108,9 +101,7 @@ export default function ResourceMonitor() {
     return () => {
       document.removeEventListener('visibilitychange', onVisibility);
       stopPoll();
-      if (ws) {
-        ws.close();
-      }
+      ws?.close();
       clearTimeout(reconnectTimeout);
       wsOpenRef.current = false;
     };
@@ -121,22 +112,35 @@ export default function ResourceMonitor() {
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+    return `${Math.round((bytes / Math.pow(k, i)) * 100) / 100} ${sizes[i]}`;
   };
 
-  const getUsageColor = (usage: number) => {
-    if (usage < 50) return 'bg-green-500';
-    if (usage < 80) return 'bg-yellow-500';
-    return 'bg-red-500';
+  const usageClass = (usage: number) => {
+    if (usage < 50) return 'bg-status-success';
+    if (usage < 80) return 'bg-status-warning';
+    return 'bg-status-error';
   };
+
+  const meter = (label: string, value: number, detail?: string) => (
+    <div>
+      <div className="mb-1 flex justify-between gap-4 text-sm text-on-surface-variant">
+        <span>{label}</span>
+        <span className="tabular-nums text-on-surface">{value.toFixed(1)}%</span>
+      </div>
+      <div className="h-2 w-full overflow-hidden rounded-full bg-surface-container">
+        <div className={`h-2 rounded-full transition-all ${usageClass(value)}`} style={{ width: `${Math.min(value, 100)}%` }} />
+      </div>
+      {detail ? <p className="mt-1 text-xs text-on-surface-variant">{detail}</p> : null}
+    </div>
+  );
 
   if (loading) {
     return (
-      <div className="bg-gray-800 rounded-lg p-6">
-        <div className="animate-pulse">
-          <div className="h-4 bg-gray-700 rounded w-1/3 mb-4"></div>
-          <div className="h-8 bg-gray-700 rounded mb-2"></div>
-          <div className="h-8 bg-gray-700 rounded"></div>
+      <div className="app-card p-6">
+        <div className="animate-pulse space-y-3">
+          <div className="h-4 w-1/3 rounded bg-surface-container" />
+          <div className="h-8 rounded bg-surface-container" />
+          <div className="h-8 rounded bg-surface-container" />
         </div>
       </div>
     );
@@ -144,66 +148,41 @@ export default function ResourceMonitor() {
 
   if (error && !stats) {
     return (
-      <div className="bg-gray-800 rounded-lg p-6">
-        <p className="text-red-400">{error}</p>
+      <div className="app-card p-6">
+        <p className="text-sm text-status-error-text">{error}</p>
       </div>
     );
   }
 
-  if (!stats) {
-    return null;
-  }
+  if (!stats) return null;
 
   return (
-    <div className="bg-gray-800 rounded-lg p-6">
-      <h3 className="text-lg font-semibold text-white mb-4">系统资源</h3>
+    <div className="app-card p-6">
+      <div className="mb-5">
+        <h3 className="text-lg font-semibold text-on-surface">系统资源</h3>
+        {error ? <p className="mt-1 text-xs text-status-warning-text">{error}</p> : null}
+      </div>
 
-      <div className="space-y-4">
-        <div>
-          <div className="flex justify-between text-sm text-gray-300 mb-1">
-            <span>CPU 使用率</span>
-            <span>{stats.cpuUsage.toFixed(1)}%</span>
-          </div>
-          <div className="w-full bg-gray-700 rounded-full h-2">
-            <div
-              className={`h-2 rounded-full transition-all ${getUsageColor(stats.cpuUsage)}`}
-              style={{ width: `${Math.min(stats.cpuUsage, 100)}%` }}
-            />
-          </div>
-          <p className="text-xs text-gray-400 mt-1">{stats.cpuCores} 核心</p>
-        </div>
+      <div className="space-y-5">
+        {meter('CPU 使用率', stats.cpuUsage, `${stats.cpuCores} 核心`)}
+        {meter('内存使用', stats.memoryUsage, `${formatBytes(stats.memoryUsed)} / ${formatBytes(stats.memoryTotal)}`)}
 
-        <div>
-          <div className="flex justify-between text-sm text-gray-300 mb-1">
-            <span>内存使用</span>
-            <span>
-              {formatBytes(stats.memoryUsed)} / {formatBytes(stats.memoryTotal)}
-            </span>
+        <div className="grid grid-cols-3 gap-2 text-center text-xs text-on-surface-variant">
+          <div className="rounded-md bg-surface-container px-2 py-3">
+            <div className="font-mono text-sm text-on-surface">{stats.loadAvg1.toFixed(2)}</div>
+            <div className="mt-1">Load 1m</div>
           </div>
-          <div className="w-full bg-gray-700 rounded-full h-2">
-            <div
-              className={`h-2 rounded-full transition-all ${getUsageColor(stats.memoryUsage)}`}
-              style={{ width: `${Math.min(stats.memoryUsage, 100)}%` }}
-            />
+          <div className="rounded-md bg-surface-container px-2 py-3">
+            <div className="font-mono text-sm text-on-surface">{stats.loadAvg5.toFixed(2)}</div>
+            <div className="mt-1">Load 5m</div>
+          </div>
+          <div className="rounded-md bg-surface-container px-2 py-3">
+            <div className="font-mono text-sm text-on-surface">{stats.loadAvg15.toFixed(2)}</div>
+            <div className="mt-1">Load 15m</div>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 text-center text-xs text-gray-400">
-          <div>
-            <div className="text-white font-mono">{stats.loadAvg1.toFixed(2)}</div>
-            <div>Load 1m</div>
-          </div>
-          <div>
-            <div className="text-white font-mono">{stats.loadAvg5.toFixed(2)}</div>
-            <div>Load 5m</div>
-          </div>
-          <div>
-            <div className="text-white font-mono">{stats.loadAvg15.toFixed(2)}</div>
-            <div>Load 15m</div>
-          </div>
-        </div>
-
-        <p className="text-xs text-gray-500">更新: {new Date(stats.timestamp).toLocaleString()}</p>
+        <p className="text-xs text-on-surface-variant">更新：{new Date(stats.timestamp).toLocaleString()}</p>
       </div>
     </div>
   );

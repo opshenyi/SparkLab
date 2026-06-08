@@ -8,7 +8,6 @@ import LoadingBar from '@/components/LoadingBar';
 import { teacherAPI } from '@/lib/api';
 import { profilePageCardClass, profilePageFontClass, profilePageMainInnerClass } from '@/lib/profileShell';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
 
 const drawerEase = [0.16, 1, 0.3, 1] as const;
 
@@ -309,7 +308,7 @@ export default function TeacherGroupsPage() {
         {drawerGroup ? (
           <motion.aside
             key={`members-drawer-${drawerGroup.id}`}
-            className={`fixed inset-y-0 right-0 z-[90] flex w-full max-w-md flex-col shadow-2xl ${profilePageCardClass} rounded-none`}
+            className={`fixed inset-y-0 right-0 z-[90] flex w-full max-w-md flex-col ${profilePageCardClass} rounded-none`}
             role="dialog"
             aria-modal="true"
             aria-labelledby="members-drawer-title"
@@ -328,10 +327,10 @@ export default function TeacherGroupsPage() {
               <button
                 type="button"
                 onClick={() => setMembersExpandedId(null)}
-                className="shrink-0 rounded-full p-2 text-on-surface-variant hover:bg-surface-container"
+                className="shrink-0 rounded-full bg-surface-container px-4 py-2 text-sm font-medium text-on-surface-variant hover:bg-surface-high hover:text-on-surface"
                 aria-label="关闭"
               >
-                <X className="h-5 w-5" />
+                关闭
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-5">

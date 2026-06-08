@@ -6,7 +6,6 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { courseMaterialAPI } from '@/lib/api';
 import Sidebar from '@/components/Sidebar';
 import LoadingBar from '@/components/LoadingBar';
-import { ArrowLeft, Download } from 'lucide-react';
 
 function effectiveFileKind(meta: { fileKind: string; originalName: string } | null): string | null {
   if (!meta) return null;
@@ -132,7 +131,6 @@ export default function CourseMaterialViewerPageInner({ materialId }: Props) {
             onClick={() => router.push(backHref)}
             className="flex items-center gap-2 text-on-surface-variant hover:text-primary text-sm"
           >
-            <ArrowLeft className="w-4 h-4" />
             返回课程
           </button>
           {meta && (
@@ -143,7 +141,6 @@ export default function CourseMaterialViewerPageInner({ materialId }: Props) {
             download={meta?.originalName}
             className="inline-flex items-center gap-1 text-sm text-primary"
           >
-            <Download className="w-4 h-4" />
             下载
           </a>
         </div>
@@ -167,7 +164,6 @@ export default function CourseMaterialViewerPageInner({ materialId }: Props) {
               <p className="text-on-surface font-medium">无法预览</p>
               <p className="text-sm">{pdfError}</p>
               <a href={filePath} className="inline-flex items-center gap-1 text-primary font-medium" download={meta?.originalName}>
-                <Download className="w-4 h-4" />
                 下载后本地打开
               </a>
             </div>
@@ -189,7 +185,6 @@ export default function CourseMaterialViewerPageInner({ materialId }: Props) {
                 download={meta?.originalName}
                 className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary hover:opacity-95"
               >
-                <Download className="w-4 h-4" />
                 下载 {meta?.originalName ?? '课件'}
               </a>
             </div>

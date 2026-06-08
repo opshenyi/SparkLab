@@ -14,16 +14,10 @@ export default function LoadingBar({ text = '星火实验室', showProgress = tr
           {showProgress ? (
             <div 
               className="absolute inset-y-0 left-0 bg-primary animate-progress-fill"
-              style={{
-                boxShadow: '0 0 20px rgba(0, 217, 255, 0.5)',
-              }}
             />
           ) : (
             <div 
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-primary to-transparent animate-loading-slide"
-              style={{
-                boxShadow: '0 0 20px rgba(0, 217, 255, 0.5)',
-              }}
+              className="absolute inset-0 bg-primary/80 animate-loading-slide"
             />
           )}
         </div>
@@ -36,4 +30,3 @@ export default function LoadingBar({ text = '星火实验室', showProgress = tr
     </div>
   );
 }
-

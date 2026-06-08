@@ -6,20 +6,6 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { teacherAPI, courseAPI, labAPI, courseMaterialAPI } from '@/lib/api';
 import TeacherSidebar from '@/components/TeacherSidebar';
 import LoadingBar from '@/components/LoadingBar';
-import {
-  Edit,
-  Trash2,
-  Plus,
-  X,
-  BookOpen,
-  Settings,
-  Terminal,
-  Database,
-  HardDrive,
-  ChevronDown,
-  GripVertical,
-  Upload,
-} from 'lucide-react';
 import ExamEditorInline from '@/components/ExamEditorInline';
 
 interface ServerInfo {
@@ -548,7 +534,7 @@ export default function TeacherCourseLabsPage() {
                 onClick={() => router.push('/teacher/courses')}
                 className="text-on-surface-variant hover:text-primary"
               >
-                ← 返回课程管理
+                返回课程管理
               </button>
             </div>
             <h2 className="text-4xl font-extrabold font-headline tracking-tight text-page-title mb-2">
@@ -567,9 +553,8 @@ export default function TeacherCourseLabsPage() {
                   onClick={() => setShowCreateMenu(!showCreateMenu)}
                   className="bg-primary text-on-primary px-4 py-2 rounded-lg flex items-center gap-2 hover:opacity-90 transition-all"
                 >
-                  <Plus className="w-4 h-4" />
                   新建内容
-                  <ChevronDown className="w-4 h-4" />
+                  <span className="text-xs">{showCreateMenu ? '收起' : '展开'}</span>
                 </button>
 
                 {showCreateMenu && (
@@ -646,7 +631,7 @@ export default function TeacherCourseLabsPage() {
                     if (e.target === e.currentTarget) closeMaterialModal();
                   }}
                 >
-                  <div className="app-card w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 shadow-xl">
+                  <div className="app-card w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
                     <div className="flex items-start justify-between gap-4 mb-4">
                       <div>
                         <h3 id="material-modal-title" className="text-xl font-bold text-page-title">
@@ -660,10 +645,10 @@ export default function TeacherCourseLabsPage() {
                         type="button"
                         onClick={closeMaterialModal}
                         disabled={materialUploading}
-                        className="text-on-surface-variant hover:text-primary p-1 rounded-lg disabled:opacity-40"
+                        className="text-sm text-on-surface-variant hover:text-primary px-2 py-1 rounded-lg disabled:opacity-40"
                         aria-label="关闭"
                       >
-                        <X className="w-5 h-5" />
+                        关闭
                       </button>
                     </div>
                     <form onSubmit={handleMaterialModalSubmit} className="space-y-4">
@@ -708,7 +693,6 @@ export default function TeacherCourseLabsPage() {
                           disabled={materialUploading}
                           className="flex-1 bg-primary text-on-primary px-4 py-2.5 rounded-lg hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
                         >
-                          <Upload className="w-4 h-4" />
                           {materialUploading ? '上传中…' : '上传并保存'}
                         </button>
                       </div>
@@ -736,7 +720,7 @@ export default function TeacherCourseLabsPage() {
                       draggedLabId === lab.id 
                         ? 'opacity-40 scale-95 cursor-grabbing' 
                         : dragOverLabId === lab.id
-                        ? 'ring-4 ring-primary ring-opacity-50 scale-105 shadow-2xl'
+                        ? 'ring-2 ring-primary/60 scale-[1.01]'
                         : 'hover:-translate-y-0.5 hover:bg-surface-container dark:hover:bg-surface-container/50 cursor-grab'
                     }`}
                   >
@@ -789,7 +773,6 @@ export default function TeacherCourseLabsPage() {
                         }}
                         className="w-full bg-surface-container text-primary px-3 py-2.5 rounded-lg hover:bg-surface-bright transition-all flex items-center justify-center gap-2 font-medium"
                       >
-                        <BookOpen className="w-4 h-4" />
                         预览{lab.type === 'video' ? '视频' : lab.type === 'exam' ? '试卷' : '实验'}
                       </button>
                       
@@ -799,16 +782,14 @@ export default function TeacherCourseLabsPage() {
                           className="bg-surface-container text-primary px-2 py-2 rounded-lg hover:bg-surface-bright transition-all flex items-center justify-center gap-1 text-xs"
                           title={lab.type === 'exam' ? '编辑试卷' : lab.type === 'video' ? '编辑视频' : '编辑实验'}
                         >
-                          <Edit className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">编辑</span>
+                          编辑
                         </button>
                         <button
                           onClick={() => handleDeleteLab(lab.id)}
                           className="bg-red-500/20 text-red-400 px-2 py-2 rounded-lg hover:bg-red-500/30 transition-all flex items-center justify-center gap-1 text-xs"
                           title="删除实验"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">删除</span>
+                          删除
                         </button>
                       </div>
                     </div>
@@ -840,7 +821,6 @@ export default function TeacherCourseLabsPage() {
                         onClick={() => window.open(`/materials/${m.id}`, '_blank', 'noopener,noreferrer')}
                         className="w-full bg-surface-container text-primary px-3 py-2.5 rounded-lg hover:bg-surface-bright transition-all flex items-center justify-center gap-2 font-medium"
                       >
-                        <BookOpen className="w-4 h-4" />
                         查看课件
                       </button>
                       <button
@@ -856,7 +836,6 @@ export default function TeacherCourseLabsPage() {
                         }}
                         className="w-full bg-red-500/20 text-red-400 px-3 py-2 rounded-lg hover:bg-red-500/30 transition-all flex items-center justify-center gap-2 text-sm font-medium"
                       >
-                        <Trash2 className="w-4 h-4" />
                         删除
                       </button>
                     </div>
@@ -865,7 +844,6 @@ export default function TeacherCourseLabsPage() {
 
                 {labs.length === 0 && materials.length === 0 && (
                   <div className="text-center py-12 text-on-surface-variant md:col-span-2 xl:col-span-3">
-                    <BookOpen className="w-16 h-16 mx-auto mb-4 opacity-50" />
                     <p>该课程暂无课时与课件</p>
                     <p className="text-sm mt-2">点击「新建内容」添加实验、视频、试卷或课件</p>
                   </div>
@@ -881,8 +859,8 @@ export default function TeacherCourseLabsPage() {
                     (editingLab.type === 'video' ? '新建视频' : editingLab.type === 'exam' ? '新建试卷' : '新建实验')
                   }
                 </h3>
-                <button onClick={handleCancelEdit} className="text-on-surface-variant hover:text-primary">
-                  <X className="w-5 h-5" />
+                <button onClick={handleCancelEdit} className="text-sm text-on-surface-variant hover:text-primary">
+                  关闭
                 </button>
               </div>
               <form onSubmit={handleSaveLab} className="space-y-6">
@@ -1035,8 +1013,7 @@ export default function TeacherCourseLabsPage() {
                 {editingLab.type === 'lab' && (
                 <>
                 <div className="pt-6">
-                  <h4 className="text-lg font-bold text-page-title mb-4 flex items-center gap-2">
-                    <Settings className="w-5 h-5" />
+                  <h4 className="text-lg font-bold text-page-title mb-4">
                     容器配置
                   </h4>
 
@@ -1146,8 +1123,7 @@ export default function TeacherCourseLabsPage() {
 
                 <div className="pt-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-lg font-bold text-page-title flex items-center gap-2">
-                      <Terminal className="w-5 h-5" />
+                    <h4 className="text-lg font-bold text-page-title">
                       端口映射
                     </h4>
                     <button
@@ -1155,7 +1131,6 @@ export default function TeacherCourseLabsPage() {
                       onClick={addPortMapping}
                       className="bg-primary/20 text-primary px-3 py-1 rounded-lg text-sm hover:bg-primary/30 transition-all flex items-center gap-1"
                     >
-                      <Plus className="w-4 h-4" />
                       添加端口
                     </button>
                   </div>
@@ -1205,9 +1180,9 @@ export default function TeacherCourseLabsPage() {
                           <button
                             type="button"
                             onClick={() => removePortMapping(index)}
-                            className="text-red-400 hover:text-red-300"
+                            className="text-sm text-red-400 hover:text-red-300 px-2 py-1 rounded"
                           >
-                            <X className="w-5 h-5" />
+                            删除
                           </button>
                         </div>
                       ))}
@@ -1217,8 +1192,7 @@ export default function TeacherCourseLabsPage() {
 
                 <div className="pt-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-lg font-bold text-page-title flex items-center gap-2">
-                      <Database className="w-5 h-5" />
+                    <h4 className="text-lg font-bold text-page-title">
                       环境变量
                     </h4>
                     <button
@@ -1226,7 +1200,6 @@ export default function TeacherCourseLabsPage() {
                       onClick={addEnvironmentVar}
                       className="bg-primary/20 text-primary px-3 py-1 rounded-lg text-sm hover:bg-primary/30 transition-all flex items-center gap-1"
                     >
-                      <Plus className="w-4 h-4" />
                       添加变量
                     </button>
                   </div>
@@ -1260,9 +1233,9 @@ export default function TeacherCourseLabsPage() {
                           <button
                             type="button"
                             onClick={() => removeEnvironmentVar(index)}
-                            className="text-red-400 hover:text-red-300"
+                            className="text-sm text-red-400 hover:text-red-300 px-2 py-1 rounded"
                           >
-                            <X className="w-5 h-5" />
+                            删除
                           </button>
                         </div>
                       ))}
@@ -1272,8 +1245,7 @@ export default function TeacherCourseLabsPage() {
 
                 <div className="pt-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-lg font-bold text-page-title flex items-center gap-2">
-                      <HardDrive className="w-5 h-5" />
+                    <h4 className="text-lg font-bold text-page-title">
                       卷挂载
                     </h4>
                     <button
@@ -1281,7 +1253,6 @@ export default function TeacherCourseLabsPage() {
                       onClick={addVolumeMount}
                       className="bg-primary/20 text-primary px-3 py-1 rounded-lg text-sm hover:bg-primary/30 transition-all flex items-center gap-1"
                     >
-                      <Plus className="w-4 h-4" />
                       添加挂载
                     </button>
                   </div>
@@ -1326,9 +1297,9 @@ export default function TeacherCourseLabsPage() {
                           <button
                             type="button"
                             onClick={() => removeVolumeMount(index)}
-                            className="text-red-400 hover:text-red-300"
+                            className="text-sm text-red-400 hover:text-red-300 px-2 py-1 rounded"
                           >
-                            <X className="w-5 h-5" />
+                            删除
                           </button>
                         </div>
                       ))}

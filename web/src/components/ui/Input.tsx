@@ -13,7 +13,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={id}
-            className="block text-xs font-semibold text-gray-400 uppercase tracking-wider ml-1"
+            className="ml-1 block text-xs font-medium text-on-surface-variant"
           >
             {label}
           </label>
@@ -21,7 +21,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <input
           type={type}
           className={cn(
-            "flex h-14 w-full rounded-xl bg-[#0f0f0f]/50 backdrop-blur-sm px-4 py-2 text-base text-white ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-600 hover:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200",
+            "flex h-12 w-full rounded-md bg-surface-lowest px-4 py-2 text-base text-on-surface file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-on-surface-variant disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200",
             className
           )}
           ref={ref}
@@ -35,4 +35,3 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 Input.displayName = "Input";
 
 export { Input };
-

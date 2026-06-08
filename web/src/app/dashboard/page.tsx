@@ -10,7 +10,6 @@ import LoadingBar from '@/components/LoadingBar';
 import AboutCreditsOverlay from '@/components/AboutCreditsOverlay';
 import { cn } from '@/lib/utils';
 import { courseMetaSubtitles } from '@/lib/courseMetaSubtitles';
-import { Play, Compass, ArrowRight, Info } from 'lucide-react';
 
 /** 「关于平台」正放退场 */
 const ABOUT_PLATFORM_CHARS = [...'关于平台'];
@@ -204,7 +203,6 @@ export default function DashboardPage() {
                     onClick={() => router.push('/explore')}
                     className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition-all hover:opacity-95 active:scale-[0.98]"
                   >
-                    <Compass className="h-4 w-4" strokeWidth={2.5} />
                     探索课程
                   </button>
                   <motion.button
@@ -250,30 +248,6 @@ export default function DashboardPage() {
                           exit={{ opacity: 0 }}
                           transition={{ duration: 0.12 }}
                         >
-                          <motion.span
-                            className="inline-flex shrink-0"
-                            aria-hidden
-                            initial={
-                              aboutTextRestoreActive
-                                ? { opacity: 0, y: 4, filter: 'blur(6px)' }
-                                : false
-                            }
-                            animate={
-                              aboutTextRestoreActive
-                                ? { opacity: 1, y: 0, filter: 'blur(0px)' }
-                                : aboutMorphActive
-                                  ? { opacity: 0, y: -4, filter: 'blur(6px)' }
-                                  : { opacity: 1, y: 0, filter: 'blur(0px)' }
-                            }
-                            transition={{
-                              duration: aboutTextRestoreActive
-                                ? ABOUT_ICON_RESTORE_DURATION_S
-                                : ABOUT_ICON_MORPH_DURATION_S,
-                              ease: ABOUT_ICON_MORPH_EASE,
-                            }}
-                          >
-                            <Info className="h-4 w-4" strokeWidth={2.5} />
-                          </motion.span>
                           <span className="inline-flex items-baseline font-semibold tracking-tight">
                             {ABOUT_PLATFORM_CHARS.map((ch, i) => {
                               const reverseIndex = ABOUT_PLATFORM_CHARS.length - 1 - i;
@@ -381,7 +355,6 @@ export default function DashboardPage() {
                 className="inline-flex shrink-0 items-center gap-1 self-start rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition-all hover:bg-primary/15 sm:self-auto"
               >
                 查看全部
-                <ArrowRight className="h-4 w-4" />
               </button>
             </div>
 
@@ -403,6 +376,8 @@ export default function DashboardPage() {
                   return (
                     <div
                       key={course.id}
+                      role="button"
+                      tabIndex={isInactive ? -1 : 0}
                       className={`app-card p-6 transition-all duration-200 ${
                         isInactive
                           ? 'cursor-not-allowed opacity-50'
@@ -414,6 +389,13 @@ export default function DashboardPage() {
                           return;
                         }
                         router.push(`/courses/${course.id}`);
+                      }}
+                      onKeyDown={(e) => {
+                        if (isInactive) return;
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          router.push(`/courses/${course.id}`);
+                        }
                       }}
                     >
                       <div className="flex items-start justify-between mb-2">
@@ -447,7 +429,6 @@ export default function DashboardPage() {
                         </span>
                         {!isInactive && (
                           <button className="text-primary hover:underline text-sm flex items-center gap-1">
-                            <Play className="w-4 h-4" />
                             继续学习
                           </button>
                         )}
@@ -464,4 +445,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

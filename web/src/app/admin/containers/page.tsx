@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Container as ContainerIcon, Loader2, Play, RefreshCw, Square, Terminal, Trash2 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { adminAPI } from '@/lib/api';
 import api from '@/lib/api';
@@ -252,7 +251,6 @@ export default function AdminContainersPage() {
               onClick={() => void loadData()}
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary transition-opacity hover:opacity-95"
             >
-              <RefreshCw className="h-4 w-4" />
               刷新
             </button>
           </div>
@@ -272,7 +270,6 @@ export default function AdminContainersPage() {
               <div className="app-card overflow-hidden">
                 <div className="border-b border-outline-variant/40 px-5 py-4">
                   <div className="flex items-center gap-3">
-                    <ContainerIcon className="h-5 w-5 text-primary" />
                     <h3 className="text-xl font-bold text-page-title">容器列表</h3>
                     <span className="text-sm text-on-surface-variant">{node?.name || '本机 Docker'}</span>
                   </div>
@@ -332,47 +329,47 @@ export default function AdminContainersPage() {
                               </td>
                               <td className="p-3 text-sm text-on-surface-variant">{formatTime(c.createdAt)}</td>
                               <td className="p-3">
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
                                   {isBusy ? (
-                                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                    <span className="text-sm text-on-surface-variant">处理中</span>
                                   ) : (
                                     <>
                                       {c.status === 'running' && c.dockerId ? (
                                         <button
                                           type="button"
                                           onClick={() => setTerminalContainer({ containerId: c.dockerId, containerName: c.title })}
-                                          className="rounded-lg p-2 text-blue-400 transition-colors hover:bg-blue-500/10"
+                                          className="rounded-full bg-surface-container px-3 py-1.5 text-xs font-medium text-on-surface transition-colors hover:bg-surface-high"
                                           title="打开终端"
                                         >
-                                          <Terminal className="h-4 w-4" />
+                                          终端
                                         </button>
                                       ) : null}
                                       {c.status === 'running' ? (
                                         <button
                                           type="button"
                                           onClick={() => void stopContainer(c)}
-                                          className="rounded-lg p-2 text-yellow-400 transition-colors hover:bg-yellow-500/10"
+                                          className="rounded-full bg-surface-container px-3 py-1.5 text-xs font-medium text-on-surface transition-colors hover:bg-surface-high"
                                           title="停止容器"
                                         >
-                                          <Square className="h-4 w-4" />
+                                          停止
                                         </button>
                                       ) : (
                                         <button
                                           type="button"
                                           onClick={() => void startContainer(c)}
-                                          className="rounded-lg p-2 text-green-400 transition-colors hover:bg-green-500/10"
+                                          className="rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-on-primary transition-opacity hover:opacity-90"
                                           title="启动容器"
                                         >
-                                          <Play className="h-4 w-4" />
+                                          启动
                                         </button>
                                       )}
                                       <button
                                         type="button"
                                         onClick={() => void removeContainer(c)}
-                                        className="rounded-lg p-2 text-red-400 transition-colors hover:bg-red-500/10"
+                                        className="rounded-full bg-status-error-bg px-3 py-1.5 text-xs font-medium text-status-error-text transition-opacity hover:opacity-85"
                                         title="删除容器"
                                       >
-                                        <Trash2 className="h-4 w-4" />
+                                        删除
                                       </button>
                                     </>
                                   )}

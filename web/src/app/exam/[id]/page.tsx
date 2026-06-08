@@ -5,16 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import Sidebar from '@/components/Sidebar';
 import LoadingBar from '@/components/LoadingBar';
-import { 
-  Clock, 
-  CheckCircle2, 
-  Circle, 
-  Square, 
-  AlertCircle,
-  ChevronLeft,
-  ChevronRight,
-  Send
-} from 'lucide-react';
 
 interface Question {
   id: string;
@@ -365,14 +355,14 @@ export default function ExamPage() {
             disabled={currentQuestionIndex === 0}
             className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-30 disabled:cursor-not-allowed text-primary hover:bg-surface-container"
           >
-            ← 上一题
+            上一题
           </button>
           <button
             onClick={() => setCurrentQuestionIndex(Math.min(questions.length - 1, currentQuestionIndex + 1))}
             disabled={currentQuestionIndex === questions.length - 1}
             className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-30 disabled:cursor-not-allowed text-primary hover:bg-surface-container"
           >
-            下一题 →
+            下一题
           </button>
         </div>
       </div>
@@ -394,7 +384,6 @@ export default function ExamPage() {
         <main className="flex-1 lg:ml-64 p-8">
           <div className="max-w-2xl mx-auto">
             <div className="app-card p-8 text-center">
-              <AlertCircle className="w-16 h-16 text-error mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-error mb-2">加载失败</h2>
               <p className="text-on-surface-variant mb-6">{loadError}</p>
               <button
@@ -452,15 +441,14 @@ export default function ExamPage() {
 
               <div className="bg-surface-container rounded-lg p-6 mb-8 text-left">
                 <h3 className="text-page-title font-bold mb-3 flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5" />
                   考试须知
                 </h3>
                 <ul className="space-y-2 text-sm text-on-surface-variant">
-                  <li>• 考试开始后，计时器将自动开始倒计时</li>
-                  <li>• 请在规定时间内完成所有题目</li>
-                  <li>• 时间到后将自动提交试卷</li>
-                  <li>• 提交后无法修改答案，请仔细检查</li>
-                  <li>• 请保持网络连接稳定</li>
+                  <li>考试开始后，计时器将自动开始倒计时</li>
+                  <li>请在规定时间内完成所有题目</li>
+                  <li>时间到后将自动提交试卷</li>
+                  <li>提交后无法修改答案，请仔细检查</li>
+                  <li>请保持网络连接稳定</li>
                 </ul>
               </div>
 
@@ -494,7 +482,6 @@ export default function ExamPage() {
             </div>
             <div className="flex items-center gap-6">
               <div className={`flex items-center gap-2 ${timeRemaining < 300 ? 'text-error' : 'text-on-surface'}`}>
-                <Clock className="w-5 h-5" />
                 <span className="text-lg font-mono font-bold">{formatTime(timeRemaining)}</span>
               </div>
               <button
@@ -502,7 +489,6 @@ export default function ExamPage() {
                 disabled={isSubmitting}
                 className="bg-primary text-on-primary px-6 py-2 rounded-lg hover:opacity-90 transition-all flex items-center gap-2 disabled:opacity-50"
               >
-                <Send className="w-4 h-4" />
                 {isSubmitting ? '提交中...' : '提交试卷'}
               </button>
             </div>
@@ -543,6 +529,7 @@ export default function ExamPage() {
                     <button
                       key={q.id}
                       onClick={() => setCurrentQuestionIndex(index)}
+                      aria-label={`第 ${index + 1} 题`}
                       className={`aspect-square rounded-md font-medium transition-all text-sm ${
                         isCurrent
                           ? 'bg-primary text-on-primary'

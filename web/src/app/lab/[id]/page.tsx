@@ -6,7 +6,6 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { labAPI, containerAPI } from '@/lib/api';
 import LoadingBar from '@/components/LoadingBar';
-import { Terminal, Monitor, Play, Square, Save, RotateCcw, Laptop, Globe, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { Terminal as XTermType } from '@xterm/xterm';
 import type { FitAddon as FitAddonType } from '@xterm/addon-fit';
@@ -118,15 +117,22 @@ export default function LabPage() {
       const { FitAddon } = await import('@xterm/addon-fit');
       if (cancelled || !terminalRef.current) return;
 
+      const styles = getComputedStyle(document.documentElement);
+      const terminalBg = styles.getPropertyValue('--terminal-bg').trim() || '#000000';
+      const terminalText = styles.getPropertyValue('--terminal-text').trim() || '#f5f5f7';
+      const terminalAccent = styles.getPropertyValue('--terminal-accent').trim() || '#2997ff';
+
       const term = new Terminal({
         cursorBlink: true,
         fontSize: 14,
         fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
         theme: {
-          background: '#000000',
-          foreground: '#ffffff',
-          cursor: '#ffffff',
-          selectionBackground: 'rgba(255, 255, 255, 0.3)',
+          background: terminalBg,
+          foreground: terminalText,
+          cursor: terminalText,
+          selectionBackground: 'rgba(41, 151, 255, 0.32)',
+          blue: terminalAccent,
+          brightBlue: terminalAccent,
         },
         rows: 30,
         cols: 80,
@@ -362,27 +368,27 @@ export default function LabPage() {
   }
 
   return (
-    <div className="flex h-screen bg-background text-on-surface overflow-hidden">
+    <div className="flex min-h-screen flex-col bg-background text-on-surface lg:h-screen lg:flex-row lg:overflow-hidden">
       <TextSelectionAI containerId={container?.id} contentRef={labContentRef} />
 
-      <div className="w-[35%] flex flex-col">
+      <div className="flex w-full flex-col lg:h-screen lg:w-[35%] lg:min-w-[360px]">
         <div className="p-4">
           <h1 className="text-page-title text-2xl font-bold mb-2">{lab.title}</h1>
           <p className="text-sm text-on-surface-variant mb-4">{lab.description}</p>
 
           {container && (
-            <div className="mb-3 px-3 py-2 bg-surface-container rounded-lg flex items-center gap-2">
+            <div className="mb-3 flex items-center gap-2 rounded-md bg-surface-container px-3 py-2">
               <div
                 className={`w-2 h-2 rounded-full ${
                   container.status === 'running'
-                    ? 'bg-green-500 animate-pulse'
+                    ? 'bg-status-success animate-pulse'
                     : container.status === 'creating'
-                      ? 'bg-blue-500 animate-pulse'
+                      ? 'bg-status-info animate-pulse'
                       : container.status === 'stopping'
-                        ? 'bg-yellow-500 animate-pulse'
+                        ? 'bg-status-warning animate-pulse'
                         : container.status === 'stopped'
-                          ? 'bg-gray-500'
-                          : 'bg-red-500'
+                          ? 'bg-status-neutral'
+                          : 'bg-status-error'
                 }`}
               />
               <span className="text-sm text-on-surface-variant">
@@ -421,25 +427,16 @@ export default function LabPage() {
                 container?.status === 'creating' ||
                 container?.status === 'stopping' ||
                 isStarting
-                  ? 'bg-gray-500 text-gray-300 cursor-not-allowed opacity-50'
-                  : 'bg-green-500 text-white hover:bg-green-600'
+                  ? 'bg-surface-container text-on-surface-variant cursor-not-allowed opacity-50'
+                  : 'bg-primary text-on-primary hover:opacity-90'
               }`}
             >
               {isStarting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {container?.status === 'stopped' ? '启动中...' : '创建中...'}
-                </>
+                <>{container?.status === 'stopped' ? '启动中...' : '创建中...'}</>
               ) : container?.status === 'creating' ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  创建中...
-                </>
+                <>创建中...</>
               ) : (
-                <>
-                  <Play className="w-4 h-4" />
-                  {!container ? '创建容器' : container.status === 'stopped' ? '启动容器' : '启动容器'}
-                </>
+                <>{!container ? '创建容器' : container.status === 'stopped' ? '启动容器' : '启动容器'}</>
               )}
             </button>
             <button
@@ -447,20 +444,14 @@ export default function LabPage() {
               disabled={!container || container.status !== 'running' || isStopping}
               className={`flex-1 min-w-[120px] px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all ${
                 !container || container.status !== 'running' || isStopping
-                  ? 'bg-gray-500 text-gray-300 cursor-not-allowed opacity-50'
-                  : 'bg-red-500 text-white hover:bg-red-600'
+                  ? 'bg-surface-container text-on-surface-variant cursor-not-allowed opacity-50'
+                  : 'bg-status-error-bg text-status-error-text hover:opacity-85'
               }`}
             >
               {isStopping ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  停止中...
-                </>
+                <>停止中...</>
               ) : (
-                <>
-                  <Square className="w-4 h-4" />
-                  停止容器
-                </>
+                <>停止容器</>
               )}
             </button>
             <button
@@ -474,54 +465,49 @@ export default function LabPage() {
                   : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'
               }`}
             >
-              <RotateCcw className="w-4 h-4" />
               清空
             </button>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-1">
             <button
               onClick={() => setActiveTab('ssh')}
-              className={`flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-sm ${
+              className={`min-w-20 flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-sm ${
                 activeTab === 'ssh'
                   ? 'bg-primary text-on-primary'
                   : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'
               }`}
             >
-              <Terminal className="w-4 h-4" />
               SSH
             </button>
             <button
               onClick={() => setActiveTab('vnc')}
-              className={`flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-sm ${
+              className={`min-w-20 flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-sm ${
                 activeTab === 'vnc'
                   ? 'bg-primary text-on-primary'
                   : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'
               }`}
             >
-              <Monitor className="w-4 h-4" />
               VNC
             </button>
             <button
               onClick={() => setActiveTab('rdp')}
-              className={`flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-sm ${
+              className={`min-w-20 flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-sm ${
                 activeTab === 'rdp'
                   ? 'bg-primary text-on-primary'
                   : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'
               }`}
             >
-              <Laptop className="w-4 h-4" />
               IDE
             </button>
             <button
               onClick={() => setActiveTab('web')}
-              className={`flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-sm ${
+              className={`min-w-20 flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-sm ${
                 activeTab === 'web'
                   ? 'bg-primary text-on-primary'
                   : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'
               }`}
             >
-              <Globe className="w-4 h-4" />
               Web
             </button>
           </div>
@@ -560,24 +546,22 @@ export default function LabPage() {
             onClick={handleSubmit}
             className="flex-1 bg-primary text-on-primary px-4 py-2.5 rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 text-sm"
           >
-            <Save className="w-4 h-4" />
             提交实验
           </button>
         </div>
       </div>
 
-      <div className="w-[65%] flex flex-col">
+      <div className="flex min-h-[70vh] w-full flex-col lg:h-screen lg:w-[65%]">
         <div className="flex-1 overflow-hidden relative">
           <div className={`h-full flex flex-col ${activeTab === 'ssh' ? '' : 'hidden'}`}>
             {!container ? (
               <div className="h-full bg-surface-container flex items-center justify-center">
                 <div className="text-center">
-                  <Terminal className="w-16 h-16 text-on-surface-variant mx-auto mb-4 opacity-50" />
                   <p className="text-on-surface-variant">请先启动容器</p>
                 </div>
               </div>
             ) : (
-              <div ref={terminalRef} className="h-full w-full bg-black" />
+              <div ref={terminalRef} className="h-full w-full bg-[var(--terminal-bg)]" />
             )}
           </div>
 
@@ -586,7 +570,6 @@ export default function LabPage() {
           >
             {container ? (
               <div className="text-center">
-                <Monitor className="w-16 h-16 text-primary mx-auto mb-4" />
                 <p className="text-on-surface-variant mb-2">VNC 连接</p>
                 <p className="text-xs text-on-surface-variant">
                   容器 ID: {container.containerId?.slice(0, 8) || container.id.slice(0, 8)}
@@ -595,7 +578,6 @@ export default function LabPage() {
               </div>
             ) : (
               <div className="text-center">
-                <Monitor className="w-16 h-16 text-on-surface-variant mx-auto mb-4 opacity-50" />
                 <p className="text-on-surface-variant">请先启动容器</p>
               </div>
             )}
@@ -606,7 +588,6 @@ export default function LabPage() {
           >
             {container ? (
               <div className="text-center">
-                <Laptop className="w-16 h-16 text-primary mx-auto mb-4" />
                 <p className="text-on-surface-variant mb-2">IDE 连接</p>
                 <p className="text-xs text-on-surface-variant">
                   容器 ID: {container.containerId?.slice(0, 8) || container.id.slice(0, 8)}
@@ -615,7 +596,6 @@ export default function LabPage() {
               </div>
             ) : (
               <div className="text-center">
-                <Laptop className="w-16 h-16 text-on-surface-variant mx-auto mb-4 opacity-50" />
                 <p className="text-on-surface-variant">请先启动容器</p>
               </div>
             )}
@@ -625,7 +605,6 @@ export default function LabPage() {
             {container ? (
               <>
                 <div className="p-4 flex items-center gap-3">
-                  <Globe className="w-5 h-5 text-primary" />
                   <div className="flex-1">
                     <p className="text-sm text-on-surface-variant mb-1">Web 访问地址</p>
                     <div className="flex items-center gap-2">
@@ -652,7 +631,7 @@ export default function LabPage() {
                       </button>
                       <button
                         onClick={() => setWebLoadError(false)}
-                        className="px-3 py-1.5 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-all"
+                        className="px-3 py-1.5 bg-surface-container text-on-surface rounded text-sm hover:bg-surface-high transition-all"
                       >
                         刷新
                       </button>
@@ -660,7 +639,7 @@ export default function LabPage() {
                         href={webUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3 py-1.5 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-all"
+                        className="px-3 py-1.5 bg-surface-container text-on-surface rounded text-sm hover:bg-surface-high transition-all"
                       >
                         新窗口
                       </a>
@@ -671,7 +650,6 @@ export default function LabPage() {
                   {webLoadError ? (
                     <div className="h-full bg-surface-container flex items-center justify-center">
                       <div className="text-center">
-                        <Globe className="w-16 h-16 text-on-surface-variant mx-auto mb-4 opacity-50" />
                         <p className="text-on-surface-variant mb-2">无法连接到 Web 服务</p>
                         <p className="text-xs text-on-surface-variant mb-4">请检查容器是否已启动 Web 服务</p>
                         <p className="text-xs text-on-surface-variant mb-4">当前地址: {webUrl}</p>
@@ -697,7 +675,6 @@ export default function LabPage() {
             ) : (
               <div className="h-full flex items-center justify-center">
                 <div className="text-center">
-                  <Globe className="w-16 h-16 text-on-surface-variant mx-auto mb-4 opacity-50" />
                   <p className="text-on-surface-variant">请先启动容器</p>
                 </div>
               </div>

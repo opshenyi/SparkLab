@@ -1,12 +1,10 @@
 'use client';
 
-import { AnimatedCharacters } from '@/components/AnimatedCharacters';
 import LoadingBar from '@/components/LoadingBar';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { authAPI, publicClassAPI } from '@/lib/api';
-import { Eye, EyeOff, Lock, User, Hash, AtSign } from 'lucide-react';
 
 export default function Login() {
     const router = useRouter();
@@ -125,27 +123,17 @@ export default function Login() {
 
     return (
         <div className="min-h-screen grid lg:grid-cols-2">
-            {/* 左侧：品牌视觉区 */}
-            <div className="hidden lg:flex relative flex-col justify-center items-center p-12 bg-gradient-to-br from-surface-lowest via-surface-low to-surface-container overflow-hidden">
-                <div className="relative z-20">
-                    <AnimatedCharacters
-                        isTyping={isTyping}
-                        showPassword={showPassword}
-                        passwordLength={passwordValue.length}
-                    />
+            {/* 左侧：品牌叙事区 */}
+            <div className="hidden lg:flex relative flex-col justify-center p-16 bg-surface-lowest">
+                <div className="max-w-xl">
+                    <p className="mb-5 text-sm font-medium text-on-surface-variant">Spark Lab</p>
+                    <h2 className="text-5xl font-semibold leading-[1.06] text-page-title">
+                        把每一次登录，带回真实的实验环境。
+                    </h2>
+                    <p className="mt-6 text-lg leading-relaxed text-on-surface-variant">
+                        课程、容器、试卷和材料保持在同一套清晰工作流里。界面减少干扰，把注意力留给实践本身。
+                    </p>
                 </div>
-
-                {/* 装饰元素 */}
-                <div className="absolute top-[15%] right-[10%] w-[300px] h-[300px] bg-primary/10 rounded-full blur-[80px] pointer-events-none" />
-                <div className="absolute bottom-[10%] left-[5%] w-[400px] h-[400px] bg-primary/15 rounded-full blur-[100px] pointer-events-none" />
-                <div
-                    className="absolute inset-0 pointer-events-none opacity-[0.03]"
-                    style={{
-                        backgroundImage:
-                            'linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)',
-                        backgroundSize: '40px 40px',
-                    }}
-                />
             </div>
 
             {/* 右侧：登录/注册表单 */}
@@ -205,7 +193,6 @@ export default function Login() {
                             <div>
                                 <label className="block text-sm font-medium text-on-surface mb-1.5">账号</label>
                                 <div className="relative">
-                                    <AtSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
                                     <input
                                         type="text"
                                         value={loginData.username}
@@ -216,7 +203,7 @@ export default function Login() {
                                         required
                                         minLength={3}
                                         maxLength={20}
-                                        className="w-full h-12 pl-11 pr-4 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+                                        className="w-full h-12 px-4 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                     />
                                 </div>
                             </div>
@@ -224,7 +211,6 @@ export default function Login() {
                             <div>
                                 <label className="block text-sm font-medium text-on-surface mb-1.5">密码</label>
                                 <div className="relative">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
                                     <input
                                         type={showPassword ? 'text' : 'password'}
                                         value={loginData.password}
@@ -236,14 +222,14 @@ export default function Login() {
                                         required
                                         minLength={6}
                                         maxLength={32}
-                                        className="w-full h-12 pl-11 pr-12 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+                                        className="w-full h-12 pl-4 pr-20 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-3 py-1 text-xs font-medium text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
                                     >
-                                        {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                        {showPassword ? '隐藏' : '显示'}
                                     </button>
                                 </div>
                             </div>
@@ -276,7 +262,6 @@ export default function Login() {
                             <div>
                                 <label className="block text-sm font-medium text-on-surface mb-1.5">用户名</label>
                                 <div className="relative">
-                                    <AtSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
                                     <input
                                         type="text"
                                         value={registerData.username}
@@ -289,7 +274,7 @@ export default function Login() {
                                         maxLength={20}
                                         pattern="[a-zA-Z0-9_]+"
                                         title="只能包含字母、数字和下划线"
-                                        className="w-full h-12 pl-11 pr-4 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+                                        className="w-full h-12 px-4 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                     />
                                 </div>
                             </div>
@@ -297,7 +282,6 @@ export default function Login() {
                             <div>
                                 <label className="block text-sm font-medium text-on-surface mb-1.5">显示姓名</label>
                                 <div className="relative">
-                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
                                     <input
                                         type="text"
                                         value={registerData.displayName}
@@ -306,7 +290,7 @@ export default function Login() {
                                         required
                                         minLength={2}
                                         maxLength={20}
-                                        className="w-full h-12 pl-11 pr-4 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+                                        className="w-full h-12 px-4 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                     />
                                 </div>
                             </div>
@@ -351,7 +335,6 @@ export default function Login() {
                             <div>
                                 <label className="block text-sm font-medium text-on-surface mb-1.5">QQ号（可选）</label>
                                 <div className="relative">
-                                    <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
                                     <input
                                         type="text"
                                         value={registerData.qqNumber}
@@ -360,7 +343,7 @@ export default function Login() {
                                         maxLength={11}
                                         pattern="[0-9]*"
                                         title="只能包含数字"
-                                        className="w-full h-12 pl-11 pr-4 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+                                        className="w-full h-12 px-4 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                     />
                                 </div>
                             </div>
@@ -368,7 +351,6 @@ export default function Login() {
                             <div>
                                 <label className="block text-sm font-medium text-on-surface mb-1.5">密码</label>
                                 <div className="relative">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
                                     <input
                                         type={showPassword ? 'text' : 'password'}
                                         value={registerData.password}
@@ -380,14 +362,14 @@ export default function Login() {
                                         required
                                         minLength={6}
                                         maxLength={32}
-                                        className="w-full h-12 pl-11 pr-12 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+                                        className="w-full h-12 pl-4 pr-20 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-3 py-1 text-xs font-medium text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
                                     >
-                                        {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                        {showPassword ? '隐藏' : '显示'}
                                     </button>
                                 </div>
                             </div>
@@ -395,7 +377,6 @@ export default function Login() {
                             <div>
                                 <label className="block text-sm font-medium text-on-surface mb-1.5">确认密码</label>
                                 <div className="relative">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
                                     <input
                                         type={showPassword ? 'text' : 'password'}
                                         value={registerData.confirmPassword}
@@ -404,7 +385,7 @@ export default function Login() {
                                         required
                                         minLength={6}
                                         maxLength={32}
-                                        className="w-full h-12 pl-11 pr-4 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+                                        className="w-full h-12 px-4 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                     />
                                 </div>
                             </div>
@@ -429,4 +410,3 @@ export default function Login() {
         </div>
     );
 }
-

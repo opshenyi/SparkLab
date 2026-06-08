@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, CheckCircle2, ExternalLink, RefreshCw, X } from 'lucide-react';
 import { updateAPI } from '@/lib/api';
 
 type Announcement = {
@@ -76,9 +75,6 @@ export default function UpdateNotifier() {
   return (
     <div className="fixed bottom-4 right-4 z-[70] w-[calc(100vw-2rem)] max-w-md rounded-xl border border-outline/40 bg-surface-lowest/95 p-4 shadow-soft-lg backdrop-blur-md">
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
-          {info.hasUpdate ? <RefreshCw className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
-        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -96,7 +92,7 @@ export default function UpdateNotifier() {
                 className="rounded-lg p-1.5 text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
                 title="关闭"
               >
-                <X className="h-4 w-4" />
+                关闭
               </button>
             )}
           </div>
@@ -104,8 +100,7 @@ export default function UpdateNotifier() {
           {latestNote?.items?.length ? (
             <ul className="mt-3 space-y-1 text-xs text-on-surface-variant">
               {latestNote.items.slice(0, 3).map((item) => (
-                <li key={item} className="flex gap-2">
-                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-status-success" />
+                <li key={item}>
                   <span>{item}</span>
                 </li>
               ))}
@@ -124,7 +119,6 @@ export default function UpdateNotifier() {
                 className="inline-flex items-center gap-1 font-semibold text-primary hover:text-primary-dim"
               >
                 GitHub
-                <ExternalLink className="h-3.5 w-3.5" />
               </a>
             )}
           </div>

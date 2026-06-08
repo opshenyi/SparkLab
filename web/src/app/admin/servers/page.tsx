@@ -2,17 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Activity,
-  Box,
-  Cpu,
-  Database,
-  HardDrive,
-  Layers,
-  Network,
-  RefreshCw,
-  Server as ServerIcon,
-} from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { adminAPI } from '@/lib/api';
 import { usePollWhileVisible } from '@/lib/usePollWhileVisible';
@@ -140,7 +129,6 @@ export default function LocalServerDashboardPage() {
               onClick={() => void loadStatus()}
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary transition-opacity hover:opacity-95"
             >
-              <RefreshCw className="h-4 w-4" />
               刷新
             </button>
           </div>
@@ -156,26 +144,22 @@ export default function LocalServerDashboardPage() {
               <div className="space-y-6">
                 <section className="grid gap-4 md:grid-cols-4">
                   <OverviewCard
-                    icon={<ServerIcon className="h-5 w-5" />}
                     label="主机名称"
                     value={status.host?.name || status.docker?.name || '当前主机'}
                     subValue={dockerOnline ? 'Docker 在线' : 'Docker 不可用'}
                     good={dockerOnline}
                   />
                   <OverviewCard
-                    icon={<Cpu className="h-5 w-5" />}
                     label="CPU"
                     value={`${status.resource?.cpuCores || 0} 核`}
                     subValue={status.resource?.cpuModel || status.host?.architecture || '-'}
                   />
                   <OverviewCard
-                    icon={<HardDrive className="h-5 w-5" />}
                     label="内存"
                     value={formatBytes(status.resource?.memoryTotal)}
                     subValue={`${formatBytes(status.resource?.memoryUsed)} 已用`}
                   />
                   <OverviewCard
-                    icon={<Box className="h-5 w-5" />}
                     label="Docker"
                     value={status.docker?.version || '-'}
                     subValue={status.docker?.host || 'unix:///var/run/docker.sock'}
@@ -184,7 +168,6 @@ export default function LocalServerDashboardPage() {
 
                 <section className="app-card p-6">
                   <div className="mb-5 flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-primary" />
                     <h3 className="text-xl font-bold text-page-title">状态</h3>
                   </div>
                   <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
@@ -204,17 +187,16 @@ export default function LocalServerDashboardPage() {
                 </section>
 
                 <section className="grid gap-4 md:grid-cols-4">
-                  <DockerMetric icon={<Box className="h-5 w-5" />} label="容器" value={`${status.docker?.containersRunning || 0}/${status.docker?.containers || 0}`} />
-                  <DockerMetric icon={<Layers className="h-5 w-5" />} label="镜像" value={status.docker?.images || 0} />
-                  <DockerMetric icon={<Network className="h-5 w-5" />} label="网络" value={status.docker?.networks || 0} />
-                  <DockerMetric icon={<Database className="h-5 w-5" />} label="存储卷" value={status.docker?.volumes || 0} />
+                  <DockerMetric label="容器" value={`${status.docker?.containersRunning || 0}/${status.docker?.containers || 0}`} />
+                  <DockerMetric label="镜像" value={status.docker?.images || 0} />
+                  <DockerMetric label="网络" value={status.docker?.networks || 0} />
+                  <DockerMetric label="存储卷" value={status.docker?.volumes || 0} />
                 </section>
               </div>
 
               <aside className="space-y-6">
                 <section className="app-card p-6">
                   <div className="mb-5 flex items-center gap-2">
-                    <ServerIcon className="h-5 w-5 text-primary" />
                     <h3 className="text-xl font-bold text-page-title">系统信息</h3>
                   </div>
                   <InfoRow label="发行版本" value={status.host?.operatingSystem || status.docker?.operatingSystem || '-'} />
@@ -227,7 +209,6 @@ export default function LocalServerDashboardPage() {
 
                 <section className="app-card p-6">
                   <div className="mb-5 flex items-center gap-2">
-                    <Network className="h-5 w-5 text-primary" />
                     <h3 className="text-xl font-bold text-page-title">流量</h3>
                   </div>
                   <InfoRow label="总发送" value={formatBytes(status.network?.bytesSent)} />
@@ -245,13 +226,11 @@ export default function LocalServerDashboardPage() {
 }
 
 function OverviewCard({
-  icon,
   label,
   value,
   subValue,
   good,
 }: {
-  icon: React.ReactNode;
   label: string;
   value: string;
   subValue: string;
@@ -259,12 +238,11 @@ function OverviewCard({
 }) {
   return (
     <div className="app-card p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <div className="text-primary">{icon}</div>
-        {good !== undefined ? (
+      {good !== undefined ? (
+        <div className="mb-4 flex items-center justify-end">
           <span className={`h-2.5 w-2.5 rounded-full ${good ? 'bg-status-success' : 'bg-status-error'}`} />
-        ) : null}
-      </div>
+        </div>
+      ) : null}
       <p className="mb-1 text-xs text-on-surface-variant">{label}</p>
       <p className="truncate text-xl font-bold text-on-surface" title={value}>{value}</p>
       <p className="mt-1 truncate text-xs text-on-surface-variant" title={subValue}>{subValue}</p>
@@ -290,10 +268,9 @@ function RingGauge({ label, value, detail }: { label: string; value: number; det
   );
 }
 
-function DockerMetric({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
+function DockerMetric({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="app-card p-5">
-      <div className="mb-4 text-primary">{icon}</div>
       <p className="mb-1 text-xs text-on-surface-variant">{label}</p>
       <p className="text-3xl font-bold tabular-nums text-on-surface">{value}</p>
     </div>

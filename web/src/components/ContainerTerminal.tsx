@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
-import { X } from 'lucide-react';
 import { backendWsHost } from '@/lib/backendWs';
 
 interface ContainerTerminalProps {
@@ -31,16 +30,21 @@ export default function ContainerTerminal({
   useEffect(() => {
     if (!terminalRef.current) return;
 
-    // 初始化终端
     const term = new Terminal({
       cursorBlink: true,
       fontSize: 14,
       fontFamily: 'var(--font-jetbrains-mono)',
       theme: {
         background: '#000000',
-        foreground: '#ffffff',
-        cursor: '#ffffff',
-        selectionBackground: 'rgba(255, 255, 255, 0.3)',
+        foreground: '#f5f5f7',
+        cursor: '#f5f5f7',
+        selectionBackground: 'rgba(41, 151, 255, 0.32)',
+        black: '#000000',
+        brightBlack: '#666666',
+        white: '#f5f5f7',
+        brightWhite: '#ffffff',
+        blue: '#2997ff',
+        brightBlue: '#5eb3ff',
       },
       rows: 30,
       cols: 100,
@@ -48,20 +52,19 @@ export default function ContainerTerminal({
 
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
-    
+
     try {
       term.open(terminalRef.current);
       termRef.current = term;
       fitAddonRef.current = fitAddon;
-      
-      // 延迟调用 fit 以确保 DOM 已渲染
+
       setTimeout(() => {
         try {
           fitAddon.fit();
-          setIsReady(true);
         } catch (e) {
           console.error('Failed to fit terminal:', e);
-          setIsReady(true); // 即使 fit 失败也继续
+        } finally {
+          setIsReady(true);
         }
       }, 100);
     } catch (e) {
@@ -70,12 +73,9 @@ export default function ContainerTerminal({
       return;
     }
 
-    // 清理函数
     return () => {
-      if (wsRef.current) {
-        if (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING) {
-          wsRef.current.close();
-        }
+      if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) {
+        wsRef.current.close();
       }
       term.dispose();
     };
@@ -85,17 +85,13 @@ export default function ContainerTerminal({
     if (!isReady || !termRef.current) return;
 
     const term = termRef.current;
-
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${backendWsHost()}/servers/${serverId}/containers/${containerId}/terminal`;
-
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
       setIsConnecting(false);
-
-      // 监听用户输入
       term.onData((data) => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(data);
@@ -116,19 +112,15 @@ export default function ContainerTerminal({
       setIsConnecting(false);
     };
 
-    // 窗口大小调整
     const handleResize = () => {
-      if (fitAddonRef.current) {
-        try {
-          fitAddonRef.current.fit();
-        } catch (e) {
-          console.error('Failed to fit terminal on resize:', e);
-        }
+      try {
+        fitAddonRef.current?.fit();
+      } catch (e) {
+        console.error('Failed to fit terminal on resize:', e);
       }
     };
     window.addEventListener('resize', handleResize);
 
-    // 清理
     return () => {
       window.removeEventListener('resize', handleResize);
       if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
@@ -138,44 +130,29 @@ export default function ContainerTerminal({
   }, [isReady, serverId, containerId]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="app-card shadow-2xl w-[90vw] h-[80vh] max-w-7xl flex flex-col">
-        {/* 头部 */}
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            <h3 className="text-page-title text-lg font-bold">
-              终端 - {containerName}
-            </h3>
-            {isConnecting && (
-              <span className="text-sm text-on-surface-variant">连接中...</span>
-            )}
-            {error && (
-              <span className="text-sm text-red-400">{error}</span>
-            )}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+      <div className="terminal-shell flex h-[80vh] w-[90vw] max-w-7xl flex-col overflow-hidden rounded-lg">
+        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+          <div className="min-w-0">
+            <h3 className="truncate text-sm font-semibold text-white">终端 · {containerName}</h3>
+            <p className="mt-0.5 text-xs text-white/50">
+              {isConnecting ? '正在连接容器会话' : error || '已连接'}
+            </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-surface-bright rounded-lg transition-colors"
-            title="关闭终端"
+            className="rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/16"
           >
-            <X className="w-5 h-5 text-on-surface-variant" />
+            关闭
           </button>
         </div>
 
-        {/* 终端区域 */}
-        <div className="flex-1 p-4 overflow-hidden">
-          <div
-            ref={terminalRef}
-            className="w-full h-full terminal-scrollbar"
-            style={{ backgroundColor: '#000000' }}
-          />
+        <div className="flex-1 overflow-hidden bg-black p-4">
+          <div ref={terminalRef} className="terminal-scrollbar h-full w-full" />
         </div>
 
-        {/* 底部提示 */}
-        <div className="p-3 bg-surface-container">
-          <p className="text-xs text-on-surface-variant">
-            提示: 使用 Ctrl+C 中断命令
-          </p>
+        <div className="border-t border-white/10 px-4 py-3">
+          <p className="text-xs text-white/48">提示：使用 Ctrl+C 中断当前命令。</p>
         </div>
       </div>
 
@@ -195,15 +172,9 @@ export default function ContainerTerminal({
 
         .terminal-scrollbar :global(.xterm-viewport::-webkit-scrollbar-thumb) {
           background-color: rgba(255, 255, 255, 0.3);
-          border-radius: 4px;
-          transition: background-color 0.2s;
-        }
-
-        .terminal-scrollbar :global(.xterm-viewport::-webkit-scrollbar-thumb:hover) {
-          background-color: rgba(255, 255, 255, 0.5);
+          border-radius: 999px;
         }
       `}</style>
     </div>
   );
 }
-

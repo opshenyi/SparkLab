@@ -1,18 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Trash2, 
-  GripVertical,
-  CheckCircle2,
-  Circle,
-  Square,
-  Type,
-  FileText,
-  ChevronUp,
-  ChevronDown
-} from 'lucide-react';
 
 interface Question {
   id?: string;
@@ -32,11 +20,11 @@ interface ExamEditorInlineProps {
 }
 
 const questionTypes = [
-  { value: 'single', label: '单选题', icon: Circle },
-  { value: 'multiple', label: '多选题', icon: CheckCircle2 },
-  { value: 'judge', label: '判断题', icon: Square },
-  { value: 'fill', label: '填空题', icon: Type },
-  { value: 'essay', label: '简答题', icon: FileText },
+  { value: 'single', label: '单选题' },
+  { value: 'multiple', label: '多选题' },
+  { value: 'judge', label: '判断题' },
+  { value: 'fill', label: '填空题' },
+  { value: 'essay', label: '简答题' },
 ];
 
 export default function ExamEditorInline({ examId, onQuestionsChange }: ExamEditorInlineProps) {
@@ -147,20 +135,16 @@ export default function ExamEditorInline({ examId, onQuestionsChange }: ExamEdit
     <div className="space-y-4">
       {/* 添加题目按钮 */}
       <div className="flex gap-2 flex-wrap">
-        {questionTypes.map((type) => {
-          const Icon = type.icon;
-          return (
-            <button
-              key={type.value}
-              type="button"
-              onClick={() => addQuestion(type.value as Question['type'])}
-              className="bg-surface-container text-primary px-3 py-2 rounded-lg hover:bg-surface-bright transition-all flex items-center gap-2 text-sm"
-            >
-              <Icon className="w-4 h-4" />
-              添加{type.label}
-            </button>
-          );
-        })}
+        {questionTypes.map((type) => (
+          <button
+            key={type.value}
+            type="button"
+            onClick={() => addQuestion(type.value as Question['type'])}
+            className="bg-surface-container text-primary px-3 py-2 rounded-lg hover:bg-surface-bright transition-all text-sm"
+          >
+            添加{type.label}
+          </button>
+        ))}
         <div className="ml-auto text-sm text-on-surface-variant flex items-center gap-4">
           <span>题目数：{questions.length}</span>
           <span>总分：{calculateTotalPoints()}</span>
@@ -170,13 +154,11 @@ export default function ExamEditorInline({ examId, onQuestionsChange }: ExamEdit
       {/* 题目列表 */}
       {questions.length === 0 ? (
         <div className="text-center py-12 bg-surface-container rounded-lg">
-          <FileText className="w-16 h-16 mx-auto mb-4 text-on-surface-variant opacity-30" />
           <p className="text-on-surface-variant">暂无题目，点击上方按钮添加</p>
         </div>
       ) : (
         <div className="space-y-3">
           {questions.map((question, index) => {
-            const TypeIcon = questionTypes.find((t) => t.value === question.type)?.icon || FileText;
             return (
               <div key={index} className="bg-surface-container rounded-lg p-4">
                 <div className="flex items-start gap-3">
@@ -186,26 +168,24 @@ export default function ExamEditorInline({ examId, onQuestionsChange }: ExamEdit
                       type="button"
                       onClick={() => moveQuestion(index, 'up')}
                       disabled={index === 0}
-                      className="text-on-surface-variant hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="text-xs text-on-surface-variant hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
                     >
-                      <ChevronUp className="w-4 h-4" />
+                      上移
                     </button>
-                    <GripVertical className="w-4 h-4 text-on-surface-variant" />
                     <button
                       type="button"
                       onClick={() => moveQuestion(index, 'down')}
                       disabled={index === questions.length - 1}
-                      className="text-on-surface-variant hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="text-xs text-on-surface-variant hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
                     >
-                      <ChevronDown className="w-4 h-4" />
+                      下移
                     </button>
                   </div>
 
                   <div className="flex-1 space-y-3">
                     {/* 题目头部 */}
                     <div className="flex items-center gap-2">
-                      <span className="bg-primary/20 text-primary px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
-                        <TypeIcon className="w-3 h-3" />
+                      <span className="bg-primary/20 text-primary px-2 py-1 rounded text-xs font-medium">
                         {questionTypes.find((t) => t.value === question.type)?.label}
                       </span>
                       <input
@@ -219,9 +199,9 @@ export default function ExamEditorInline({ examId, onQuestionsChange }: ExamEdit
                       <button
                         type="button"
                         onClick={() => deleteQuestion(index)}
-                        className="ml-auto text-error hover:bg-error/10 p-1 rounded transition-colors"
+                        className="ml-auto text-error hover:bg-error/10 px-2 py-1 rounded transition-colors text-xs"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        删除
                       </button>
                     </div>
 
@@ -253,9 +233,9 @@ export default function ExamEditorInline({ examId, onQuestionsChange }: ExamEdit
                               <button
                                 type="button"
                                 onClick={() => removeOption(index, optionIndex)}
-                                className="text-error hover:bg-error/10 p-1 rounded"
+                                className="text-error hover:bg-error/10 px-2 py-1 rounded text-xs"
                               >
-                                <Trash2 className="w-3 h-3" />
+                                删除
                               </button>
                             )}
                           </div>
@@ -263,9 +243,8 @@ export default function ExamEditorInline({ examId, onQuestionsChange }: ExamEdit
                         <button
                           type="button"
                           onClick={() => addOption(index)}
-                          className="text-primary hover:bg-primary/10 px-2 py-1 rounded text-xs flex items-center gap-1"
+                          className="text-primary hover:bg-primary/10 px-2 py-1 rounded text-xs"
                         >
-                          <Plus className="w-3 h-3" />
                           添加选项
                         </button>
                       </div>

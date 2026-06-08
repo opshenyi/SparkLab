@@ -33,7 +33,7 @@ export default function AdminServerPickerButtons({
           onClick={() => onChange(ADMIN_ALL_SERVERS)}
           className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
             value === ADMIN_ALL_SERVERS
-              ? 'bg-primary text-on-primary shadow-sm'
+              ? 'bg-surface-high text-on-surface shadow-[var(--shadow-ring)]'
               : 'admin-control text-on-surface'
           }`}
         >
@@ -46,13 +46,13 @@ export default function AdminServerPickerButtons({
           type="button"
           onClick={() => onChange(s.id)}
           className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-            value === s.id ? 'bg-primary text-on-primary shadow-sm' : 'admin-control text-on-surface'
+            value === s.id ? 'bg-surface-high text-on-surface shadow-[var(--shadow-ring)]' : 'admin-control text-on-surface'
           }`}
         >
           {s.status ? (
             <span
               className={`h-2 w-2 shrink-0 rounded-full ${
-                s.status === 'online' ? 'bg-green-500' : 'bg-gray-500'
+                s.status === 'online' ? 'bg-status-success' : 'bg-status-neutral'
               }`}
             />
           ) : null}

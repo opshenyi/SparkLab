@@ -7,7 +7,6 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { containerAPI } from '@/lib/api';
 import Sidebar from '@/components/Sidebar';
 import LoadingBar from '@/components/LoadingBar';
-import { Container, Play, Square, Trash2, Clock, BookOpen, Loader2 } from 'lucide-react';
 
 interface ContainerData {
   id: string;
@@ -185,7 +184,6 @@ export default function ContainersPage() {
                   <p className="text-on-surface-variant text-sm mb-1">总容器数</p>
                   <p className="text-3xl font-bold text-primary">{containers.length}</p>
                 </div>
-                <Container className="w-12 h-12 text-primary/30" />
               </div>
             </div>
 
@@ -193,11 +191,10 @@ export default function ContainersPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-on-surface-variant text-sm mb-1">运行中</p>
-                  <p className="text-3xl font-bold text-green-400">
+                  <p className="text-3xl font-bold text-status-success-text">
                     {containers.filter(c => c.status === 'running').length}
                   </p>
                 </div>
-                <Play className="w-12 h-12 text-green-400/30" />
               </div>
             </div>
 
@@ -205,11 +202,10 @@ export default function ContainersPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-on-surface-variant text-sm mb-1">已停止</p>
-                  <p className="text-3xl font-bold text-gray-400">
+                  <p className="text-3xl font-bold text-on-surface-variant">
                     {containers.filter(c => c.status === 'stopped').length}
                   </p>
                 </div>
-                <Square className="w-12 h-12 text-gray-400/30" />
               </div>
             </div>
           </div>
@@ -217,7 +213,6 @@ export default function ContainersPage() {
           {/* 容器列表 */}
           {containers.length === 0 ? (
             <div className="app-card p-12 text-center">
-              <Container className="w-16 h-16 text-on-surface-variant/30 mx-auto mb-4" />
               <p className="text-on-surface-variant text-lg mb-2">暂无容器</p>
               <p className="text-on-surface-variant/70 text-sm mb-6">
                 前往课程中心开始实验，系统会自动为你创建容器
@@ -261,17 +256,14 @@ export default function ContainersPage() {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                         <div className="flex items-center gap-2 text-on-surface-variant">
-                          <Container className="w-4 h-4" />
                           <span>容器ID: </span>
                           <span className="font-mono text-primary">{container.containerId?.slice(0, 12) || '-'}</span>
                         </div>
                         <div className="flex items-center gap-2 text-on-surface-variant">
-                          <Clock className="w-4 h-4" />
                           <span>创建: {formatTime(container.createdAt)}</span>
                         </div>
                         {container.lastActiveAt && (
                           <div className="flex items-center gap-2 text-on-surface-variant">
-                            <Clock className="w-4 h-4" />
                             <span>活跃: {formatTime(container.lastActiveAt)}</span>
                           </div>
                         )}
@@ -291,7 +283,6 @@ export default function ContainersPage() {
                         disabled={operatingContainers.has(container.id)}
                         className="flex-1 lg:flex-none px-4 py-2 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <BookOpen className="w-4 h-4" />
                         {container.lab?.type === 'video' ? '观看视频' :
                          container.lab?.type === 'exam' ? '答题' : '进入实验'}
                       </button>
@@ -300,44 +291,31 @@ export default function ContainersPage() {
                         <button
                           onClick={() => handleStop(container.id)}
                           disabled={operatingContainers.has(container.id)}
-                          className="flex-1 lg:flex-none px-4 py-2 bg-yellow-500/10 text-yellow-400 rounded-lg hover:bg-yellow-500/20 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex-1 lg:flex-none px-4 py-2 bg-surface-container text-on-surface rounded-lg hover:bg-surface-high transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {operatingContainers.has(container.id) ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              停止中
-                            </>
+                            <>停止中</>
                           ) : (
-                            <>
-                              <Square className="w-4 h-4" />
-                              停止
-                            </>
+                            <>停止</>
                           )}
                         </button>
                       ) : container.status === 'stopped' || container.status === 'error' ? (
                         <button
                           onClick={() => handleStart(container.id)}
                           disabled={operatingContainers.has(container.id)}
-                          className="flex-1 lg:flex-none px-4 py-2 bg-green-500/10 text-green-400 rounded-lg hover:bg-green-500/20 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex-1 lg:flex-none px-4 py-2 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {operatingContainers.has(container.id) ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              启动中
-                            </>
+                            <>启动中</>
                           ) : (
-                            <>
-                              <Play className="w-4 h-4" />
-                              启动
-                            </>
+                            <>启动</>
                           )}
                         </button>
                       ) : container.status === 'creating' ? (
                         <button
                           disabled
-                          className="flex-1 lg:flex-none px-4 py-2 bg-blue-500/10 text-blue-400 rounded-lg flex items-center justify-center gap-2 text-sm cursor-not-allowed"
+                          className="flex-1 lg:flex-none px-4 py-2 bg-surface-container text-on-surface-variant rounded-lg flex items-center justify-center gap-2 text-sm cursor-not-allowed"
                         >
-                          <Loader2 className="w-4 h-4 animate-spin" />
                           创建中
                         </button>
                       ) : null}
@@ -345,18 +323,12 @@ export default function ContainersPage() {
                       <button
                         onClick={() => handleRemove(container.id)}
                         disabled={operatingContainers.has(container.id)}
-                        className="flex-1 lg:flex-none px-4 py-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 lg:flex-none px-4 py-2 bg-status-error-bg text-status-error-text rounded-lg hover:opacity-85 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {operatingContainers.has(container.id) ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            删除中
-                          </>
+                          <>删除中</>
                         ) : (
-                          <>
-                            <Trash2 className="w-4 h-4" />
-                            删除
-                          </>
+                          <>删除</>
                         )}
                       </button>
                     </div>
@@ -370,4 +342,3 @@ export default function ContainersPage() {
     </div>
   );
 }
-

@@ -21,7 +21,7 @@ export default function TeacherGroupFilterButtons({ groups, value, onChange, cla
           onClick={() => onChange(g.id)}
           className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
             value === g.id
-              ? 'bg-primary text-on-primary shadow-sm'
+              ? 'bg-surface-high text-on-surface shadow-[var(--shadow-ring)]'
               : 'admin-control text-on-surface'
           }`}
         >

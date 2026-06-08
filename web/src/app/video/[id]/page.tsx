@@ -5,7 +5,6 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { labAPI } from '@/lib/api';
 import LoadingBar from '@/components/LoadingBar';
-import { Play, Pause, Volume2, VolumeX, Maximize, CheckCircle, Clock, ArrowLeft } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 export default function VideoPage() {
@@ -125,17 +124,14 @@ export default function VideoPage() {
             onClick={() => router.push('/dashboard')}
             className="flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors"
           >
-            <ArrowLeft className="w-5 h-5" />
             返回课程
           </button>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-sm text-on-surface-variant">
-              <Clock className="w-4 h-4" />
               <span>{formatTime(currentTime)} / {formatTime(duration)}</span>
             </div>
             {progress >= 90 && (
-              <div className="flex items-center gap-2 text-green-400 text-sm">
-                <CheckCircle className="w-4 h-4" />
+              <div className="flex items-center gap-2 text-status-success-text text-sm">
                 已完成
               </div>
             )}
@@ -159,7 +155,7 @@ export default function VideoPage() {
                 />
                 
                 {/* 播放控制层 */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-4">
                   {/* 进度条 */}
                   <input
                     type="range"
@@ -169,7 +165,7 @@ export default function VideoPage() {
                     onChange={handleSeek}
                     className="w-full mb-3 h-1 bg-white/30 rounded-lg appearance-none cursor-pointer"
                     style={{
-                      background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${progress || 0}%, rgba(255,255,255,0.3) ${progress || 0}%, rgba(255,255,255,0.3) 100%)`
+                      background: `linear-gradient(to right, var(--color-primary) 0%, var(--color-primary) ${progress || 0}%, rgba(255,255,255,0.3) ${progress || 0}%, rgba(255,255,255,0.3) 100%)`
                     }}
                   />
                   
@@ -178,15 +174,15 @@ export default function VideoPage() {
                     <div className="flex items-center gap-3">
                       <button
                         onClick={togglePlay}
-                        className="text-white hover:text-primary transition-colors"
+                        className="rounded-full bg-white/12 px-4 py-2 text-sm font-medium text-white hover:bg-white/18 transition-colors"
                       >
-                        {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+                        {isPlaying ? '暂停' : '播放'}
                       </button>
                       <button
                         onClick={toggleMute}
-                        className="text-white hover:text-primary transition-colors"
+                        className="rounded-full bg-white/12 px-4 py-2 text-sm font-medium text-white hover:bg-white/18 transition-colors"
                       >
-                        {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                        {isMuted ? '取消静音' : '静音'}
                       </button>
                       <span className="text-white text-sm">
                         {formatTime(currentTime)} / {formatTime(duration)}
@@ -194,9 +190,9 @@ export default function VideoPage() {
                     </div>
                     <button
                       onClick={toggleFullscreen}
-                      className="text-white hover:text-primary transition-colors"
+                      className="rounded-full bg-white/12 px-4 py-2 text-sm font-medium text-white hover:bg-white/18 transition-colors"
                     >
-                      <Maximize className="w-5 h-5" />
+                      全屏
                     </button>
                   </div>
                 </div>
@@ -232,7 +228,6 @@ export default function VideoPage() {
                   onClick={() => router.push('/dashboard')}
                   className="w-full mt-6 bg-primary text-on-primary px-4 py-3 rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2"
                 >
-                  <CheckCircle className="w-5 h-5" />
                   完成学习
                 </button>
               )}

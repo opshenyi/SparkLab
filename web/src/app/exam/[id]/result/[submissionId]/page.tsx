@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import Sidebar from '@/components/Sidebar';
 import LoadingBar from '@/components/LoadingBar';
-import { CheckCircle2, XCircle, Award, Clock, ArrowLeft } from 'lucide-react';
 
 interface AnswerDetail {
   questionId: string;

@@ -7,10 +7,9 @@ import { adminAPI, publicClassAPI } from '@/lib/api';
 import { roleLabel, ROLE_BADGE_LAYOUT_CLASS, roleBadgeColorsStyle } from '@/lib/roleLabels';
 import AdminSidebar from '@/components/AdminSidebar';
 import LoadingBar from '@/components/LoadingBar';
-import { Edit, Trash2, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-/** 顶部分栏顺序：学生 → 老师 → 管理员 → 超管（四类互斥，不再使用「全部」） */
+/** 顶部分栏顺序：学生、老师、管理员、超管（四类互斥，不再使用「全部」） */
 const ROLE_TAB_ORDER = ['STUDENT', 'TEACHER', 'ADMIN', 'AUTHOR'] as const;
 type RoleTab = (typeof ROLE_TAB_ORDER)[number];
 type RoleFilter = RoleTab | 'OTHER';
@@ -274,21 +273,21 @@ export default function AdminUsersPage() {
                 setCurrentDisplayName(u.displayName || '');
                 setShowModal(true);
               }}
-              className="text-primary hover:text-primary/80 transition-colors"
+              className="rounded-full bg-surface-container px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-surface-high"
             >
-              <Edit className="w-4 h-4" />
+              编辑
             </button>
             <button
               type="button"
               onClick={() => handleDeleteUser(u.id)}
-              className="text-red-400 hover:text-red-300 transition-colors disabled:opacity-40 disabled:pointer-events-none"
+              className="rounded-full bg-status-error-bg px-3 py-1.5 text-xs font-medium text-status-error-text transition-opacity hover:opacity-85 disabled:opacity-40 disabled:pointer-events-none"
               disabled={
                 u.id === user?.id ||
                 u.role === 'AUTHOR' ||
                 (u.role === 'ADMIN' && user?.role !== 'AUTHOR')
               }
             >
-              <Trash2 className="w-4 h-4" />
+              删除
             </button>
           </div>
         </td>
@@ -372,7 +371,6 @@ export default function AdminUsersPage() {
               }}
               className="bg-primary text-on-primary px-4 py-2 rounded-lg flex items-center gap-2 hover:opacity-90 transition-all"
             >
-              <Plus className="w-4 h-4" />
               添加用户
             </button>
           </div>
@@ -435,7 +433,7 @@ export default function AdminUsersPage() {
                 {editingItem ? '编辑用户' : '添加用户'}
               </h3>
               <button onClick={() => setShowModal(false)} className="text-on-surface-variant hover:text-primary">
-                <X className="w-5 h-5" />
+                关闭
               </button>
             </div>
 
@@ -554,4 +552,3 @@ export default function AdminUsersPage() {
     </div>
   );
 }
-

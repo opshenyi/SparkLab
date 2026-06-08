@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { X, Loader2, ArrowUp } from 'lucide-react';
 
 interface TextSelectionAIProps {
   containerId?: string;
@@ -229,7 +228,7 @@ export default function TextSelectionAI({ containerId, contentRef }: TextSelecti
       {/* AI对话弹窗 */}
       {showDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="app-card shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200">
+          <div className="app-card w-full max-w-2xl max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200">
             {/* 头部 */}
             <div className="flex items-center justify-between p-6 border-b border-outline-variant">
               <div>
@@ -238,9 +237,9 @@ export default function TextSelectionAI({ containerId, contentRef }: TextSelecti
               </div>
               <button
                 onClick={handleCloseDialog}
-                className="w-8 h-8 rounded-full hover:bg-surface-container transition-colors flex items-center justify-center"
+                className="rounded-full bg-surface-container px-4 py-2 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-high hover:text-on-surface"
               >
-                <X className="w-5 h-5 text-on-surface-variant" />
+                关闭
               </button>
             </div>
 
@@ -266,7 +265,6 @@ export default function TextSelectionAI({ containerId, contentRef }: TextSelecti
               {isLoading && (
                 <div className="flex justify-start">
                   <div className="bg-surface-container rounded-2xl px-4 py-3 flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
                     <span className="text-sm text-on-surface-variant">AI正在思考...</span>
                   </div>
                 </div>
@@ -293,9 +291,9 @@ export default function TextSelectionAI({ containerId, contentRef }: TextSelecti
                 <button
                   onClick={handleFollowUp}
                   disabled={isLoading || !followUpQuestion.trim()}
-                  className="w-12 h-12 rounded-xl bg-primary text-on-primary flex items-center justify-center hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="h-12 rounded-full bg-primary px-5 text-sm font-medium text-on-primary hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <ArrowUp className="w-5 h-5" />
+                  发送
                 </button>
               </div>
               <p className="text-xs text-on-surface-variant mt-2 text-center">

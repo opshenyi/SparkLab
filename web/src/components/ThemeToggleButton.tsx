@@ -1,7 +1,6 @@
 'use client';
 
 import { useTheme } from '@/contexts/ThemeContext';
-import { Sun, Moon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 export default function ThemeToggleButton() {
@@ -67,8 +66,8 @@ export default function ThemeToggleButton() {
 
   if (!mounted) {
     return (
-      <button className="flex-shrink-0 text-on-surface-variant p-2 rounded-lg transition-all">
-        <div className="w-4 h-4" />
+      <button className="flex-shrink-0 rounded-full px-3 py-2 text-xs font-medium text-on-surface-variant transition-all">
+        主题
       </button>
     );
   }
@@ -77,26 +76,11 @@ export default function ThemeToggleButton() {
     <button
       ref={buttonRef}
       onClick={handleClick}
-      className="flex-shrink-0 text-on-surface-variant hover:text-primary p-2 rounded-lg hover:bg-surface-container transition-all"
+      className="flex-shrink-0 rounded-full bg-surface-container px-3 py-2 text-xs font-medium text-on-surface-variant transition-all hover:bg-surface-high hover:text-on-surface"
       aria-label="切换主题"
       title={theme === 'dark' ? '切换到浅色模式' : '切换到暗黑模式'}
     >
-      <div className="relative w-4 h-4">
-        <Sun
-          className={`absolute inset-0 w-4 h-4 transition-all duration-500 ${
-            theme === 'light'
-              ? 'opacity-100 rotate-0 scale-100'
-              : 'opacity-0 rotate-90 scale-0'
-          }`}
-        />
-        <Moon
-          className={`absolute inset-0 w-4 h-4 transition-all duration-500 ${
-            theme === 'dark'
-              ? 'opacity-100 rotate-0 scale-100'
-              : 'opacity-0 -rotate-90 scale-0'
-          }`}
-        />
-      </div>
+      {theme === 'dark' ? '浅色' : '暗黑'}
     </button>
   );
 }

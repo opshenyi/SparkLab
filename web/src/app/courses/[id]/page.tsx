@@ -6,7 +6,6 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { courseAPI, labAPI, courseMaterialAPI } from '@/lib/api';
 import Sidebar from '@/components/Sidebar';
 import LoadingBar from '@/components/LoadingBar';
-import { BookOpen, Clock, Award, Play, ArrowLeft } from 'lucide-react';
 import { courseMetaSubtitles } from '@/lib/courseMetaSubtitles';
 
 export default function CoursePage() {
@@ -102,7 +101,6 @@ export default function CoursePage() {
           onClick={() => router.push('/explore')}
           className="mb-6 flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
           返回课程中心
         </button>
 
@@ -139,8 +137,7 @@ export default function CoursePage() {
           </div>
 
           <div className="flex items-center gap-6 text-sm text-on-surface-variant">
-            <div className="flex items-center gap-2">
-              <BookOpen className="w-5 h-5" />
+            <div>
               <span>
                 {labs.length + materials.length} 项内容
                 {materials.length > 0 && (
@@ -150,14 +147,8 @@ export default function CoursePage() {
                 )}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              <span>{course.duration} 分钟</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Award className="w-5 h-5" />
-              <span>进度: {course.progress || 0}%</span>
-            </div>
+            <div>{course.duration} 分钟</div>
+            <div>进度: {course.progress || 0}%</div>
           </div>
         </div>
 
@@ -173,7 +164,7 @@ export default function CoursePage() {
               key={lab.id}
               className="app-card p-6 transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container dark:hover:bg-surface-container/50"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-start gap-4 flex-1">
                   <div className="w-12 h-12 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xl font-bold flex-shrink-0">
                     {index + 1}
@@ -195,23 +186,16 @@ export default function CoursePage() {
                     </p>
                     
                     <div className="flex items-center gap-4 text-xs text-on-surface-variant">
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {lab.timeLimit} 分钟
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Award className="w-3 h-3" />
-                        {lab.points} 分
-                      </div>
+                      <div>{lab.timeLimit} 分钟</div>
+                      <div>{lab.points} 分</div>
                     </div>
                   </div>
                 </div>
 
                 <button
                   onClick={() => handleStartLab(lab)}
-                  className="bg-primary text-on-primary px-6 py-3 rounded-full hover:opacity-90 transition-all flex items-center gap-2 ml-4"
+                  className="w-full bg-primary text-on-primary px-6 py-3 rounded-full hover:opacity-90 transition-all sm:ml-4 sm:w-auto"
                 >
-                  <Play className="w-4 h-4" />
                   {lab.type === 'video' ? '观看视频' : lab.type === 'exam' ? '开始答题' : '进入实验'}
                 </button>
               </div>
@@ -223,7 +207,7 @@ export default function CoursePage() {
               key={m.id}
               className="app-card p-6 transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container dark:hover:bg-surface-container/50"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-start gap-4 flex-1">
                   <div className="w-12 h-12 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xl font-bold flex-shrink-0">
                     {labs.length + index + 1}
@@ -248,9 +232,8 @@ export default function CoursePage() {
                 <button
                   type="button"
                   onClick={() => router.push(`/materials/${m.id}`)}
-                  className="bg-primary text-on-primary px-6 py-3 rounded-full hover:opacity-90 transition-all flex items-center gap-2 ml-4 shrink-0"
+                  className="w-full bg-primary text-on-primary px-6 py-3 rounded-full hover:opacity-90 transition-all sm:ml-4 sm:w-auto shrink-0"
                 >
-                  <Play className="w-4 h-4" />
                   查看课件
                 </button>
               </div>
@@ -259,7 +242,6 @@ export default function CoursePage() {
 
           {labs.length === 0 && materials.length === 0 && (
             <div className="text-center py-12 text-on-surface-variant">
-              <BookOpen className="w-16 h-16 mx-auto mb-4 opacity-50" />
               <p>该课程暂无内容</p>
             </div>
           )}

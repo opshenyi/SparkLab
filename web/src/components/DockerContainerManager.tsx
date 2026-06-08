@@ -14,6 +14,19 @@ interface DockerContainer {
   ports: any[];
 }
 
+const stateBadgeClass = (state: string) => {
+  switch (state.toLowerCase()) {
+    case 'running':
+      return 'bg-status-success-bg text-status-success-text';
+    case 'exited':
+      return 'bg-status-error-bg text-status-error-text';
+    case 'paused':
+      return 'bg-status-warning-bg text-status-warning-text';
+    default:
+      return 'bg-status-neutral-bg text-status-neutral-text';
+  }
+};
+
 export default function DockerContainerManager() {
   const [containers, setContainers] = useState<DockerContainer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,7 +39,7 @@ export default function DockerContainerManager() {
       setContainers(response.data.containers || []);
       setError(null);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch containers');
+      setError(err.response?.data?.message || '容器列表读取失败');
     } finally {
       setLoading(false);
     }
@@ -41,52 +54,24 @@ export default function DockerContainerManager() {
         await monitorAPI.startContainer(containerId);
       } else if (action === 'stop') {
         await monitorAPI.stopContainer(containerId);
-      } else if (action === 'restart') {
+      } else {
         await monitorAPI.restartContainer(containerId);
       }
       await fetchContainers();
     } catch (err: any) {
-      alert(err.response?.data?.message || `Failed to ${action} container`);
+      alert(err.response?.data?.message || '操作失败，请稍后再试');
     } finally {
       setActionLoading(null);
     }
   };
 
-  const getStateColor = (state: string) => {
-    switch (state.toLowerCase()) {
-      case 'running':
-        return 'text-green-500';
-      case 'exited':
-        return 'text-red-500';
-      case 'paused':
-        return 'text-yellow-500';
-      default:
-        return 'text-gray-500';
-    }
-  };
-
-  const getStateBadge = (state: string) => {
-    switch (state.toLowerCase()) {
-      case 'running':
-        return 'bg-green-500/20 text-green-500';
-      case 'exited':
-        return 'bg-red-500/20 text-red-500';
-      case 'paused':
-        return 'bg-yellow-500/20 text-yellow-500';
-      default:
-        return 'bg-gray-500/20 text-gray-500';
-    }
-  };
-
   if (loading) {
     return (
-      <div className="bg-gray-800 rounded-lg p-6">
-        <div className="animate-pulse">
-          <div className="h-4 bg-gray-700 rounded w-1/4 mb-4"></div>
-          <div className="space-y-3">
-            <div className="h-16 bg-gray-700 rounded"></div>
-            <div className="h-16 bg-gray-700 rounded"></div>
-          </div>
+      <div className="app-card p-6">
+        <div className="animate-pulse space-y-3">
+          <div className="h-4 w-1/4 rounded bg-surface-container" />
+          <div className="h-16 rounded bg-surface-container" />
+          <div className="h-16 rounded bg-surface-container" />
         </div>
       </div>
     );
@@ -94,95 +79,90 @@ export default function DockerContainerManager() {
 
   if (error) {
     return (
-      <div className="bg-gray-800 rounded-lg p-6">
-        <h2 className="text-xl font-bold text-white mb-4">Docker Containers</h2>
-        <div className="text-red-500">{error}</div>
+      <div className="app-card p-6">
+        <h2 className="mb-3 text-lg font-semibold text-on-surface">Docker 容器</h2>
+        <p className="text-sm text-status-error-text">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-800 rounded-lg p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-white">Docker Containers</h2>
+    <div className="app-card p-6">
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold text-on-surface">Docker 容器</h2>
+          <p className="mt-1 text-sm text-on-surface-variant">本机运行实例与基础操作</p>
+        </div>
         <button
           onClick={fetchContainers}
-          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
+          className="rounded-full bg-surface-container px-4 py-2 text-sm font-medium text-on-surface transition-colors hover:bg-surface-high"
         >
-          Refresh
+          刷新
         </button>
       </div>
 
       {containers.length === 0 ? (
-        <div className="text-gray-400 text-center py-8">No containers found</div>
+        <div className="rounded-lg bg-surface-container/50 py-10 text-center text-sm text-on-surface-variant">
+          暂无容器
+        </div>
       ) : (
         <div className="space-y-3">
-          {containers.map((container) => (
-            <div
-              key={container.id}
-              className="bg-gray-700 rounded-lg p-4 hover:bg-gray-650 transition-colors"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-white font-semibold">
-                      {container.name[0] || container.id}
-                    </h3>
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-medium ${getStateBadge(
-                        container.state
-                      )}`}
-                    >
-                      {container.state}
-                    </span>
-                  </div>
-                  <div className="text-sm text-gray-400 space-y-1">
-                    <div>
-                      <span className="text-gray-500">ID:</span> {container.id}
+          {containers.map((container) => {
+            const busy = actionLoading === container.id;
+            const running = container.state.toLowerCase() === 'running';
+            return (
+              <div key={container.id} className="rounded-lg bg-surface-low p-4 shadow-[var(--shadow-ring)]">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <h3 className="truncate font-semibold text-on-surface">
+                        {container.name[0] || container.id}
+                      </h3>
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${stateBadgeClass(container.state)}`}>
+                        {container.state}
+                      </span>
                     </div>
-                    <div>
-                      <span className="text-gray-500">Image:</span> {container.image}
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Status:</span> {container.status}
+                    <div className="space-y-1 text-sm text-on-surface-variant">
+                      <p className="break-all font-mono text-xs">ID: {container.id}</p>
+                      <p className="break-all">Image: {container.image}</p>
+                      <p>Status: {container.status}</p>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex gap-2">
-                  {container.state.toLowerCase() !== 'running' ? (
-                    <button
-                      onClick={() => handleAction(container.id, 'start')}
-                      disabled={actionLoading === container.id}
-                      className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded text-sm"
-                    >
-                      {actionLoading === container.id ? 'Starting...' : 'Start'}
-                    </button>
-                  ) : (
-                    <>
+                  <div className="flex flex-wrap gap-2">
+                    {!running ? (
                       <button
-                        onClick={() => handleAction(container.id, 'restart')}
-                        disabled={actionLoading === container.id}
-                        className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 text-white rounded text-sm"
+                        onClick={() => handleAction(container.id, 'start')}
+                        disabled={busy}
+                        className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-on-primary transition-opacity hover:opacity-90 disabled:opacity-50"
                       >
-                        {actionLoading === container.id ? 'Restarting...' : 'Restart'}
+                        {busy ? '启动中' : '启动'}
                       </button>
-                      <button
-                        onClick={() => handleAction(container.id, 'stop')}
-                        disabled={actionLoading === container.id}
-                        className="px-3 py-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white rounded text-sm"
-                      >
-                        {actionLoading === container.id ? 'Stopping...' : 'Stop'}
-                      </button>
-                    </>
-                  )}
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleAction(container.id, 'restart')}
+                          disabled={busy}
+                          className="rounded-full bg-surface-container px-4 py-2 text-sm font-medium text-on-surface transition-colors hover:bg-surface-high disabled:opacity-50"
+                        >
+                          {busy ? '重启中' : '重启'}
+                        </button>
+                        <button
+                          onClick={() => handleAction(container.id, 'stop')}
+                          disabled={busy}
+                          className="rounded-full bg-status-error-bg px-4 py-2 text-sm font-medium text-status-error-text transition-colors hover:opacity-85 disabled:opacity-50"
+                        >
+                          {busy ? '停止中' : '停止'}
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
-

@@ -9,7 +9,6 @@ import {
   useTransform,
   type MotionValue,
 } from 'framer-motion';
-import { X } from 'lucide-react';
 
 const circleEase: [number, number, number, number] = [0.22, 1, 0.36, 1];
 /** 圆形巨幕展开：慢启动 + 长时长，避免首帧就像已经扩到一半（不要用「头重」的 ease-out） */
@@ -337,7 +336,6 @@ export default function AboutCreditsOverlay({
                 onClick={beginClose}
                 className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-surface-container px-4 py-2 text-sm font-semibold text-on-surface backdrop-blur-sm transition-colors hover:bg-surface-high dark:hover:bg-surface-high/70"
               >
-                <X className="h-4 w-4" strokeWidth={2.5} />
                 关闭
               </button>
             </div>

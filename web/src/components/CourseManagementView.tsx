@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { courseAPI, teacherAPI } from '@/lib/api';
 import { profilePageCardClass, profilePagePrimaryButtonClass } from '@/lib/profileShell';
 import { useAuthStore } from '@/store/useAuthStore';
-import { Edit, Plus, X, BookOpen, List, Book } from 'lucide-react';
 
 type CourseRow = {
   id: string;
@@ -145,7 +144,6 @@ export default function CourseManagementView() {
         }}
         className={`${profilePagePrimaryButtonClass} shrink-0`}
       >
-        <Plus className="w-4 h-4" />
         新建课程
       </button>
     ) : null;
@@ -193,63 +191,10 @@ export default function CourseManagementView() {
             <p className="text-sm text-on-surface-variant mb-4 line-clamp-2 flex-grow">{course.description}</p>
 
             <div className="flex items-center gap-4 text-xs text-on-surface-variant mb-4 pb-4 flex-wrap">
-              <span className="flex items-center gap-1">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="w-3 h-3"
-                >
-                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                  <polyline points="14 2 14 8 20 8" />
-                </svg>
-                {course.labCount || 0} 实验
-              </span>
-              <span className="flex items-center gap-1">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="w-3 h-3"
-                >
-                  <polygon points="5 3 19 12 5 21 5 3" />
-                </svg>
-                {course.videoCount || 0} 视频
-              </span>
-              <span className="flex items-center gap-1">
-                <BookOpen className="w-3 h-3" />
-                {course.examCount || 0} 试卷
-              </span>
-              <span className="flex items-center gap-1">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="w-3 h-3"
-                >
-                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                  <polyline points="14 2 14 8 20 8" />
-                </svg>
-                {course.materialCount || 0} 课件
-              </span>
+              <span>{course.labCount || 0} 实验</span>
+              <span>{course.videoCount || 0} 视频</span>
+              <span>{course.examCount || 0} 试卷</span>
+              <span>{course.materialCount || 0} 课件</span>
               <span>
                 {course.difficulty === 'beginner'
                   ? '入门'
@@ -266,7 +211,6 @@ export default function CourseManagementView() {
                 onClick={() => handleManageLabs(course)}
                 className="w-full bg-surface-container text-primary px-3 py-2.5 rounded-lg hover:bg-surface-bright transition-all flex items-center justify-center gap-2 font-medium"
               >
-                <List className="w-4 h-4" />
                 管理课程 (
                 {(course.labCount || 0) +
                   (course.videoCount || 0) +
@@ -280,12 +224,11 @@ export default function CourseManagementView() {
                   type="button"
                   onClick={() => handleToggleActive(course)}
                   className={`px-2 py-2 rounded-lg transition-all flex items-center justify-center gap-1 text-xs font-medium bg-surface-container hover:bg-surface-bright ${
-                    course.isActive ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'
+                    course.isActive ? 'text-status-error-text' : 'text-status-success-text'
                   }`}
                   title={course.isActive ? '停课' : '开课'}
                 >
-                  {course.isActive ? <Book className="w-3.5 h-3.5" /> : <BookOpen className="w-3.5 h-3.5" />}
-                  <span className="hidden sm:inline">{course.isActive ? '停课' : '开课'}</span>
+                  <span>{course.isActive ? '停课' : '开课'}</span>
                 </button>
                 <button
                   type="button"
@@ -298,8 +241,7 @@ export default function CourseManagementView() {
                   className="bg-surface-container text-primary px-2 py-2 rounded-lg hover:bg-surface-bright transition-all flex items-center justify-center gap-1 text-xs"
                   title="编辑课程"
                 >
-                  <Edit className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">编辑</span>
+                  <span>编辑</span>
                 </button>
               </div>
             </div>
@@ -334,7 +276,7 @@ export default function CourseManagementView() {
                 }}
                 className="text-on-surface-variant hover:text-primary"
               >
-                <X className="w-5 h-5" />
+                关闭
               </button>
             </div>
 

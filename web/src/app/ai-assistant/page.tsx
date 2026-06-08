@@ -7,17 +7,6 @@ import { useAuthStore } from '@/store/useAuthStore';
 import Sidebar from '@/components/Sidebar';
 import TeacherSidebar from '@/components/TeacherSidebar';
 import LoadingBar from '@/components/LoadingBar';
-import {
-  Plus,
-  Copy,
-  Share2,
-  ThumbsUp,
-  ThumbsDown,
-  ArrowUp,
-  MessagesSquare,
-  MessageSquarePlus,
-  Trash2,
-} from 'lucide-react';
 
 interface Message {
   id: string;
@@ -266,14 +255,14 @@ function AIAssistantPageInner({ embed }: { embed: boolean }) {
     }
 
     if (lowerInput.includes('容器') || lowerInput.includes('docker')) {
-      return '关于容器的使用：\n\n• 容器是隔离的实验环境\n• 每个实验会自动创建对应的容器\n• 你可以在"我的容器"页面管理所有容器\n• 容器会在一段时间不活动后自动停止\n\n需要帮助管理容器吗？';
+      return '关于容器的使用：\n\n1. 容器是隔离的实验环境\n2. 每个实验会自动创建对应的容器\n3. 你可以在"我的容器"页面管理所有容器\n4. 容器会在一段时间不活动后自动停止\n\n需要帮助管理容器吗？';
     }
 
     if (lowerInput.includes('实验') || lowerInput.includes('lab')) {
-      return '实验相关提示：\n\n• 仔细阅读实验说明\n• 按步骤完成实验任务\n• 遇到错误不要慌，检查命令是否正确\n• 可以随时保存进度\n\n你在做哪个实验？遇到什么问题了吗？';
+      return '实验相关提示：\n\n1. 仔细阅读实验说明\n2. 按步骤完成实验任务\n3. 遇到错误不要慌，检查命令是否正确\n4. 可以随时保存进度\n\n你在做哪个实验？遇到什么问题了吗？';
     }
 
-    return '我理解你的问题了。作为星火 AI，我会尽力帮助你。\n\n你可以问我关于：\n• 课程内容和学习路径\n• 实验操作和技术问题\n• 编程语言和代码调试\n• 学习方法和建议\n\n请告诉我更多细节，我会给你更具体的帮助！';
+    return '我理解你的问题了。作为星火 AI，我会尽力帮助你。\n\n你可以问我关于：\n1. 课程内容和学习路径\n2. 实验操作和技术问题\n3. 编程语言和代码调试\n4. 学习方法和建议\n\n请告诉我更多细节，我会给你更具体的帮助！';
   };
 
   const handleSend = () => {
@@ -410,7 +399,7 @@ function AIAssistantPageInner({ embed }: { embed: boolean }) {
             <button
               type="button"
               onClick={() => setSessionPopoverOpen((o) => !o)}
-              className={`rounded-xl p-2 text-on-surface-variant outline-none transition-colors hover:bg-surface-container hover:text-on-surface focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+              className={`rounded-full px-4 py-2 text-sm font-medium text-on-surface-variant outline-none transition-colors hover:bg-surface-container hover:text-on-surface focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                 sessionPopoverOpen ? 'bg-surface-container text-on-surface' : ''
               }`}
               title="会话"
@@ -418,7 +407,7 @@ function AIAssistantPageInner({ embed }: { embed: boolean }) {
               aria-expanded={sessionPopoverOpen}
               aria-controls="session-popover-panel"
             >
-              <MessagesSquare className="h-5 w-5" />
+              会话
             </button>
 
             <AnimatePresence>
@@ -489,7 +478,7 @@ function AIAssistantPageInner({ embed }: { embed: boolean }) {
                               className="shrink-0 rounded-md p-1.5 text-on-surface-variant opacity-0 transition-opacity hover:bg-error/10 hover:text-error group-hover:opacity-100"
                               title="删除"
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              删除
                             </button>
                           </div>
                         </li>
@@ -504,7 +493,6 @@ function AIAssistantPageInner({ embed }: { embed: boolean }) {
                       className="flex w-full items-center justify-center gap-2 rounded-lg py-2 text-xs font-medium text-on-surface-variant transition-colors hover:bg-surface-container/80 hover:text-primary dark:hover:bg-surface-container/50"
                       title="新建会话"
                     >
-                      <MessageSquarePlus className="h-3.5 w-3.5 opacity-80" />
                       新建会话
                     </button>
                   </div>
@@ -519,7 +507,7 @@ function AIAssistantPageInner({ embed }: { embed: boolean }) {
           {messages.length === 0 && !isTyping ? (
             <div className="flex h-full flex-col items-center justify-center px-4">
               <div className="mb-12 mt-[-10vh] text-center">
-                <h1 className="mb-2 text-[28px] font-semibold text-slate-900 dark:text-white">
+                <h1 className="mb-2 text-[28px] font-semibold text-page-title">
                   有什么可以帮你的？
                 </h1>
               </div>
@@ -547,7 +535,7 @@ function AIAssistantPageInner({ embed }: { embed: boolean }) {
                 <div key={message.id} className="mb-6">
                   {message.role === 'user' ? (
                     <div className="flex justify-end">
-                      <div className="app-card max-w-[80%] rounded-3xl px-5 py-3">
+                      <div className="app-card max-w-[80%] rounded-lg px-5 py-3">
                         <div className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
                           {message.content}
                         </div>
@@ -562,31 +550,31 @@ function AIAssistantPageInner({ embed }: { embed: boolean }) {
                         <button
                           type="button"
                           onClick={() => navigator.clipboard.writeText(message.content)}
-                          className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-surface-container"
+                          className="rounded-full px-3 py-1.5 text-xs font-medium text-on-surface-variant transition-colors hover:bg-surface-container"
                           title="复制"
                         >
-                          <Copy className="h-4 w-4" />
+                          复制
                         </button>
                         <button
                           type="button"
-                          className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-surface-container"
+                          className="rounded-full px-3 py-1.5 text-xs font-medium text-on-surface-variant transition-colors hover:bg-surface-container"
                           title="分享"
                         >
-                          <Share2 className="h-4 w-4" />
+                          分享
                         </button>
                         <button
                           type="button"
-                          className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-surface-container"
+                          className="rounded-full px-3 py-1.5 text-xs font-medium text-on-surface-variant transition-colors hover:bg-surface-container"
                           title="好评"
                         >
-                          <ThumbsUp className="h-4 w-4" />
+                          好评
                         </button>
                         <button
                           type="button"
-                          className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-surface-container"
+                          className="rounded-full px-3 py-1.5 text-xs font-medium text-on-surface-variant transition-colors hover:bg-surface-container"
                           title="差评"
                         >
-                          <ThumbsDown className="h-4 w-4" />
+                          差评
                         </button>
                       </div>
                     </div>
@@ -632,14 +620,14 @@ function AIAssistantPageInner({ embed }: { embed: boolean }) {
               ))}
             </div>
 
-            <div className="relative rounded-[28px] bg-surface-lowest shadow-none dark:bg-surface-container">
+            <div className="relative rounded-lg bg-surface-lowest shadow-[var(--shadow-ring)] dark:bg-surface-container">
               <div className="flex items-end gap-2 p-2.5">
                 <button
                   type="button"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-low dark:hover:bg-surface-high"
+                  className="flex h-9 shrink-0 items-center justify-center rounded-full px-3 text-xs font-medium text-on-surface-variant transition-colors hover:bg-surface-low dark:hover:bg-surface-high"
                   title="附件"
                 >
-                  <Plus className="h-[18px] w-[18px]" />
+                  附件
                 </button>
 
                 <div className="flex min-h-[36px] flex-1 items-center">
@@ -666,10 +654,10 @@ function AIAssistantPageInner({ embed }: { embed: boolean }) {
                   type="button"
                   onClick={handleSend}
                   disabled={!input.trim() || isTyping}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex h-9 shrink-0 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-on-primary transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-30"
                   title="发送"
                 >
-                  <ArrowUp className="h-[18px] w-[18px]" />
+                  发送
                 </button>
               </div>
             </div>

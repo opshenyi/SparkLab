@@ -8,7 +8,6 @@ import AdminSidebar from '@/components/AdminSidebar';
 import { AdminNoServersPrompt } from '@/components/AdminNoServersPrompt';
 import LoadingBar from '@/components/LoadingBar';
 import AdminServerPickerButtons, { ADMIN_ALL_SERVERS } from '@/components/AdminServerPickerButtons';
-import { Server, Image as ImageIcon, Download, Trash2, Plus, FileCode } from 'lucide-react';
 
 interface ServerInfo {
   id: string;
@@ -268,7 +267,6 @@ export default function AdminImagesPage() {
                 className="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-sm transition-all flex items-center gap-2 hover:opacity-95 disabled:bg-surface-lowest disabled:text-on-surface-variant disabled:opacity-100 disabled:shadow-none dark:disabled:bg-surface-container"
                 disabled={!selectedServer}
               >
-                <Download className="w-4 h-4" />
                 拉取镜像
               </button>
               <button
@@ -276,7 +274,6 @@ export default function AdminImagesPage() {
                 className="px-4 py-2 rounded-lg bg-sky-600 text-white shadow-sm transition-all flex items-center gap-2 hover:bg-sky-700 disabled:bg-surface-lowest disabled:text-on-surface-variant disabled:opacity-100 disabled:shadow-none dark:disabled:bg-surface-container"
                 disabled={!selectedServer}
               >
-                <FileCode className="w-4 h-4" />
                 构建镜像
               </button>
             </div>
@@ -359,7 +356,6 @@ export default function AdminImagesPage() {
                           onClick={() => void handleRemoveImage(img)}
                           className="text-red-400 hover:text-red-300 transition-colors text-sm flex items-center gap-1"
                         >
-                          <Trash2 className="w-4 h-4" />
                           删除
                         </button>
                       </td>

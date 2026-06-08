@@ -6,7 +6,6 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { adminAPI } from '@/lib/api';
 import Sidebar from '@/components/AdminSidebar';
 import LoadingBar from '@/components/LoadingBar';
-import { CheckCircle2, DownloadCloud, GitBranch, Loader2, RefreshCw } from 'lucide-react';
 
 type UpdateApplyProgress = {
   id?: string;
@@ -300,7 +299,6 @@ export default function AdminPage() {
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                   <div className="min-w-0">
                     <div className="mb-2 flex items-center gap-2 text-primary">
-                      <GitBranch className="h-5 w-5" />
                       <h3 className="font-display text-page-title text-xl font-bold tracking-tight">系统更新</h3>
                     </div>
                     <div className="grid gap-2 text-sm text-on-surface-variant sm:grid-cols-3">
@@ -339,7 +337,6 @@ export default function AdminPage() {
                         </span>
                       ) : updateInfo ? (
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-status-success/10 px-3 py-1 font-medium text-status-success">
-                          <CheckCircle2 className="h-4 w-4" />
                           已是最新
                         </span>
                       ) : null}
@@ -360,11 +357,11 @@ export default function AdminPage() {
                         <div className="flex items-center justify-between gap-3 text-sm">
                           <div className="inline-flex min-w-0 items-center gap-2 font-medium text-on-surface">
                             {isUpdateActive ? (
-                              <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+                              <span className="shrink-0 text-primary">更新中</span>
                             ) : updateState === 'failed' ? (
                               <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-status-error" />
                             ) : (
-                              <CheckCircle2 className="h-4 w-4 shrink-0 text-status-success" />
+                              <span className="shrink-0 text-status-success">完成</span>
                             )}
                             <span className="truncate">{updateProgress?.message}</span>
                           </div>
@@ -417,8 +414,7 @@ export default function AdminPage() {
                       disabled={isCheckingUpdate || isApplyingUpdate}
                       className="inline-flex items-center gap-2 rounded-lg bg-surface-container px-4 py-2.5 text-sm font-semibold text-on-surface transition-colors hover:bg-surface-bright disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {isCheckingUpdate ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                      检查
+                      {isCheckingUpdate ? '检查中' : '检查'}
                     </button>
                     <button
                       type="button"
@@ -426,8 +422,7 @@ export default function AdminPage() {
                       disabled={!canApplyUpdate || isCheckingUpdate || isApplyingUpdate}
                       className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-dim disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {isApplyingUpdate ? <Loader2 className="h-4 w-4 animate-spin" /> : <DownloadCloud className="h-4 w-4" />}
-                      更新
+                      {isApplyingUpdate ? '更新中' : '更新'}
                     </button>
                   </div>
                 </div>
@@ -478,7 +473,7 @@ export default function AdminPage() {
                       onClick={() => router.push('/admin/users')}
                       className="text-sm font-semibold text-primary transition-colors hover:text-primary-dim"
                     >
-                      查看全部 →
+                      查看全部
                     </button>
                   </div>
                   <div className="space-y-2">
@@ -532,7 +527,7 @@ export default function AdminPage() {
                       onClick={() => router.push('/admin/courses')}
                       className="text-sm font-semibold text-primary transition-colors hover:text-primary-dim"
                     >
-                      查看全部 →
+                      查看全部
                     </button>
                   </div>
                   <div className="space-y-2">

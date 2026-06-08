@@ -6,7 +6,6 @@ import { useAuthStore } from '@/store/useAuthStore';
 import Sidebar from '@/components/Sidebar';
 import TeacherSidebar from '@/components/TeacherSidebar';
 import LoadingBar from '@/components/LoadingBar';
-import { Edit2, Save, X } from 'lucide-react';
 import api, { authAPI, publicClassAPI } from '@/lib/api';
 import { roleLabel, ROLE_PROFILE_PILL_LAYOUT_CLASS, roleBadgeColorsStyle } from '@/lib/roleLabels';
 import { profilePageCardClass, profilePageFontClass, profilePageMainInnerClass } from '@/lib/profileShell';
@@ -151,17 +150,14 @@ export default function ProfilePage() {
               </div>
               {!isEditing ? (
                 <button type="button" onClick={handleEdit} className={`${btnPrimary} shrink-0`}>
-                  <Edit2 className="h-4 w-4" strokeWidth={2} />
                   编辑资料
                 </button>
               ) : (
                 <div className="flex shrink-0 flex-wrap gap-2">
                   <button type="button" onClick={handleCancel} disabled={isSaving} className={btnDefault}>
-                    <X className="h-4 w-4" strokeWidth={2} />
                     取消
                   </button>
                   <button type="button" onClick={handleSave} disabled={isSaving} className={btnPrimary}>
-                    <Save className="h-4 w-4" strokeWidth={2} />
                     {isSaving ? '保存中…' : '保存'}
                   </button>
                 </div>

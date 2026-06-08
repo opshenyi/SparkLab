@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, BookOpen, Container, User, LogOut, Shield, Menu, X, Sparkles, GraduationCap } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { getUserAvatarOrInitial } from '@/lib/avatar';
 import { roleLabel } from '@/lib/roleLabels';
@@ -12,31 +11,18 @@ import LoadingBar from './LoadingBar';
 import ThemeToggleButton from './ThemeToggleButton';
 
 const navItems = [
-  { icon: Home, label: '学习大厅', href: '/dashboard', active: true },
-  { icon: BookOpen, label: '课程中心', href: '/explore' },
-  { icon: Container, label: '我的容器', href: '/containers' },
-  { icon: Sparkles, label: '星火 AI', href: '/ai-assistant' },
-  { icon: User, label: '个人资料', href: '/profile' },
+  { label: '学习大厅', href: '/dashboard', active: true },
+  { label: '课程中心', href: '/explore' },
+  { label: '我的容器', href: '/containers' },
+  { label: '星火 AI', href: '/ai-assistant' },
+  { label: '个人资料', href: '/profile' },
 ];
 
 const adminNavItems = [
-  { icon: Shield, label: '管理控制台', href: '/admin' },
+  { label: '管理控制台', href: '/admin' },
 ];
 
-const teacherNavItems = [{ icon: GraduationCap, label: '学情分析大屏', href: '/teacher' }];
-
-function NavLinkIcon({ active, children }: { active: boolean; children: React.ReactNode }) {
-  return (
-    <span
-      className={cn(
-        'flex shrink-0 items-center justify-center transition-colors duration-200',
-        active ? 'text-primary' : 'text-on-surface-variant group-hover:text-primary'
-      )}
-    >
-      {children}
-    </span>
-  );
-}
+const teacherNavItems = [{ label: '学情分析大屏', href: '/teacher' }];
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -55,9 +41,9 @@ export default function Sidebar() {
 
   const linkClass = (isActive: boolean) =>
     cn(
-      'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
+      'group flex items-center rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-200',
       isActive
-        ? 'bg-primary/[0.1] text-primary dark:bg-primary/[0.14]'
+        ? 'bg-surface-high text-on-surface shadow-[var(--shadow-ring)]'
         : 'text-on-surface-variant hover:bg-surface-lowest/85 hover:text-on-surface dark:hover:bg-surface-container/80'
     );
 
@@ -65,9 +51,9 @@ export default function Sidebar() {
     <>
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 rounded-xl bg-surface-lowest/90 p-2.5 text-primary shadow-soft-md backdrop-blur-md dark:bg-surface-container/90"
+        className="fixed left-4 top-4 z-50 rounded-full bg-surface-lowest/90 px-4 py-2 text-sm font-medium text-on-surface shadow-soft-md backdrop-blur-md dark:bg-surface-container/90 lg:hidden"
       >
-        {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        {isMobileMenuOpen ? '关闭导航' : '打开导航'}
       </button>
 
       {isMobileMenuOpen && (
@@ -84,10 +70,10 @@ export default function Sidebar() {
         )}
       >
         <div className="px-6 mb-8">
-          <h1 className="font-display text-page-title text-lg font-bold tracking-tight">
-            星火<span className="text-primary">实验室</span>
+          <h1 className="font-display text-page-title text-lg font-semibold tracking-tight">
+            星火实验室
           </h1>
-          <p className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+          <p className="mt-1.5 text-[11px] font-medium uppercase text-on-surface-variant">
             Spark Lab
           </p>
         </div>
@@ -103,9 +89,6 @@ export default function Sidebar() {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={linkClass(isActive)}
                 >
-                  <NavLinkIcon active={isActive}>
-                    <item.icon className="h-[18px] w-[18px]" strokeWidth={2} />
-                  </NavLinkIcon>
                   {item.label}
                 </Link>
               );
@@ -121,9 +104,6 @@ export default function Sidebar() {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={linkClass(isActive)}
                 >
-                  <NavLinkIcon active={isActive}>
-                    <item.icon className="h-[18px] w-[18px]" strokeWidth={2} />
-                  </NavLinkIcon>
                   {item.label}
                 </Link>
               );
@@ -139,12 +119,9 @@ export default function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={linkClass(isActive)}
-              >
-                <NavLinkIcon active={isActive}>
-                  <item.icon className="h-[18px] w-[18px]" strokeWidth={2} />
-                </NavLinkIcon>
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={linkClass(isActive)}
+            >
                 {item.label}
               </Link>
             );
@@ -183,10 +160,10 @@ export default function Sidebar() {
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-error/10 hover:text-error"
+                  className="rounded-full bg-surface-container px-3 py-2 text-xs font-medium text-on-surface-variant transition-colors hover:bg-error/10 hover:text-error"
                   title="退出登录"
                 >
-                  <LogOut className="h-4 w-4" />
+                  退出
                 </button>
               </div>
             </div>

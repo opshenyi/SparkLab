@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
 import LoadingBar from '@/components/LoadingBar'
 import TopNavBar from '@/components/TopNavBar'
-import ParticleBackground from '@/components/ParticleBackground'
 import AnimatedTerminal from '@/components/AnimatedTerminal'
 
 export default function LandingPage() {
@@ -57,15 +56,10 @@ export default function LandingPage() {
             </video>
           </div>
 
-          {/* 粒子背景 */}
-          <div className="absolute inset-0 z-0">
-            <ParticleBackground />
-          </div>
-
           {/* 主要内容 */}
           <div className="max-w-7xl mx-auto w-full relative z-10 pt-24">
             <div className="text-center mb-12">
-              <h1 className="text-5xl lg:text-7xl font-bold font-headline leading-[1.1] mb-6">
+              <h1 className="text-5xl lg:text-7xl font-semibold font-headline leading-[1.06] mb-6">
                 在实践中掌握未来
               </h1>
               <p className="text-lg lg:text-xl text-white/70 mb-10 max-w-2xl mx-auto">
@@ -81,4 +75,3 @@ export default function LandingPage() {
     </div>
   )
 }
-

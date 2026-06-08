@@ -1,12 +1,10 @@
 'use client';
 
-import { AnimatedCharacters } from '@/components/AnimatedCharacters';
 import LoadingBar from '@/components/LoadingBar';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { authAPI, publicClassAPI } from '@/lib/api';
-import { Eye, EyeOff, Lock, User, Hash } from 'lucide-react';
 
 export default function Register() {
     const router = useRouter();
@@ -79,25 +77,16 @@ export default function Register() {
 
     return (
         <div className="min-h-screen grid lg:grid-cols-2">
-            <div className="hidden lg:flex relative flex-col justify-center items-center p-12 bg-gradient-to-br from-surface-lowest via-surface-low to-surface-container overflow-hidden">
-                <div className="relative z-20">
-                    <AnimatedCharacters
-                        isTyping={isTyping}
-                        showPassword={showPassword}
-                        passwordLength={passwordValue.length}
-                    />
+            <div className="hidden lg:flex relative flex-col justify-center p-16 bg-surface-lowest">
+                <div className="max-w-xl">
+                    <p className="mb-5 text-sm font-medium text-on-surface-variant">Spark Lab</p>
+                    <h2 className="text-5xl font-semibold leading-[1.06] text-page-title">
+                        注册之后，实验环境会跟随你的课程进度。
+                    </h2>
+                    <p className="mt-6 text-lg leading-relaxed text-on-surface-variant">
+                        学习小组、课程内容和容器实例都统一管理。少一点视觉噪声，多一点清晰路径。
+                    </p>
                 </div>
-
-                <div className="absolute top-[15%] right-[10%] w-[300px] h-[300px] bg-primary/10 rounded-full blur-[80px] pointer-events-none" />
-                <div className="absolute bottom-[10%] left-[5%] w-[400px] h-[400px] bg-primary/15 rounded-full blur-[100px] pointer-events-none" />
-                <div
-                    className="absolute inset-0 pointer-events-none opacity-[0.03]"
-                    style={{
-                        backgroundImage:
-                            'linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)',
-                        backgroundSize: '40px 40px',
-                    }}
-                />
             </div>
 
             <div className="flex items-center justify-center p-8 bg-background">
@@ -115,7 +104,6 @@ export default function Register() {
                         <div>
                             <label className="block text-sm font-medium text-on-surface mb-1.5">用户名（登录用）</label>
                             <div className="relative">
-                                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
                                 <input
                                     type="text"
                                     value={formData.username}
@@ -125,7 +113,7 @@ export default function Register() {
                                     placeholder="用于登录，至少3个字符"
                                     required
                                     minLength={3}
-                                    className="w-full h-12 pl-11 pr-4 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+                                    className="w-full h-12 px-4 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                 />
                             </div>
                         </div>
@@ -133,7 +121,6 @@ export default function Register() {
                         <div>
                             <label className="block text-sm font-medium text-on-surface mb-1.5">显示姓名</label>
                             <div className="relative">
-                                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
                                 <input
                                     type="text"
                                     value={formData.displayName}
@@ -141,7 +128,7 @@ export default function Register() {
                                     placeholder="真实姓名，用于显示"
                                     required
                                     minLength={2}
-                                    className="w-full h-12 pl-11 pr-4 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+                                    className="w-full h-12 px-4 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                 />
                             </div>
                         </div>
@@ -208,13 +195,12 @@ export default function Register() {
                         <div>
                             <label className="block text-sm font-medium text-on-surface mb-1.5">QQ号（可选）</label>
                             <div className="relative">
-                                <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
                                 <input
                                     type="text"
                                     value={formData.qqNumber}
                                     onChange={(e) => setFormData({ ...formData, qqNumber: e.target.value })}
                                     placeholder="用于显示QQ头像"
-                                    className="w-full h-12 pl-11 pr-4 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+                                    className="w-full h-12 px-4 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                 />
                             </div>
                         </div>
@@ -222,7 +208,6 @@ export default function Register() {
                         <div>
                             <label className="block text-sm font-medium text-on-surface mb-1.5">密码</label>
                             <div className="relative">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
                                 <input
                                     type={showPassword ? 'text' : 'password'}
                                     value={formData.password}
@@ -233,14 +218,14 @@ export default function Register() {
                                     placeholder="至少6个字符"
                                     required
                                     minLength={6}
-                                    className="w-full h-12 pl-11 pr-12 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+                                    className="w-full h-12 pl-4 pr-20 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-3 py-1 text-xs font-medium text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
                                 >
-                                    {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                    {showPassword ? '隐藏' : '显示'}
                                 </button>
                             </div>
                         </div>
@@ -248,7 +233,6 @@ export default function Register() {
                         <div>
                             <label className="block text-sm font-medium text-on-surface mb-1.5">确认密码</label>
                             <div className="relative">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
                                 <input
                                     type={showPassword ? 'text' : 'password'}
                                     value={formData.confirmPassword}
@@ -256,7 +240,7 @@ export default function Register() {
                                     placeholder="再次输入密码"
                                     required
                                     minLength={6}
-                                    className="w-full h-12 pl-11 pr-4 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+                                    className="w-full h-12 px-4 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                 />
                             </div>
                         </div>
@@ -287,4 +271,3 @@ export default function Register() {
         </div>
     );
 }
-

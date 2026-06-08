@@ -8,7 +8,6 @@ import AdminSidebar from '@/components/AdminSidebar';
 import { AdminNoServersPrompt } from '@/components/AdminNoServersPrompt';
 import LoadingBar from '@/components/LoadingBar';
 import AdminServerPickerButtons, { ADMIN_ALL_SERVERS } from '@/components/AdminServerPickerButtons';
-import { Server, Network as NetworkIcon, Plus, Trash2, Info, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ServerInfo {
   id: string;
@@ -261,7 +260,6 @@ export default function NetworksPage() {
               className="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-sm transition-all flex items-center gap-2 hover:opacity-95 disabled:bg-surface-lowest disabled:text-on-surface-variant disabled:opacity-100 disabled:shadow-none dark:disabled:bg-surface-container"
               disabled={!selectedServer}
             >
-              <Plus className="w-4 h-4" />
               创建网络
             </button>
           </div>
@@ -336,7 +334,7 @@ export default function NetworksPage() {
                             className="text-blue-400 hover:text-blue-300 transition-colors text-sm flex items-center gap-1"
                             title="查看详情"
                           >
-                            <Info className="w-4 h-4" />
+                            详情
                           </button>
                           {net.Name && !['bridge', 'host', 'none'].includes(net.Name) && (
                             <button
@@ -345,7 +343,7 @@ export default function NetworksPage() {
                               className="text-red-400 hover:text-red-300 transition-colors text-sm flex items-center gap-1"
                               title="删除网络"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              删除
                             </button>
                           )}
                         </div>
@@ -548,7 +546,7 @@ export default function NetworksPage() {
                   disabled={loading}
                 >
                   <span>高级选项</span>
-                  {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  <span>{showAdvanced ? '收起' : '展开'}</span>
                 </button>
                 
                 {showAdvanced && (

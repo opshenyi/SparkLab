@@ -93,7 +93,7 @@ function ThemeTestContent() {
                 </p>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-on-surface-variant">详细信息</span>
-                  <button className="text-primary hover:underline text-sm">查看更多 →</button>
+                  <button className="text-primary hover:underline text-sm">查看更多</button>
                 </div>
               </div>
             ))}
@@ -217,4 +217,3 @@ export default function ThemeTestPage() {
 
   return <ThemeTestContent />;
 }
-

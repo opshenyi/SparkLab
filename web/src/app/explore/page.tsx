@@ -6,7 +6,6 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { courseAPI } from '@/lib/api';
 import Sidebar from '@/components/Sidebar';
 import LoadingBar from '@/components/LoadingBar';
-import { BookOpen, Clock, ArrowLeft } from 'lucide-react';
 import { courseMetaSubtitles } from '@/lib/courseMetaSubtitles';
 
 export default function ExplorePage() {
@@ -72,7 +71,6 @@ export default function ExplorePage() {
             onClick={() => router.push('/')}
             className="mb-6 flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
             返回首页
           </button>
         )}
@@ -138,33 +136,10 @@ export default function ExplorePage() {
 
                 {/* 属性标签 - 固定高度 */}
                 <div className="flex items-center gap-4 mb-4 text-sm text-on-surface-variant flex-wrap min-h-[24px]">
-                  {(course.labCount || 0) > 0 && (
-                    <div className="flex items-center gap-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                      </svg>
-                      {course.labCount} 实验
-                    </div>
-                  )}
-                  {(course.videoCount || 0) > 0 && (
-                    <div className="flex items-center gap-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                      </svg>
-                      {course.videoCount} 视频
-                    </div>
-                  )}
-                  {(course.examCount || 0) > 0 && (
-                    <div className="flex items-center gap-1">
-                      <BookOpen className="w-4 h-4" />
-                      {course.examCount} 试卷
-                    </div>
-                  )}
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    {course.duration} 分钟
-                  </div>
+                  {(course.labCount || 0) > 0 && <span>{course.labCount} 实验</span>}
+                  {(course.videoCount || 0) > 0 && <span>{course.videoCount} 视频</span>}
+                  {(course.examCount || 0) > 0 && <span>{course.examCount} 试卷</span>}
+                  <span>{course.duration} 分钟</span>
                 </div>
 
                 {/* 按钮 - 推到底部 */}
@@ -200,4 +175,3 @@ export default function ExplorePage() {
     </div>
   );
 }
-
