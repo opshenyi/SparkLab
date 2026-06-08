@@ -9,13 +9,13 @@ type Props = {
   value: string;
   onChange: (id: string) => void;
   className?: string;
-  /** 与容器管理一致：第一个「全部」选项 */
+  /** 可选的「全部」选项 */
   showAllOption?: boolean;
   /** 例如：全部 (12) */
   allLabel?: string;
 };
 
-/** 管理端：按服务器切换（与教师端学习小组按钮、容器列表筛选同一套 admin-control / primary） */
+/** 管理端：本机 Docker 资源切换按钮样式。 */
 export default function AdminServerPickerButtons({
   servers,
   value,

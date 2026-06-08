@@ -6,7 +6,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Users,
-  Container,
   LogOut,
   Disc,
   Network,
@@ -24,7 +23,6 @@ import ThemeToggleButton from './ThemeToggleButton';
 const adminNavItems = [
   { icon: LayoutDashboard, label: '统计概览', href: '/admin' },
   { icon: Users, label: '用户管理', href: '/admin/users' },
-  { icon: Container, label: '容器管理', href: '/admin/containers' },
   { icon: Disc, label: '镜像管理', href: '/admin/images' },
   { icon: Network, label: '网络管理', href: '/admin/networks' },
   { icon: HardDrive, label: '存储卷管理', href: '/admin/volumes' },

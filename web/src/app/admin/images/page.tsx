@@ -30,7 +30,7 @@ export default function AdminImagesPage() {
   const { user, isAuthenticated, isLoading, isLoggingOut, checkAuth } = useAuthStore();
   const [images, setImages] = useState<DockerImage[]>([]);
   const [servers, setServers] = useState<ServerInfo[]>([]);
-  const [selectedServer, setSelectedServer] = useState<string>(ADMIN_ALL_SERVERS);
+  const [selectedServer, setSelectedServer] = useState<string>('');
   const [lastAllModeCount, setLastAllModeCount] = useState(0);
   const [showPullModal, setShowPullModal] = useState(false);
   const [showBuildModal, setShowBuildModal] = useState(false);
@@ -78,9 +78,8 @@ export default function AdminImagesPage() {
       setServers(onlineServers);
       if (onlineServers.length > 0) {
         setSelectedServer((prev) => {
-          if (prev === ADMIN_ALL_SERVERS) return ADMIN_ALL_SERVERS;
           if (prev && onlineServers.some((s) => s.id === prev)) return prev;
-          return ADMIN_ALL_SERVERS;
+          return onlineServers[0].id;
         });
       } else {
         setSelectedServer('');
@@ -243,7 +242,7 @@ export default function AdminImagesPage() {
               镜像管理
             </h2>
             <p className="text-on-surface-variant text-lg">
-              管理服务器上的 Docker 镜像和 Dockerfile
+              管理本机 Docker 镜像和 Dockerfile
             </p>
           </div>
 
@@ -261,15 +260,13 @@ export default function AdminImagesPage() {
               servers={servers}
               value={selectedServer}
               onChange={setSelectedServer}
-              showAllOption
-              allLabel={`全部 (${selectedServer === ADMIN_ALL_SERVERS ? images.length : lastAllModeCount})`}
             />
 
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setShowPullModal(true)}
                 className="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-sm transition-all flex items-center gap-2 hover:opacity-95 disabled:bg-surface-lowest disabled:text-on-surface-variant disabled:opacity-100 disabled:shadow-none dark:disabled:bg-surface-container"
-                disabled={!selectedServer || selectedServer === ADMIN_ALL_SERVERS}
+                disabled={!selectedServer}
               >
                 <Download className="w-4 h-4" />
                 拉取镜像
@@ -277,7 +274,7 @@ export default function AdminImagesPage() {
               <button
                 onClick={() => setShowBuildModal(true)}
                 className="px-4 py-2 rounded-lg bg-sky-600 text-white shadow-sm transition-all flex items-center gap-2 hover:bg-sky-700 disabled:bg-surface-lowest disabled:text-on-surface-variant disabled:opacity-100 disabled:shadow-none dark:disabled:bg-surface-container"
-                disabled={!selectedServer || selectedServer === ADMIN_ALL_SERVERS}
+                disabled={!selectedServer}
               >
                 <FileCode className="w-4 h-4" />
                 构建镜像
@@ -314,7 +311,7 @@ export default function AdminImagesPage() {
                 {images.length === 0 ? (
                   <tr>
                     <td colSpan={selectedServer === ADMIN_ALL_SERVERS ? 6 : 5} className="p-8 text-center text-on-surface-variant">
-                      {selectedServer ? '暂无镜像' : '请选择服务器'}
+                      {selectedServer ? '暂无镜像' : '本机 Docker 暂不可用'}
                     </td>
                   </tr>
                 ) : (
@@ -386,7 +383,7 @@ export default function AdminImagesPage() {
               </p>
             </div>
             <div className="app-card p-4">
-              <p className="text-xs text-on-surface-variant mb-1">在线服务器</p>
+              <p className="text-xs text-on-surface-variant mb-1">本机 Docker</p>
               <p className="text-2xl font-bold text-green-400">{servers.length}</p>
             </div>
           </div>
@@ -551,4 +548,3 @@ export default function AdminImagesPage() {
     </div>
   );
 }
-

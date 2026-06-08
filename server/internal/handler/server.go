@@ -69,10 +69,11 @@ func readDockerError(resp *http.Response) string {
 }
 
 type dockerInfo struct {
-	NCPU       int    `json:"NCPU"`
-	MemTotal   int64  `json:"MemTotal"`
-	Name       string `json:"Name"`
-	Containers int    `json:"Containers"`
+	NCPU              int    `json:"NCPU"`
+	MemTotal          int64  `json:"MemTotal"`
+	Name              string `json:"Name"`
+	Containers        int    `json:"Containers"`
+	ContainersRunning int    `json:"ContainersRunning"`
 }
 
 type dockerContainerStats struct {
@@ -96,84 +97,53 @@ type dockerContainerStats struct {
 }
 
 func (h *Handler) updateServerStats(server *model.Server) {
-	// Ensure agent container exists and is running
-	agentName := "sparklab-agent"
-	agentImage := "alpine:3.20"
-
-	agentID, err := h.ensureAgentContainer(server, agentImage, agentName)
+	resp, err := h.dockerRequest(server, http.MethodGet, "/info", nil, nil)
 	if err != nil {
-		// Silently update server status to offline if connection fails
 		h.db.Model(&model.Server{}).Where("id = ?", server.ID).Updates(map[string]any{
 			"status":      "offline",
 			"lastCheckAt": time.Now(),
+			"updatedAt":   time.Now(),
 		})
 		return
 	}
-
-	// Collect host snapshot from agent container
-	cpuLine, memBlock, cpuInfoBlock, err := h.collectHostSnapshot(server, agentID)
-	if err != nil {
-		// Silently update server status to error if data collection fails
+	defer resp.Body.Close()
+	if resp.StatusCode >= 400 {
 		h.db.Model(&model.Server{}).Where("id = ?", server.ID).Updates(map[string]any{
 			"status":      "error",
 			"lastCheckAt": time.Now(),
+			"updatedAt":   time.Now(),
 		})
 		return
 	}
 
-	// Parse CPU model
-	cpuModel := h.parseCPUModel(cpuInfoBlock)
-
-	// Parse CPU stats
-	idle, total, err := h.parseCPUStat(cpuLine)
-	if err != nil {
+	var info dockerInfo
+	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
 		h.db.Model(&model.Server{}).Where("id = ?", server.ID).Updates(map[string]any{
 			"status":      "error",
 			"lastCheckAt": time.Now(),
+			"updatedAt":   time.Now(),
 		})
 		return
 	}
 
-	// Parse memory info
-	memUsage, totalMemKB, err := h.parseMemInfo(memBlock)
-	if err != nil {
-		h.db.Model(&model.Server{}).Where("id = ?", server.ID).Updates(map[string]any{
-			"status":      "error",
-			"lastCheckAt": time.Now(),
-		})
-		return
-	}
-
-	// Get container counts (only need running count for database)
 	runningCount, _, err := h.listContainerCounts(server)
 	if err != nil {
-		runningCount = 0
+		runningCount = info.ContainersRunning
 	}
 
-	// Count CPU cores from cpuinfo
-	cpuCores := h.countCPUCores(cpuInfoBlock)
-
-	// Calculate CPU usage (need previous values for accurate calculation)
-	var cpuUsage float64
-	if server.CPUIdlePrev > 0 && server.CPUTotalPrev > 0 {
-		idleDelta := idle - server.CPUIdlePrev
-		totalDelta := total - server.CPUTotalPrev
-		if totalDelta > 0 {
-			cpuUsage = float64(totalDelta-idleDelta) * 100.0 / float64(totalDelta)
-		}
+	cpuModel := strings.TrimSpace(info.Name)
+	if cpuModel == "" {
+		cpuModel = "Docker Engine"
 	}
 
-	// Update server stats in database
 	updates := map[string]any{
 		"status":           "online",
-		"cpuCores":         cpuCores,
+		"cpuCores":         info.NCPU,
 		"cpuModel":         cpuModel,
-		"totalMemory":      int(totalMemKB / 1024), // Convert to MB
+		"totalMemory":      int(info.MemTotal / 1024 / 1024),
 		"activeContainers": runningCount,
-		"cpuUsage":         cpuUsage,
-		"memoryUsage":      memUsage,
-		"cpuIdlePrev":      idle,
-		"cpuTotalPrev":     total,
+		"cpuUsage":         0,
+		"memoryUsage":      0,
 		"lastCheckAt":      time.Now(),
 		"updatedAt":        time.Now(),
 	}
@@ -746,9 +716,10 @@ buildResponse:
 			status = "offline"
 		}
 
-		// Use cached activeContainers from database instead of real-time query
-		// Real-time data will be updated by background goroutine
-		totalContainers := s.MaxContainers
+		totalContainers := s.ActiveContainers
+		if _, total, err := h.listContainerCounts(&s); err == nil {
+			totalContainers = total
+		}
 
 		// Get container count from database
 		var containerCount int64

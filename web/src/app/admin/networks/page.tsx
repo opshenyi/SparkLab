@@ -53,7 +53,7 @@ export default function NetworksPage() {
   const { user, isAuthenticated, isLoading, isLoggingOut, checkAuth } = useAuthStore();
   const [networks, setNetworks] = useState<DockerNetwork[]>([]);
   const [servers, setServers] = useState<ServerInfo[]>([]);
-  const [selectedServer, setSelectedServer] = useState<string>(ADMIN_ALL_SERVERS);
+  const [selectedServer, setSelectedServer] = useState<string>('');
   const [lastAllModeCount, setLastAllModeCount] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -109,9 +109,8 @@ export default function NetworksPage() {
       setServers(onlineServers);
       if (onlineServers.length > 0) {
         setSelectedServer((prev) => {
-          if (prev === ADMIN_ALL_SERVERS) return ADMIN_ALL_SERVERS;
           if (prev && onlineServers.some((s) => s.id === prev)) return prev;
-          return ADMIN_ALL_SERVERS;
+          return onlineServers[0].id;
         });
       } else {
         setSelectedServer('');
@@ -254,15 +253,13 @@ export default function NetworksPage() {
               servers={servers}
               value={selectedServer}
               onChange={setSelectedServer}
-              showAllOption
-              allLabel={`全部 (${selectedServer === ADMIN_ALL_SERVERS ? networks.length : lastAllModeCount})`}
             />
 
             <button
               type="button"
               onClick={() => setShowCreateModal(true)}
               className="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-sm transition-all flex items-center gap-2 hover:opacity-95 disabled:bg-surface-lowest disabled:text-on-surface-variant disabled:opacity-100 disabled:shadow-none dark:disabled:bg-surface-container"
-              disabled={!selectedServer || selectedServer === ADMIN_ALL_SERVERS}
+              disabled={!selectedServer}
             >
               <Plus className="w-4 h-4" />
               创建网络
@@ -300,7 +297,7 @@ export default function NetworksPage() {
                 {networks.length === 0 ? (
                   <tr>
                     <td colSpan={selectedServer === ADMIN_ALL_SERVERS ? 7 : 6} className="p-8 text-center text-on-surface-variant">
-                      {selectedServer ? '暂无网络' : '请选择服务器'}
+                      {selectedServer ? '暂无网络' : '本机 Docker 暂不可用'}
                     </td>
                   </tr>
                 ) : (
@@ -373,7 +370,7 @@ export default function NetworksPage() {
               </p>
             </div>
             <div className="app-card p-4">
-              <p className="text-xs text-on-surface-variant mb-1">在线服务器</p>
+              <p className="text-xs text-on-surface-variant mb-1">本机 Docker</p>
               <p className="text-2xl font-bold text-green-400">{servers.length}</p>
             </div>
           </div>
@@ -813,4 +810,3 @@ export default function NetworksPage() {
     </div>
   );
 }
-

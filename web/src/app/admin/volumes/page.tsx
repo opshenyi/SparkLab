@@ -38,7 +38,7 @@ export default function VolumesPage() {
   
   const [volumes, setVolumes] = useState<Volume[]>([]);
   const [servers, setServers] = useState<Server[]>([]);
-  const [selectedServer, setSelectedServer] = useState<string>(ADMIN_ALL_SERVERS);
+  const [selectedServer, setSelectedServer] = useState<string>('');
   const [lastAllModeCount, setLastAllModeCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [serversLoading, setServersLoading] = useState(true);
@@ -89,9 +89,8 @@ export default function VolumesPage() {
       setServers(onlineServers);
       if (onlineServers.length > 0) {
         setSelectedServer((prev) => {
-          if (prev === ADMIN_ALL_SERVERS) return ADMIN_ALL_SERVERS;
           if (prev && onlineServers.some((s) => s.id === prev)) return prev;
-          return ADMIN_ALL_SERVERS;
+          return onlineServers[0].id;
         });
       } else {
         setSelectedServer('');
@@ -99,7 +98,7 @@ export default function VolumesPage() {
       }
     } catch (error: any) {
       console.error('Failed to fetch servers:', error);
-      setError('获取服务器列表失败: ' + (error.response?.data?.error || error.message));
+      setError('获取本机 Docker 状态失败: ' + (error.response?.data?.error || error.message));
     } finally {
       setServersLoading(false);
     }
@@ -158,7 +157,7 @@ export default function VolumesPage() {
       return;
     }
     if (!selectedServer || selectedServer === ADMIN_ALL_SERVERS) {
-      alert('请先选择一台服务器');
+      alert('本机 Docker 暂不可用');
       return;
     }
 
@@ -204,7 +203,7 @@ export default function VolumesPage() {
   const handleViewDetail = async (volume: Volume) => {
     const sid = volume.serverId ?? selectedServer;
     if (!sid || sid === ADMIN_ALL_SERVERS) {
-      alert('无法在「全部」视图下查看详情，请先选择服务器');
+      alert('本机 Docker 暂不可用');
       return;
     }
     try {
@@ -262,7 +261,7 @@ export default function VolumesPage() {
           {serversLoading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              <p className="mt-4 text-on-surface-variant">加载服务器列表...</p>
+              <p className="mt-4 text-on-surface-variant">加载本机 Docker 状态...</p>
             </div>
           ) : registeredServerCount === 0 ? (
             <AdminNoServersPrompt context="存储卷管理" />
@@ -285,8 +284,6 @@ export default function VolumesPage() {
                   servers={servers}
                   value={selectedServer}
                   onChange={setSelectedServer}
-                  showAllOption
-                  allLabel={`全部 (${selectedServer === ADMIN_ALL_SERVERS ? volumes.length : lastAllModeCount})`}
                 />
                 <button
                   type="button"
@@ -301,7 +298,7 @@ export default function VolumesPage() {
               <button
                 type="button"
                 onClick={() => setShowCreateModal(true)}
-                disabled={!selectedServer || selectedServer === ADMIN_ALL_SERVERS}
+                disabled={!selectedServer}
                 className="rounded-lg bg-primary px-6 py-2 text-on-primary transition-colors hover:bg-primary/90 disabled:opacity-50"
               >
                 创建存储卷
@@ -312,7 +309,7 @@ export default function VolumesPage() {
           {/* 存储卷列表 */}
           {!selectedServer ? (
             <div className="app-card p-12 text-center">
-              <p className="text-on-surface-variant text-lg">暂无在线服务器</p>
+              <p className="text-on-surface-variant text-lg">本机 Docker 暂不可用</p>
               <p className="text-sm text-on-surface-variant/70 mt-2">请检查节点连接状态后再试</p>
             </div>
           ) : loading ? (
@@ -634,4 +631,3 @@ export default function VolumesPage() {
     </div>
   );
 }
-

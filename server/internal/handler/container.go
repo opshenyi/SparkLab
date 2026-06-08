@@ -81,13 +81,12 @@ func (h *Handler) CreateContainer(c *gin.Context) {
 		return
 	}
 
-	var server *model.Server
-	if lab.ServerID != nil && strings.TrimSpace(*lab.ServerID) != "" {
-		var s model.Server
-		if err := h.db.Where("id = ?", *lab.ServerID).First(&s).Error; err == nil {
-			server = &s
-		}
+	server, err := h.ensureLocalDockerServer()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Prepare local Docker node failed"})
+		return
 	}
+	serverID := localDockerServerID
 
 	// 先在数据库中创建容器记录（状态为 creating）
 	now := time.Now()
@@ -96,7 +95,7 @@ func (h *Handler) CreateContainer(c *gin.Context) {
 		ID:           newID(),
 		UserID:       uid,
 		LabID:        req.LabID,
-		ServerID:     lab.ServerID,
+		ServerID:     &serverID,
 		ContainerID:  "", // 将在创建后填充
 		Status:       "creating",
 		PortMappings: lab.PortMappings,

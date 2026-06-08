@@ -1,17 +1,29 @@
 {
   "appId": "sparklab",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "channel": "main",
-  "releasedAt": "2026-06-09T05:42:36+08:00",
-  "title": "更新进度与完成后自动刷新",
+  "releasedAt": "2026-06-09T05:54:48+08:00",
+  "title": "本机 Docker 管理收敛",
   "mandatory": false,
   "announcement": {
     "enabled": true,
     "level": "info",
-    "title": "SparkLab 更新状态可视化已启用",
-    "message": "管理员点击更新后，后台会显示拉取代码、构建镜像、重启服务等进度；更新完成后页面会自动刷新到新版本。"
+    "title": "SparkLab 已收敛为本机 Docker 管理",
+    "message": "管理后台不再展示多服务器容器入口，Docker 状态直接通过 unix:///var/run/docker.sock 读取，实验容器也会强制创建到本机 Docker。"
   },
   "changelog": [
+    {
+      "version": "0.4.3",
+      "date": "2026-06-09",
+      "title": "本机 Docker 管理收敛",
+      "items": [
+        "移除管理侧边栏中的容器管理入口，旧容器页改为本机 Docker-only 兜底页面。",
+        "容器页不再显示服务器筛选、所有服务器、未知服务器等多节点文案。",
+        "镜像、网络和存储卷页面默认选中本机 Docker，不再进入全部服务器模式导致操作按钮禁用。",
+        "后端 Docker 状态检测改为直接读取 Docker Engine /info，不再创建 sparklab-agent 监控容器。",
+        "创建实验容器时强制使用 local-docker 和 unix:///var/run/docker.sock，忽略旧数据库残留的远程 serverId。"
+      ]
+    },
     {
       "version": "0.4.2",
       "date": "2026-06-09",

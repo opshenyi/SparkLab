@@ -9,7 +9,7 @@ type Props = {
   className?: string;
 };
 
-/** 与容器管理页一致：横向按钮切换当前学习小组（无图标、无「筛选」前缀文案） */
+/** 横向按钮切换当前学习小组（无图标、无「筛选」前缀文案） */
 export default function TeacherGroupFilterButtons({ groups, value, onChange, className }: Props) {
   if (groups.length === 0) return null;
   return (
