@@ -24,6 +24,24 @@ type UpdateApplyProgress = {
   autoReloadDelaySeconds?: number;
 };
 
+type UpdateInfo = {
+  currentVersion?: string;
+  latestVersion?: string;
+  currentCommit?: string;
+  latestCommit?: string;
+  runningVersion?: string;
+  runningCommit?: string;
+  repoVersion?: string;
+  repoCommit?: string;
+  hasUpdate?: boolean;
+  codeChangedWithoutVersion?: boolean;
+  needsRedeploy?: boolean;
+  dirty?: boolean;
+  mandatory?: boolean;
+  canApply?: boolean;
+  changelog?: Array<{ title?: string; items?: string[] }>;
+};
+
 const activeUpdateStates = new Set(['checking', 'fetching', 'pulling', 'building', 'restarting']);
 const updateStatePercent: Record<string, number> = {
   checking: 10,
@@ -39,7 +57,7 @@ export default function AdminPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, isLoggingOut, checkAuth } = useAuthStore();
   const [stats, setStats] = useState<any>({});
-  const [updateInfo, setUpdateInfo] = useState<any>(null);
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [updateMessage, setUpdateMessage] = useState('');
   const [updateProgress, setUpdateProgress] = useState<UpdateApplyProgress | null>(null);
   const [autoReloadIn, setAutoReloadIn] = useState<number | null>(null);
@@ -223,7 +241,12 @@ export default function AdminPage() {
       }
       const message = error?.response?.data?.message || '执行更新失败';
       setUpdateMessage(message);
-      setUpdateProgress({ state: 'failed', message, error: message });
+      setUpdateProgress({
+        state: 'failed',
+        message,
+        error: message,
+        outputTail: error?.response?.data?.output || error?.response?.data?.progress?.outputTail,
+      });
       setIsApplyingUpdate(false);
     }
   };
@@ -237,6 +260,13 @@ export default function AdminPage() {
   const showUpdateProgress = updateState !== 'idle' && updateProgress?.message;
   const isUpdateActive = activeUpdateStates.has(updateState);
   const updateProgressPercent = updateStatePercent[updateState] || 0;
+  const updateAvailable = Boolean(
+    updateInfo?.hasUpdate || updateInfo?.codeChangedWithoutVersion || updateInfo?.needsRedeploy
+  );
+  const canApplyUpdate = Boolean(updateAvailable && updateInfo?.canApply);
+  const runningVersion = updateInfo?.runningVersion || updateInfo?.currentVersion;
+  const runningCommit = updateInfo?.runningCommit || updateInfo?.currentCommit;
+  const shortCommit = (commit?: string) => (commit ? commit.slice(0, 7) : '');
 
   if (isLoading) {
     return <LoadingBar />;
@@ -273,18 +303,35 @@ export default function AdminPage() {
                       <GitBranch className="h-5 w-5" />
                       <h3 className="font-display text-page-title text-xl font-bold tracking-tight">系统更新</h3>
                     </div>
-                    <div className="grid gap-2 text-sm text-on-surface-variant sm:grid-cols-2">
+                    <div className="grid gap-2 text-sm text-on-surface-variant sm:grid-cols-3">
                       <div className="min-w-0">
-                        <span className="font-medium text-on-surface">当前</span>{' '}
-                        {updateInfo?.currentVersion || '未检查'}
+                        <span className="font-medium text-on-surface">运行中</span>{' '}
+                        {runningVersion || '未检查'}
+                        {shortCommit(runningCommit) ? (
+                          <span className="ml-1 font-mono text-xs">({shortCommit(runningCommit)})</span>
+                        ) : null}
+                      </div>
+                      <div className="min-w-0">
+                        <span className="font-medium text-on-surface">仓库</span>{' '}
+                        {updateInfo?.repoVersion || '未检查'}
+                        {shortCommit(updateInfo?.repoCommit) ? (
+                          <span className="ml-1 font-mono text-xs">({shortCommit(updateInfo?.repoCommit)})</span>
+                        ) : null}
                       </div>
                       <div className="min-w-0">
                         <span className="font-medium text-on-surface">GitHub</span>{' '}
                         {updateInfo?.latestVersion || '未检查'}
+                        {shortCommit(updateInfo?.latestCommit) ? (
+                          <span className="ml-1 font-mono text-xs">({shortCommit(updateInfo?.latestCommit)})</span>
+                        ) : null}
                       </div>
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-                      {updateInfo?.hasUpdate ? (
+                      {updateInfo?.needsRedeploy ? (
+                        <span className="rounded-full bg-status-warning/10 px-3 py-1 font-medium text-status-warning">
+                          代码已拉取，运行仍是旧版本
+                        </span>
+                      ) : updateInfo?.hasUpdate ? (
                         <span className="rounded-full bg-primary/10 px-3 py-1 font-medium text-primary">发现更新</span>
                       ) : updateInfo?.codeChangedWithoutVersion ? (
                         <span className="rounded-full bg-status-warning/10 px-3 py-1 font-medium text-status-warning">
@@ -342,6 +389,11 @@ export default function AdminPage() {
                             服务重启期间页面可能短暂失去连接，恢复后会自动刷新。
                           </div>
                         ) : null}
+                        {updateState === 'failed' && updateProgress?.outputTail ? (
+                          <pre className="mt-3 max-h-32 overflow-auto whitespace-pre-wrap break-words rounded-md bg-surface-container p-3 text-xs text-on-surface-variant">
+                            {updateProgress.outputTail}
+                          </pre>
+                        ) : null}
                       </div>
                     ) : null}
                     {updateInfo?.changelog?.[0]?.items?.length ? (
@@ -371,7 +423,7 @@ export default function AdminPage() {
                     <button
                       type="button"
                       onClick={applyUpdate}
-                      disabled={!(updateInfo?.hasUpdate || updateInfo?.codeChangedWithoutVersion) || !updateInfo?.canApply || isCheckingUpdate || isApplyingUpdate}
+                      disabled={!canApplyUpdate || isCheckingUpdate || isApplyingUpdate}
                       className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-dim disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isApplyingUpdate ? <Loader2 className="h-4 w-4 animate-spin" /> : <DownloadCloud className="h-4 w-4" />}

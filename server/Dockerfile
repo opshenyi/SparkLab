@@ -14,6 +14,11 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/sparkla
 
 FROM docker:27-cli
 
+ARG SPARKLAB_VERSION=0.0.0
+ARG SPARKLAB_COMMIT=unknown
+ENV SPARKLAB_VERSION=$SPARKLAB_VERSION
+ENV SPARKLAB_COMMIT=$SPARKLAB_COMMIT
+
 RUN apk add --no-cache bash ca-certificates docker-cli-compose git tzdata
 
 WORKDIR /app

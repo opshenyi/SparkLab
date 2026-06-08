@@ -82,12 +82,18 @@ type updateStatus struct {
 	LatestVersion             string                `json:"latestVersion"`
 	CurrentCommit             string                `json:"currentCommit,omitempty"`
 	LatestCommit              string                `json:"latestCommit,omitempty"`
+	RunningVersion            string                `json:"runningVersion"`
+	RunningCommit             string                `json:"runningCommit,omitempty"`
+	RunningSource             string                `json:"runningSource,omitempty"`
+	RepoVersion               string                `json:"repoVersion"`
+	RepoCommit                string                `json:"repoCommit,omitempty"`
 	LatestUrl                 string                `json:"latestUrl,omitempty"`
 	LatestMessage             string                `json:"latestMessage,omitempty"`
 	LatestAuthor              string                `json:"latestAuthor,omitempty"`
 	LatestDate                *time.Time            `json:"latestDate,omitempty"`
 	HasUpdate                 bool                  `json:"hasUpdate"`
 	CodeChangedWithoutVersion bool                  `json:"codeChangedWithoutVersion"`
+	NeedsRedeploy             bool                  `json:"needsRedeploy"`
 	CanApply                  bool                  `json:"canApply"`
 	Dirty                     bool                  `json:"dirty"`
 	RepoDir                   string                `json:"repoDir,omitempty"`
@@ -155,7 +161,7 @@ func (h *Handler) ApplyUpdate(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"message": message})
 		return
 	}
-	if !status.HasUpdate && !status.CodeChangedWithoutVersion {
+	if !status.HasUpdate && !status.CodeChangedWithoutVersion && !status.NeedsRedeploy {
 		now := time.Now()
 		progress.State = updateApplyStateCompleted
 		progress.Message = "当前已经是最新版本"
@@ -173,8 +179,9 @@ func (h *Handler) ApplyUpdate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": message})
 		return
 	}
-	progress.BeforeCommit = before.Commit
-	progress.CurrentCommit = before.Commit
+	if progress.BeforeCommit == "" {
+		progress.BeforeCommit = before.Commit
+	}
 	progress.Branch = before.Branch
 	progress.State = updateApplyStateFetching
 	progress.Message = "正在从 GitHub 拉取更新"
@@ -199,6 +206,10 @@ func (h *Handler) ApplyUpdate(c *gin.Context) {
 		h.failUpdateProgress(before.RepoDir, progress, message, output)
 		c.JSON(http.StatusConflict, gin.H{"message": message, "output": output})
 		return
+	}
+	afterPull, afterPullErr := localGitState(ctx)
+	if afterPullErr == nil && progress.TargetCommit == "" {
+		progress.TargetCommit = afterPull.Commit
 	}
 	progress.State = updateApplyStateBuilding
 	progress.Message = "代码已拉取，正在重建 Docker 镜像"
@@ -248,7 +259,7 @@ func (h *Handler) ApplyUpdate(c *gin.Context) {
 		"message":           "更新已拉取，Docker 镜像已重建，服务重启已安排",
 		"fromVersion":       status.CurrentVersion,
 		"toVersion":         status.LatestVersion,
-		"beforeCommit":      before.Commit,
+		"beforeCommit":      progress.BeforeCommit,
 		"afterCommit":       after.Commit,
 		"output":            fetchOut + pullOut + scriptOut,
 		"progress":          progress,
@@ -258,13 +269,23 @@ func (h *Handler) ApplyUpdate(c *gin.Context) {
 }
 
 func (h *Handler) buildUpdateStatus(ctx context.Context, includeLocalDetails bool) updateStatus {
-	current, localErr := localManifest(ctx)
+	repoManifest, localErr := localManifest(ctx)
 	remote, latestCommit, remoteErr := h.remoteRelease(ctx)
+	running := currentRunningBuild()
+	runningVersion := running.Version
+	if runningVersion == "" {
+		runningVersion = repoManifest.Version
+	}
 
 	status := updateStatus{
 		Repo:           h.cfg.GitHubRepo,
 		Branch:         h.cfg.GitBranch,
-		CurrentVersion: current.Version,
+		CurrentVersion: runningVersion,
+		RunningVersion: runningVersion,
+		RunningCommit:  running.Commit,
+		RunningSource:  running.Source,
+		CurrentCommit:  running.Commit,
+		RepoVersion:    repoManifest.Version,
 		CheckedAt:      time.Now(),
 	}
 	if localErr != nil {
@@ -280,7 +301,7 @@ func (h *Handler) buildUpdateStatus(ctx context.Context, includeLocalDetails boo
 		status.Announcement = remote.Announcement
 		status.Changelog = remote.Changelog
 		status.Scripts = remote.Scripts
-		status.HasUpdate = compareVersions(remote.Version, current.Version) > 0
+		status.HasUpdate = compareVersions(remote.Version, runningVersion) > 0
 	}
 	if latestCommit != nil {
 		status.LatestCommit = latestCommit.SHA
@@ -299,9 +320,14 @@ func (h *Handler) buildUpdateStatus(ctx context.Context, includeLocalDetails boo
 		return status
 	}
 
-	status.CurrentCommit = state.Commit
+	status.RepoCommit = state.Commit
+	if status.CurrentCommit == "" {
+		status.CurrentCommit = state.Commit
+		status.RunningCommit = state.Commit
+	}
 	status.Dirty = state.Dirty
 	status.CanApply = !state.Dirty && status.RemoteError == ""
+	status.NeedsRedeploy = repoDiffersFromRunning(status.RepoVersion, status.RunningVersion, status.RepoCommit, status.RunningCommit)
 	status.CodeChangedWithoutVersion = !status.HasUpdate &&
 		status.CurrentCommit != "" &&
 		status.LatestCommit != "" &&
@@ -568,6 +594,13 @@ func normalizeManifest(manifest *updateManifest) {
 	if manifest.Scripts.Windows == "" {
 		manifest.Scripts.Windows = "scripts/update.ps1"
 	}
+}
+
+func repoDiffersFromRunning(repoVersion, runningVersion, repoCommit, runningCommit string) bool {
+	if repoCommit != "" && runningCommit != "" && !strings.EqualFold(repoCommit, runningCommit) {
+		return true
+	}
+	return compareVersions(repoVersion, runningVersion) > 0
 }
 
 func compareVersions(a, b string) int {

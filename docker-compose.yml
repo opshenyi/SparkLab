@@ -18,8 +18,10 @@ services:
       GITHUB_REPO: ${GITHUB_REPO:-opshenyi/SparkLab}
       GITHUB_BRANCH: ${GITHUB_BRANCH:-main}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      HOST_PROJECT_DIR: ${HOST_PROJECT_DIR:-}
       APP_REPO_DIR: /app/repo
       SPARKLAB_UPDATE_DIR: ${SPARKLAB_UPDATE_DIR:-/app/data}
+      SPARKLAB_BUILD_PULL: ${SPARKLAB_BUILD_PULL:-false}
       UPDATE_CHECK_CACHE_SECONDS: ${UPDATE_CHECK_CACHE_SECONDS:-300}
       UPDATE_SCRIPT_TIMEOUT_SECONDS: ${UPDATE_SCRIPT_TIMEOUT_SECONDS:-1200}
       SEED_ON_START: ${SEED_ON_START:-true}
@@ -27,9 +29,9 @@ services:
     ports:
       - "${BACKEND_PORT:-3001}:3001"
     volumes:
-      - ./:/app/repo
-      - ./data/server:/app/data
-      - ./data/uploads:/app/uploads
+      - "${HOST_PROJECT_DIR:-.}:/app/repo"
+      - "${HOST_PROJECT_DIR:-.}/data/server:/app/data"
+      - "${HOST_PROJECT_DIR:-.}/data/uploads:/app/uploads"
       - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health >/dev/null 2>&1 || exit 1"]
@@ -61,7 +63,7 @@ services:
     ports:
       - "${WEB_PORT:-3000}:3000"
     volumes:
-      - ./data/web-uploads:/app/public/uploads
+      - "${HOST_PROJECT_DIR:-.}/data/web-uploads:/app/public/uploads"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000 >/dev/null 2>&1 || exit 1"]
       interval: 30s

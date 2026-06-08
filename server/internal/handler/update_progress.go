@@ -122,17 +122,19 @@ func (h *Handler) refreshUpdateProgress(ctx context.Context, progress *updateApp
 		return progress
 	}
 
+	running := currentRunningBuild()
 	state, err := localGitState(ctx)
 	if err != nil {
 		return progress
 	}
 
-	doneByCommit := progress.TargetCommit != "" && strings.EqualFold(state.Commit, progress.TargetCommit)
-	doneByVersion := false
-	if manifest, err := localManifest(ctx); err == nil {
-		doneByVersion = progress.ToVersion != "" && compareVersions(manifest.Version, progress.ToVersion) >= 0
+	done := false
+	if progress.TargetCommit != "" {
+		done = running.Commit != "" && strings.EqualFold(running.Commit, progress.TargetCommit)
+	} else {
+		done = progress.ToVersion != "" && compareVersions(running.Version, progress.ToVersion) >= 0
 	}
-	if !doneByCommit && !doneByVersion {
+	if !done {
 		if time.Since(progress.UpdatedAt) > updateScriptTimeout()+10*time.Minute {
 			now := time.Now()
 			progress.State = updateApplyStateFailed
@@ -148,7 +150,7 @@ func (h *Handler) refreshUpdateProgress(ctx context.Context, progress *updateApp
 	now := time.Now()
 	progress.State = updateApplyStateCompleted
 	progress.Message = "更新完成，正在刷新页面"
-	progress.CurrentCommit = state.Commit
+	progress.CurrentCommit = running.Commit
 	progress.CompletedAt = &now
 	progress.RefreshRecommended = true
 	progress.AutoReloadDelaySeconds = 2

@@ -84,7 +84,7 @@ data/web-uploads  # 前端视频上传
 
 更新完全通过 GitHub 完成，核心文件是根目录的 `update-manifest.json`。每次发布新版本时，需要同时更新：
 
-- `version`：新版本号，例如 `0.4.2`
+- `version`：新版本号，例如 `0.4.5`
 - `releasedAt`：发布时间
 - `announcement`：前端公告
 - `changelog`：管理后台展示的更新日志
@@ -97,13 +97,29 @@ data/web-uploads  # 前端视频上传
 git fetch origin main
 git pull --ff-only origin main
 scripts/update.sh
-docker compose build --pull
+docker compose build --build-arg SPARKLAB_VERSION=... --build-arg SPARKLAB_COMMIT=...
 后台执行 docker compose up -d --remove-orphans --no-build
 ```
 
-更新过程中后端会把当前阶段写入 `data/server/update-status.json`，重启日志默认写入 `data/server/update-redeploy.log`。管理后台会轮询 `/admin/updates/status`，显示拉取代码、合并代码、构建镜像、重启服务等状态；新后端启动后会确认本地版本/提交已经到达目标版本，然后前端倒计时自动刷新页面。
+更新过程中后端会把当前阶段写入 `data/server/update-status.json`，重启日志默认写入 `data/server/update-redeploy.log`。管理后台会轮询 `/admin/updates/status`，显示拉取代码、合并代码、构建镜像、重启服务等状态；新后端启动后会确认“运行中的版本/提交”已经到达目标版本，然后前端倒计时自动刷新页面。
 
 这样后端接口可以先返回“更新已安排”，随后 Compose 在后台接管重启；即使前端短暂连不上服务，恢复后也会继续读状态并刷新到新版本。
+
+管理后台会同时展示三种状态：
+
+- 运行中：当前后端进程启动时记录的版本和提交。
+- 仓库：服务器本地 Git 仓库当前拉取到的版本和提交。
+- GitHub：远端发布清单和最新提交。
+
+如果仓库已经变成新版本，但运行中仍是旧版本，说明代码已拉取但容器没有重建/重启成功；此时后台会显示“代码已拉取，运行仍是旧版本”，并允许再次点击更新来重建部署。
+
+更新脚本在容器内运行时，会通过 `docker inspect` 自动识别 `/app/repo` 对应的宿主机项目目录，并把它传给 Docker Compose。正常情况下 `.env` 里的 `HOST_PROJECT_DIR` 可以留空；如果自动识别失败，再手动填写服务器上的项目绝对路径，例如 `/root/SparkLab`。
+
+默认更新脚本不再强制拉取 Docker Hub 基础镜像。需要刷新基础镜像时，可在 `.env` 中设置：
+
+```env
+SPARKLAB_BUILD_PULL=true
+```
 
 ## 发版流程
 
@@ -142,9 +158,11 @@ DATABASE_URL=file:/app/data/spark_lab.db
 JWT_SECRET=change-this-secret-before-production
 GITHUB_REPO=opshenyi/SparkLab
 GITHUB_BRANCH=main
+HOST_PROJECT_DIR=
 SPARKLAB_UPDATE_DIR=/app/data
 UPDATE_CHECK_CACHE_SECONDS=300
 UPDATE_SCRIPT_TIMEOUT_SECONDS=1200
+SPARKLAB_BUILD_PULL=false
 SEED_ON_START=true
 ```
 

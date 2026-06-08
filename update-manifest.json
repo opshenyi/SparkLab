@@ -1,17 +1,30 @@
 {
   "appId": "sparklab",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "channel": "main",
-  "releasedAt": "2026-06-09T06:04:31+08:00",
-  "title": "当前服务器仪表盘",
+  "releasedAt": "2026-06-09T06:20:12+08:00",
+  "title": "更新确认与重部署修复",
   "mandatory": false,
   "announcement": {
     "enabled": true,
-    "level": "info",
-    "title": "服务器管理已改为当前主机仪表盘",
-    "message": "管理后台的服务器管理现在展示当前主机状态面板，并默认通过 unix:///var/run/docker.sock 管理本机 Docker 容器。"
+    "level": "warning",
+    "title": "更新流程已修复运行版本确认",
+    "message": "系统更新现在会区分运行中的版本、仓库已拉取版本和 GitHub 最新版本，避免代码已拉取但旧容器仍在运行时误判为完成。"
   },
   "changelog": [
+    {
+      "version": "0.4.5",
+      "date": "2026-06-09",
+      "title": "更新确认与重部署修复",
+      "items": [
+        "管理后台更新卡片新增运行中、仓库、GitHub 三组版本与提交信息。",
+        "更新完成判断改为确认新启动的后端运行版本，不再只看仓库 manifest 是否已变化。",
+        "当代码已拉取但 Docker 重部署失败时，会提示需要重新部署，更新按钮保持可用。",
+        "Docker Compose 重启失败会写入持久化更新状态，页面可直接显示失败原因和日志尾部。",
+        "更新脚本会自动识别宿主机项目目录，避免容器内执行 Compose 时挂载到错误路径。",
+        "更新脚本默认不再强制 docker compose build --pull，可通过 SPARKLAB_BUILD_PULL=true 主动开启。"
+      ]
+    },
     {
       "version": "0.4.4",
       "date": "2026-06-09",
