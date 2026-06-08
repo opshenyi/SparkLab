@@ -8,6 +8,8 @@
 *.css text eol=lf
 *.md text eol=lf
 *.sql text eol=lf
+*.sh text eol=lf
+*.ps1 text eol=lf
 
 *.mp4 binary
 *.png binary

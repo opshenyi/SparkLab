@@ -17,6 +17,7 @@ web/.next
 # production
 /build
 *.exe
+server/bin/
 
 # misc
 .DS_Store

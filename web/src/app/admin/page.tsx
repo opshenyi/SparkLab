@@ -32,6 +32,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (isAuthenticated && (user?.role === 'ADMIN' || user?.role === 'AUTHOR')) {
       loadData();
+      checkUpdates();
     }
   }, [isAuthenticated, user]);
 
@@ -115,16 +116,20 @@ export default function AdminPage() {
                     <div className="grid gap-2 text-sm text-on-surface-variant sm:grid-cols-2">
                       <div className="min-w-0">
                         <span className="font-medium text-on-surface">当前</span>{' '}
-                        {updateInfo?.currentCommit ? updateInfo.currentCommit.slice(0, 12) : '未检查'}
+                        {updateInfo?.currentVersion || '未检查'}
                       </div>
                       <div className="min-w-0">
                         <span className="font-medium text-on-surface">GitHub</span>{' '}
-                        {updateInfo?.latestCommit ? updateInfo.latestCommit.slice(0, 12) : '未检查'}
+                        {updateInfo?.latestVersion || '未检查'}
                       </div>
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
                       {updateInfo?.hasUpdate ? (
                         <span className="rounded-full bg-primary/10 px-3 py-1 font-medium text-primary">发现更新</span>
+                      ) : updateInfo?.codeChangedWithoutVersion ? (
+                        <span className="rounded-full bg-status-warning/10 px-3 py-1 font-medium text-status-warning">
+                          GitHub 有新代码但版本号未变化
+                        </span>
                       ) : updateInfo ? (
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-status-success/10 px-3 py-1 font-medium text-status-success">
                           <CheckCircle2 className="h-4 w-4" />
@@ -136,8 +141,25 @@ export default function AdminPage() {
                           存在本地改动
                         </span>
                       )}
+                      {updateInfo?.mandatory && (
+                        <span className="rounded-full bg-status-error/10 px-3 py-1 font-medium text-status-error">
+                          重要更新
+                        </span>
+                      )}
                       {updateMessage && <span className="text-on-surface-variant">{updateMessage}</span>}
                     </div>
+                    {updateInfo?.changelog?.[0]?.items?.length ? (
+                      <div className="mt-4 rounded-lg bg-surface-low p-3">
+                        <div className="mb-2 text-sm font-semibold text-on-surface">
+                          {updateInfo.changelog[0].title || `版本 ${updateInfo.latestVersion}`}
+                        </div>
+                        <ul className="space-y-1 text-sm text-on-surface-variant">
+                          {updateInfo.changelog[0].items.slice(0, 4).map((item: string) => (
+                            <li key={item}>· {item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="flex flex-wrap gap-3">
@@ -153,7 +175,7 @@ export default function AdminPage() {
                     <button
                       type="button"
                       onClick={applyUpdate}
-                      disabled={!updateInfo?.hasUpdate || !updateInfo?.canApply || isCheckingUpdate || isApplyingUpdate}
+                      disabled={!(updateInfo?.hasUpdate || updateInfo?.codeChangedWithoutVersion) || !updateInfo?.canApply || isCheckingUpdate || isApplyingUpdate}
                       className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-dim disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isApplyingUpdate ? <Loader2 className="h-4 w-4 animate-spin" /> : <DownloadCloud className="h-4 w-4" />}

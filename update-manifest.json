@@ -1,0 +1,31 @@
+{
+  "appId": "sparklab",
+  "version": "0.3.0",
+  "channel": "main",
+  "releasedAt": "2026-06-09T00:00:00+08:00",
+  "title": "本机 Docker 与 GitHub 更新流程",
+  "mandatory": false,
+  "announcement": {
+    "enabled": true,
+    "level": "info",
+    "title": "SparkLab 更新通道已启用",
+    "message": "系统现在会通过 GitHub 发布清单检查版本、公告和更新日志。管理员可在控制台检查并应用更新。"
+  },
+  "changelog": [
+    {
+      "version": "0.3.0",
+      "date": "2026-06-09",
+      "title": "完善 GitHub 更新机制",
+      "items": [
+        "新增 update-manifest.json 发布清单，使用版本号和更新日志判断更新。",
+        "新增前端全局公告/更新提示，进入前端时自动检查一次。",
+        "管理员可检查更新并执行安全的 fast-forward 拉取与更新脚本。",
+        "Docker 管理改为默认使用本机 unix:///var/run/docker.sock。"
+      ]
+    }
+  ],
+  "scripts": {
+    "linux": "scripts/update.sh",
+    "windows": "scripts/update.ps1"
+  }
+}

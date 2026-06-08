@@ -1981,6 +1981,72 @@ crontab -e
 
 ---
 
+### 7.4 GitHub 发布与更新流程
+
+SparkLab 使用仓库根目录的 `update-manifest.json` 作为发布清单。部署主机不会只看 Git 提交号，而是从 GitHub 读取发布清单里的版本号、公告和更新日志。
+
+#### 7.4.1 发布新版本
+
+每次更新代码后，请同步修改 `update-manifest.json`：
+
+```json
+{
+  "version": "0.3.1",
+  "releasedAt": "2026-06-09T20:00:00+08:00",
+  "title": "本次更新标题",
+  "mandatory": false,
+  "announcement": {
+    "enabled": true,
+    "level": "info",
+    "title": "公告标题",
+    "message": "给用户看的公告内容"
+  },
+  "changelog": [
+    {
+      "version": "0.3.1",
+      "date": "2026-06-09",
+      "title": "更新日志标题",
+      "items": ["更新点 1", "更新点 2"]
+    }
+  ]
+}
+```
+
+发布步骤：
+
+```bash
+git add .
+git commit -m "Release v0.3.1"
+git push origin main
+```
+
+#### 7.4.2 部署端检查更新
+
+- 前端每次加载时会调用 `/updates/check`，从 GitHub 读取公告和最新版本信息。
+- 管理员首页会显示当前版本、GitHub 最新版本、更新日志和本地工作区状态。
+- 管理员点击“更新”后，后端会执行：
+  1. `git fetch origin main`
+  2. `git pull --ff-only origin main`
+  3. 根据系统执行 `scripts/update.sh` 或 `scripts/update.ps1`
+
+更新脚本默认会安装依赖、构建后端和前端。如果配置了 `SPARKLAB_RESTART_COMMAND`，构建成功后会执行该重启命令；否则需要手动重启服务。
+
+#### 7.4.3 推荐部署变量
+
+```bash
+GITHUB_REPO="opshenyi/SparkLab"
+GITHUB_BRANCH="main"
+GITHUB_TOKEN=""                       # 私有仓库或提高额度时填写
+APP_REPO_DIR="/opt/SparkLab"          # 服务不在仓库目录内启动时填写
+UPDATE_CHECK_CACHE_SECONDS=300
+UPDATE_SCRIPT_TIMEOUT_SECONDS=600
+SPARKLAB_RESTART_COMMAND="systemctl restart sparklab-backend sparklab-web"
+```
+
+> 自动更新要求部署目录是干净 Git 工作区。如果存在未提交改动，系统会拒绝更新，避免覆盖本地配置或临时改动。
+
+---
+
 ## 8. 开发指南
 
 ### 8.1 代码规范
@@ -2708,8 +2774,11 @@ DOCKER_HOST="unix:///var/run/docker.sock"         # 本机 Docker Engine Unix so
 # GitHub更新配置
 GITHUB_REPO="opshenyi/SparkLab"                   # GitHub仓库 owner/name
 GITHUB_BRANCH="main"                              # 更新分支
+UPDATE_CHECK_CACHE_SECONDS=300                    # GitHub 检查缓存秒数，避免频繁请求
+UPDATE_SCRIPT_TIMEOUT_SECONDS=600                 # 更新脚本最长执行时间
 GITHUB_TOKEN=""                                   # 可选：提高 GitHub API 调用额度
 APP_REPO_DIR=""                                   # 可选：服务不在仓库内启动时指定仓库目录
+SPARKLAB_RESTART_COMMAND=""                       # 可选：更新构建成功后的重启命令
 
 # JWT配置
 JWT_SECRET="your-super-secret-jwt-key"       # JWT密钥（生产环境必须修改）

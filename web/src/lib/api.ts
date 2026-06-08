@@ -171,6 +171,10 @@ export const publicClassAPI = {
   list: () => api.get('/classes'),
 };
 
+export const updateAPI = {
+  check: () => api.get('/updates/check'),
+};
+
 export const courseMaterialAPI = {
   list: (courseId: string) => api.get(`/courses/${courseId}/materials`),
   getOne: (materialId: string) => api.get(`/course-materials/${materialId}`),
