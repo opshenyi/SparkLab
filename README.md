@@ -51,7 +51,7 @@ JWT_SECRET=换成一串足够长的随机密钥
 启动：
 
 ```bash
-docker compose up -d --build
+docker compose up -d
 ```
 
 查看状态和日志：
@@ -155,7 +155,7 @@ docker compose logs -f backend
 docker compose logs -f web
 docker compose restart
 docker compose pull
-docker compose up -d --build
+docker compose up -d
 ```
 
 手动触发同一套更新脚本：
