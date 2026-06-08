@@ -163,6 +163,9 @@ export const adminAPI = {
   checkUpdates: () =>
     api.get('/admin/updates/check'),
 
+  updateStatus: () =>
+    api.get('/admin/updates/status'),
+
   applyUpdate: () =>
     api.post('/admin/updates/apply'),
 };

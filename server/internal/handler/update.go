@@ -134,46 +134,87 @@ func (h *Handler) ApplyUpdate(c *gin.Context) {
 	defer cancel()
 
 	status := h.buildUpdateStatus(ctx, true)
+	progress := h.newUpdateProgress(status, updateApplyStateChecking, "正在检查 GitHub 更新")
+	h.saveUpdateProgress(status.RepoDir, progress)
+
 	if status.RemoteError != "" {
-		c.JSON(http.StatusBadGateway, gin.H{"message": "检查 GitHub 发布清单失败: " + status.RemoteError})
+		message := "检查 GitHub 发布清单失败: " + status.RemoteError
+		h.failUpdateProgress(status.RepoDir, progress, message, "")
+		c.JSON(http.StatusBadGateway, gin.H{"message": message})
 		return
 	}
 	if status.LocalError != "" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "当前部署目录不是可更新的 Git 仓库: " + status.LocalError})
+		message := "当前部署目录不是可更新的 Git 仓库: " + status.LocalError
+		h.failUpdateProgress(status.RepoDir, progress, message, "")
+		c.JSON(http.StatusBadRequest, gin.H{"message": message})
 		return
 	}
 	if status.Dirty {
-		c.JSON(http.StatusConflict, gin.H{"message": "工作区存在未提交改动，已拒绝自动更新"})
+		message := "工作区存在未提交改动，已拒绝自动更新"
+		h.failUpdateProgress(status.RepoDir, progress, message, "")
+		c.JSON(http.StatusConflict, gin.H{"message": message})
 		return
 	}
 	if !status.HasUpdate && !status.CodeChangedWithoutVersion {
-		c.JSON(http.StatusOK, gin.H{"message": "当前已经是最新版本", "status": status})
+		now := time.Now()
+		progress.State = updateApplyStateCompleted
+		progress.Message = "当前已经是最新版本"
+		progress.CompletedAt = &now
+		progress.RefreshRecommended = false
+		h.saveUpdateProgress(status.RepoDir, progress)
+		c.JSON(http.StatusOK, gin.H{"message": "当前已经是最新版本", "status": status, "progress": progress})
 		return
 	}
 
 	before, err := localGitState(ctx)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "读取 Git 状态失败: " + err.Error()})
+		message := "读取 Git 状态失败: " + err.Error()
+		h.failUpdateProgress(status.RepoDir, progress, message, "")
+		c.JSON(http.StatusBadRequest, gin.H{"message": message})
 		return
 	}
+	progress.BeforeCommit = before.Commit
+	progress.CurrentCommit = before.Commit
+	progress.Branch = before.Branch
+	progress.State = updateApplyStateFetching
+	progress.Message = "正在从 GitHub 拉取更新"
+	h.saveUpdateProgress(before.RepoDir, progress)
 
 	fetchOut, fetchErr := runGit(ctx, before.RepoDir, "fetch", "origin", h.cfg.GitBranch)
 	if fetchErr != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"message": "拉取 GitHub 更新失败: " + fetchErr.Error(), "output": fetchOut})
+		message := "拉取 GitHub 更新失败: " + fetchErr.Error()
+		h.failUpdateProgress(before.RepoDir, progress, message, fetchOut)
+		c.JSON(http.StatusBadGateway, gin.H{"message": message, "output": fetchOut})
 		return
 	}
+	progress.State = updateApplyStatePulling
+	progress.Message = "正在合并 GitHub 最新代码"
+	progress.OutputTail = tailText(fetchOut, 8000)
+	h.saveUpdateProgress(before.RepoDir, progress)
 
 	pullOut, pullErr := runGit(ctx, before.RepoDir, "pull", "--ff-only", "origin", h.cfg.GitBranch)
 	if pullErr != nil {
-		c.JSON(http.StatusConflict, gin.H{"message": "无法快进更新: " + pullErr.Error(), "output": fetchOut + pullOut})
+		output := fetchOut + pullOut
+		message := "无法快进更新: " + pullErr.Error()
+		h.failUpdateProgress(before.RepoDir, progress, message, output)
+		c.JSON(http.StatusConflict, gin.H{"message": message, "output": output})
 		return
 	}
+	progress.State = updateApplyStateBuilding
+	progress.Message = "代码已拉取，正在重建 Docker 镜像"
+	progress.OutputTail = tailText(fetchOut+pullOut, 8000)
+	h.saveUpdateProgress(before.RepoDir, progress)
 
-	scriptOut, scriptErr := runUpdateScript(ctx, before.RepoDir, status)
+	statusFile := h.updateProgressPath(before.RepoDir)
+	logFile := h.updateLogPath(before.RepoDir)
+	scriptOut, scriptErr := runUpdateScript(ctx, before.RepoDir, status, progress, statusFile, logFile)
 	if scriptErr != nil {
+		output := fetchOut + pullOut + scriptOut
+		message := "代码已拉取，但 Docker 更新脚本执行失败: " + scriptErr.Error()
+		h.failUpdateProgress(before.RepoDir, progress, message, output)
 		c.JSON(http.StatusConflict, gin.H{
-			"message":         "代码已拉取，但 Docker 更新脚本执行失败: " + scriptErr.Error(),
-			"output":          fetchOut + pullOut + scriptOut,
+			"message":         message,
+			"output":          output,
 			"restartRequired": true,
 		})
 		return
@@ -181,13 +222,26 @@ func (h *Handler) ApplyUpdate(c *gin.Context) {
 
 	after, err := localGitState(ctx)
 	if err != nil {
+		progress.State = updateApplyStateRestarting
+		progress.Message = "更新已执行，服务正在重启"
+		progress.OutputTail = tailText(fetchOut+pullOut+scriptOut, 8000)
+		h.saveUpdateProgress(before.RepoDir, progress)
 		c.JSON(http.StatusOK, gin.H{
 			"message":         "更新已执行，但无法读取更新后的 Git 状态",
 			"output":          fetchOut + pullOut + scriptOut,
+			"progress":        progress,
 			"restartRequired": true,
 		})
 		return
 	}
+
+	progress.CurrentCommit = after.Commit
+	progress.State = updateApplyStateRestarting
+	progress.Message = "镜像已重建，服务正在重启"
+	progress.OutputTail = tailText(fetchOut+pullOut+scriptOut, 8000)
+	progress.LogPath = logFile
+	progress.RefreshRecommended = false
+	h.saveUpdateProgress(after.RepoDir, progress)
 
 	clearRemoteUpdateCache()
 	c.JSON(http.StatusOK, gin.H{
@@ -197,6 +251,7 @@ func (h *Handler) ApplyUpdate(c *gin.Context) {
 		"beforeCommit":      before.Commit,
 		"afterCommit":       after.Commit,
 		"output":            fetchOut + pullOut + scriptOut,
+		"progress":          progress,
 		"redeployScheduled": true,
 		"restartRequired":   true,
 	})
@@ -421,7 +476,7 @@ func localGitState(ctx context.Context) (*gitState, error) {
 	}, nil
 }
 
-func runUpdateScript(ctx context.Context, repoDir string, status updateStatus) (string, error) {
+func runUpdateScript(ctx context.Context, repoDir string, status updateStatus, progress *updateApplyProgress, statusFile, logFile string) (string, error) {
 	script := "scripts/update.sh"
 	exe := "bash"
 	args := []string{script}
@@ -448,7 +503,15 @@ func runUpdateScript(ctx context.Context, repoDir string, status updateStatus) (
 	cmd.Env = append(os.Environ(),
 		"SPARKLAB_FROM_VERSION="+status.CurrentVersion,
 		"SPARKLAB_TO_VERSION="+status.LatestVersion,
+		"SPARKLAB_UPDATE_STATUS_FILE="+statusFile,
+		"SPARKLAB_UPDATE_LOG="+logFile,
 	)
+	if progress != nil {
+		cmd.Env = append(cmd.Env,
+			"SPARKLAB_UPDATE_ID="+progress.ID,
+			"SPARKLAB_TARGET_COMMIT="+progress.TargetCommit,
+		)
+	}
 	out, err := cmd.CombinedOutput()
 	text := string(out)
 	if err != nil {

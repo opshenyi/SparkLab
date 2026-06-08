@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { adminAPI } from '@/lib/api';
@@ -8,14 +8,45 @@ import Sidebar from '@/components/AdminSidebar';
 import LoadingBar from '@/components/LoadingBar';
 import { CheckCircle2, DownloadCloud, GitBranch, Loader2, RefreshCw } from 'lucide-react';
 
+type UpdateApplyProgress = {
+  id?: string;
+  state?: string;
+  message?: string;
+  error?: string;
+  fromVersion?: string;
+  toVersion?: string;
+  currentCommit?: string;
+  targetCommit?: string;
+  outputTail?: string;
+  updatedAt?: string;
+  completedAt?: string;
+  refreshRecommended?: boolean;
+  autoReloadDelaySeconds?: number;
+};
+
+const activeUpdateStates = new Set(['checking', 'fetching', 'pulling', 'building', 'restarting']);
+const updateStatePercent: Record<string, number> = {
+  checking: 10,
+  fetching: 25,
+  pulling: 45,
+  building: 72,
+  restarting: 92,
+  completed: 100,
+  failed: 100,
+};
+
 export default function AdminPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, isLoggingOut, checkAuth } = useAuthStore();
   const [stats, setStats] = useState<any>({});
   const [updateInfo, setUpdateInfo] = useState<any>(null);
   const [updateMessage, setUpdateMessage] = useState('');
+  const [updateProgress, setUpdateProgress] = useState<UpdateApplyProgress | null>(null);
+  const [autoReloadIn, setAutoReloadIn] = useState<number | null>(null);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [isApplyingUpdate, setIsApplyingUpdate] = useState(false);
+  const reloadTimerRef = useRef<number | null>(null);
+  const reloadCountdownRef = useRef<number | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -33,8 +64,48 @@ export default function AdminPage() {
     if (isAuthenticated && (user?.role === 'ADMIN' || user?.role === 'AUTHOR')) {
       loadData();
       checkUpdates();
+      loadUpdateStatus();
     }
   }, [isAuthenticated, user]);
+
+  useEffect(() => {
+    return () => {
+      if (reloadTimerRef.current) window.clearTimeout(reloadTimerRef.current);
+      if (reloadCountdownRef.current) window.clearInterval(reloadCountdownRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isApplyingUpdate) return;
+
+    let cancelled = false;
+    const pollStatus = async () => {
+      try {
+        const res = await adminAPI.updateStatus();
+        if (cancelled) return;
+        handleUpdateProgress(res.data);
+      } catch (error: any) {
+        if (cancelled) return;
+        if (!error?.response) {
+          setUpdateMessage('服务正在重启，等待恢复...');
+          setUpdateProgress((prev) => ({
+            ...prev,
+            state: prev?.state || 'restarting',
+            message: '服务正在重启，等待恢复...',
+          }));
+          return;
+        }
+        setUpdateMessage(error?.response?.data?.message || '读取更新状态失败');
+      }
+    };
+
+    pollStatus();
+    const timer = window.setInterval(pollStatus, 3000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [isApplyingUpdate]);
 
   const loadData = async () => {
     try {
@@ -58,17 +129,101 @@ export default function AdminPage() {
     }
   };
 
+  const loadUpdateStatus = async () => {
+    try {
+      const res = await adminAPI.updateStatus();
+      handleUpdateProgress(res.data);
+    } catch (error) {
+      console.error('Failed to load update status:', error);
+    }
+  };
+
+  const handleUpdateProgress = (progress: UpdateApplyProgress | null) => {
+    if (!progress?.state || progress.state === 'idle') {
+      setUpdateProgress(progress);
+      return;
+    }
+
+    setUpdateProgress(progress);
+    setUpdateMessage(progress.message || '');
+
+    if (activeUpdateStates.has(progress.state)) {
+      setIsApplyingUpdate(true);
+      return;
+    }
+
+    if (progress.state === 'failed') {
+      setIsApplyingUpdate(false);
+      setUpdateMessage(progress.error || progress.message || '更新失败');
+      return;
+    }
+
+    if (progress.state === 'completed') {
+      setIsApplyingUpdate(false);
+      if (progress.refreshRecommended) {
+        scheduleAutoReload(progress);
+      } else {
+        checkUpdates();
+      }
+    }
+  };
+
+  const scheduleAutoReload = (progress: UpdateApplyProgress) => {
+    if (typeof window === 'undefined') return;
+    if (progress.completedAt) {
+      const completedAt = new Date(progress.completedAt).getTime();
+      if (Number.isFinite(completedAt) && Date.now() - completedAt > 10 * 60 * 1000) {
+        return;
+      }
+    }
+
+    const key = `sparklab-update-reloaded:${progress.id || progress.currentCommit || progress.toVersion || 'latest'}`;
+    if (window.sessionStorage.getItem(key)) return;
+    window.sessionStorage.setItem(key, '1');
+
+    if (reloadTimerRef.current) window.clearTimeout(reloadTimerRef.current);
+    if (reloadCountdownRef.current) window.clearInterval(reloadCountdownRef.current);
+
+    let remaining = Math.max(1, progress.autoReloadDelaySeconds || 2);
+    setAutoReloadIn(remaining);
+    reloadCountdownRef.current = window.setInterval(() => {
+      remaining -= 1;
+      setAutoReloadIn(Math.max(remaining, 0));
+      if (remaining <= 0 && reloadCountdownRef.current) {
+        window.clearInterval(reloadCountdownRef.current);
+      }
+    }, 1000);
+    reloadTimerRef.current = window.setTimeout(() => {
+      window.location.reload();
+    }, remaining * 1000);
+  };
+
   const applyUpdate = async () => {
     if (!window.confirm('确认从 GitHub 拉取更新？更新完成后需要重启服务。')) return;
     setIsApplyingUpdate(true);
-    setUpdateMessage('');
+    setAutoReloadIn(null);
+    setUpdateMessage('正在准备更新...');
+    setUpdateProgress({ state: 'checking', message: '正在准备更新...' });
     try {
       const res = await adminAPI.applyUpdate();
-      setUpdateMessage(res.data?.message || '更新完成');
-      await checkUpdates();
+      if (res.data?.progress) {
+        handleUpdateProgress(res.data.progress);
+      } else {
+        setUpdateMessage(res.data?.message || '更新已触发，等待服务重启...');
+      }
     } catch (error: any) {
-      setUpdateMessage(error?.response?.data?.message || '执行更新失败');
-    } finally {
+      if (!error?.response) {
+        setUpdateMessage('服务正在重启，等待恢复...');
+        setUpdateProgress((prev) => ({
+          ...prev,
+          state: 'restarting',
+          message: '服务正在重启，等待恢复...',
+        }));
+        return;
+      }
+      const message = error?.response?.data?.message || '执行更新失败';
+      setUpdateMessage(message);
+      setUpdateProgress({ state: 'failed', message, error: message });
       setIsApplyingUpdate(false);
     }
   };
@@ -77,6 +232,11 @@ export default function AdminPage() {
     if (!qqNumber) return null;
     return `http://q1.qlogo.cn/g?b=qq&nk=${qqNumber}&s=640`;
   };
+
+  const updateState = updateProgress?.state || 'idle';
+  const showUpdateProgress = updateState !== 'idle' && updateProgress?.message;
+  const isUpdateActive = activeUpdateStates.has(updateState);
+  const updateProgressPercent = updateStatePercent[updateState] || 0;
 
   if (isLoading) {
     return <LoadingBar />;
@@ -148,6 +308,42 @@ export default function AdminPage() {
                       )}
                       {updateMessage && <span className="text-on-surface-variant">{updateMessage}</span>}
                     </div>
+                    {showUpdateProgress ? (
+                      <div className="mt-4 rounded-lg bg-surface-low p-3">
+                        <div className="flex items-center justify-between gap-3 text-sm">
+                          <div className="inline-flex min-w-0 items-center gap-2 font-medium text-on-surface">
+                            {isUpdateActive ? (
+                              <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+                            ) : updateState === 'failed' ? (
+                              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-status-error" />
+                            ) : (
+                              <CheckCircle2 className="h-4 w-4 shrink-0 text-status-success" />
+                            )}
+                            <span className="truncate">{updateProgress?.message}</span>
+                          </div>
+                          <span className="shrink-0 tabular-nums text-on-surface-variant">
+                            {updateProgressPercent}%
+                          </span>
+                        </div>
+                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-container">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              updateState === 'failed' ? 'bg-status-error' : 'bg-primary'
+                            }`}
+                            style={{ width: `${updateProgressPercent}%` }}
+                          />
+                        </div>
+                        {autoReloadIn !== null ? (
+                          <div className="mt-2 text-sm text-on-surface-variant">
+                            更新完成，{autoReloadIn} 秒后自动刷新页面
+                          </div>
+                        ) : updateState === 'restarting' ? (
+                          <div className="mt-2 text-sm text-on-surface-variant">
+                            服务重启期间页面可能短暂失去连接，恢复后会自动刷新。
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                     {updateInfo?.changelog?.[0]?.items?.length ? (
                       <div className="mt-4 rounded-lg bg-surface-low p-3">
                         <div className="mb-2 text-sm font-semibold text-on-surface">

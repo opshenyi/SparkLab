@@ -1,17 +1,28 @@
 {
   "appId": "sparklab",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "channel": "main",
-  "releasedAt": "2026-06-09T00:00:00+08:00",
-  "title": "Docker Compose 一键部署与更新流程",
+  "releasedAt": "2026-06-09T05:42:36+08:00",
+  "title": "更新进度与完成后自动刷新",
   "mandatory": false,
   "announcement": {
     "enabled": true,
     "level": "info",
-    "title": "SparkLab Docker 更新通道已启用",
-    "message": "部署主机现在可以通过 GitHub 发布清单检查版本、公告和更新日志，并在管理后台一键拉取代码、重建镜像、重启服务。"
+    "title": "SparkLab 更新状态可视化已启用",
+    "message": "管理员点击更新后，后台会显示拉取代码、构建镜像、重启服务等进度；更新完成后页面会自动刷新到新版本。"
   },
   "changelog": [
+    {
+      "version": "0.4.2",
+      "date": "2026-06-09",
+      "title": "更新进度与自动刷新",
+      "items": [
+        "新增管理员更新状态接口，更新阶段会写入持久化状态文件，服务重启后仍能继续判断完成状态。",
+        "管理后台点击更新后自动轮询更新状态，展示拉取代码、构建镜像和重启服务进度。",
+        "更新完成后前端会倒计时并自动刷新页面，避免停留在旧版本界面。",
+        "新增 SPARKLAB_UPDATE_DIR 配置，默认把更新状态和重启日志写入 /app/data。"
+      ]
+    },
     {
       "version": "0.4.1",
       "date": "2026-06-09",

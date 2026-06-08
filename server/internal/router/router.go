@@ -125,6 +125,7 @@ func New(cfg *config.Config, db *gorm.DB) *gin.Engine {
 		adminGroup.POST("/containers/:id/force-stop", h.AdminForceStopContainer)
 		adminGroup.GET("/servers/:serverId/available-port", h.AdminGetAvailablePort)
 		adminGroup.GET("/updates/check", h.CheckForUpdates)
+		adminGroup.GET("/updates/status", h.UpdateApplyStatus)
 		adminGroup.POST("/updates/apply", h.ApplyUpdate)
 	}
 

@@ -84,7 +84,7 @@ data/web-uploads  # 前端视频上传
 
 更新完全通过 GitHub 完成，核心文件是根目录的 `update-manifest.json`。每次发布新版本时，需要同时更新：
 
-- `version`：新版本号，例如 `0.4.1`
+- `version`：新版本号，例如 `0.4.2`
 - `releasedAt`：发布时间
 - `announcement`：前端公告
 - `changelog`：管理后台展示的更新日志
@@ -101,7 +101,9 @@ docker compose build --pull
 后台执行 docker compose up -d --remove-orphans --no-build
 ```
 
-这样后端接口可以先返回“更新已安排”，随后 Compose 在后台接管重启，避免请求被正在重启的容器直接切断。
+更新过程中后端会把当前阶段写入 `data/server/update-status.json`，重启日志默认写入 `data/server/update-redeploy.log`。管理后台会轮询 `/admin/updates/status`，显示拉取代码、合并代码、构建镜像、重启服务等状态；新后端启动后会确认本地版本/提交已经到达目标版本，然后前端倒计时自动刷新页面。
+
+这样后端接口可以先返回“更新已安排”，随后 Compose 在后台接管重启；即使前端短暂连不上服务，恢复后也会继续读状态并刷新到新版本。
 
 ## 发版流程
 
@@ -140,6 +142,7 @@ DATABASE_URL=file:/app/data/spark_lab.db
 JWT_SECRET=change-this-secret-before-production
 GITHUB_REPO=opshenyi/SparkLab
 GITHUB_BRANCH=main
+SPARKLAB_UPDATE_DIR=/app/data
 UPDATE_CHECK_CACHE_SECONDS=300
 UPDATE_SCRIPT_TIMEOUT_SECONDS=1200
 SEED_ON_START=true
