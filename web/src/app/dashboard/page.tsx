@@ -405,7 +405,7 @@ export default function DashboardPage() {
                           {course.title}
                         </h4>
                         {isInactive && (
-                          <span className="text-xs px-2 py-1 rounded-full bg-orange-500/20 text-orange-400 flex-shrink-0 ml-2">
+                          <span className="ml-2 flex-shrink-0 rounded-full bg-status-warning-bg px-2 py-1 text-xs text-status-warning-text">
                             停课中
                           </span>
                         )}

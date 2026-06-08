@@ -554,9 +554,9 @@ export default function AdminPage() {
                     {stats.courseStats?.map((course: any, index: number) => (
                       <div key={course.id} className="flex items-center gap-3 rounded-xl bg-surface-low p-3 transition-colors hover:bg-surface-container dark:hover:bg-surface-container/90">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
-                          index === 0 ? 'bg-yellow-500/20 text-yellow-400' :
-                          index === 1 ? 'bg-gray-400/20 text-gray-400' :
-                          index === 2 ? 'bg-orange-500/20 text-orange-400' :
+                          index === 0 ? 'bg-primary/15 text-primary' :
+                          index === 1 ? 'bg-status-neutral-bg text-status-neutral-text' :
+                          index === 2 ? 'bg-status-warning-bg text-status-warning-text' :
                           'bg-surface-container-lowest text-on-surface-variant'
                         }`}>
                           {index + 1}

@@ -9,30 +9,30 @@ interface LabContentProps {
 
 export default function LabContent({ content, title }: LabContentProps) {
   return (
-    <div className="h-full overflow-y-auto bg-[#1e1e1e] p-6">
-      <h1 className="text-3xl font-bold mb-6 text-white">{title}</h1>
+    <div className="h-full overflow-y-auto bg-surface-lowest p-6 text-on-surface">
+      <h1 className="mb-6 text-3xl font-semibold text-page-title">{title}</h1>
       <div className="prose prose-invert max-w-none">
         <ReactMarkdown
           components={{
-            h1: ({ children }) => <h1 className="text-2xl font-bold mt-6 mb-4 text-white">{children}</h1>,
-            h2: ({ children }) => <h2 className="text-xl font-bold mt-5 mb-3 text-gray-200">{children}</h2>,
-            h3: ({ children }) => <h3 className="text-lg font-semibold mt-4 mb-2 text-gray-300">{children}</h3>,
-            p: ({ children }) => <p className="mb-4 text-gray-300 leading-relaxed">{children}</p>,
+            h1: ({ children }) => <h1 className="mb-4 mt-6 text-2xl font-semibold text-page-title">{children}</h1>,
+            h2: ({ children }) => <h2 className="mb-3 mt-5 text-xl font-semibold text-page-title">{children}</h2>,
+            h3: ({ children }) => <h3 className="mb-2 mt-4 text-lg font-semibold text-on-surface">{children}</h3>,
+            p: ({ children }) => <p className="mb-4 leading-relaxed text-on-surface-variant">{children}</p>,
             code: ({ children }) => (
-              <code className="bg-[#2d2d2d] px-2 py-1 rounded text-sm text-green-400 font-mono">
+              <code className="rounded bg-surface-container px-2 py-1 font-mono text-sm text-on-surface">
                 {children}
               </code>
             ),
             pre: ({ children }) => (
-              <pre className="bg-[#2d2d2d] p-4 rounded-lg overflow-x-auto mb-4 border border-gray-700">
+              <pre className="mb-4 overflow-x-auto rounded-lg bg-[var(--terminal-bg)] p-4 text-[var(--terminal-text)] shadow-[0_0_0_1px_var(--terminal-border)]">
                 {children}
               </pre>
             ),
-            ul: ({ children }) => <ul className="list-disc list-inside mb-4 text-gray-300 space-y-2">{children}</ul>,
-            ol: ({ children }) => <ol className="list-decimal list-inside mb-4 text-gray-300 space-y-2">{children}</ol>,
+            ul: ({ children }) => <ul className="mb-4 list-inside list-disc space-y-2 text-on-surface-variant">{children}</ul>,
+            ol: ({ children }) => <ol className="mb-4 list-inside list-decimal space-y-2 text-on-surface-variant">{children}</ol>,
             li: ({ children }) => <li className="ml-4">{children}</li>,
             blockquote: ({ children }) => (
-              <blockquote className="border-l-4 border-blue-500 pl-4 italic text-gray-400 my-4">
+              <blockquote className="my-4 border-l border-primary pl-4 italic text-on-surface-variant">
                 {children}
               </blockquote>
             ),
@@ -44,4 +44,3 @@ export default function LabContent({ content, title }: LabContentProps) {
     </div>
   );
 }
-

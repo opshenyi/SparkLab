@@ -132,16 +132,16 @@ export default function ContainerTerminal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
       <div className="terminal-shell flex h-[80vh] w-[90vw] max-w-7xl flex-col overflow-hidden rounded-lg">
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-[var(--terminal-border)] px-4 py-3">
           <div className="min-w-0">
-            <h3 className="truncate text-sm font-semibold text-white">终端 · {containerName}</h3>
-            <p className="mt-0.5 text-xs text-white/50">
+            <h3 className="truncate text-sm font-semibold text-[var(--terminal-text)]">终端 · {containerName}</h3>
+            <p className="mt-0.5 text-xs text-[var(--terminal-muted)]">
               {isConnecting ? '正在连接容器会话' : error || '已连接'}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/16"
+            className="rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-[var(--terminal-text)] transition-colors hover:bg-white/16"
           >
             关闭
           </button>
@@ -151,8 +151,8 @@ export default function ContainerTerminal({
           <div ref={terminalRef} className="terminal-scrollbar h-full w-full" />
         </div>
 
-        <div className="border-t border-white/10 px-4 py-3">
-          <p className="text-xs text-white/48">提示：使用 Ctrl+C 中断当前命令。</p>
+        <div className="border-t border-[var(--terminal-border)] px-4 py-3">
+          <p className="text-xs text-[var(--terminal-muted)]">提示：使用 Ctrl+C 中断当前命令。</p>
         </div>
       </div>
 

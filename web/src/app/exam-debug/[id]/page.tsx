@@ -73,65 +73,106 @@ export default function ExamDebugPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">试卷调试页面</h1>
-        
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-bold mb-4">认证信息</h2>
-          <div className="space-y-2">
-            <p><strong>已认证:</strong> {isAuthenticated ? '是' : '否'}</p>
-            <p><strong>用户:</strong> {user ? JSON.stringify(user, null, 2) : '未登录'}</p>
-            <p><strong>试卷ID:</strong> {examId}</p>
+    <div className="min-h-screen bg-background px-6 py-10 text-on-surface">
+      <div className="mx-auto max-w-4xl space-y-6">
+        <header className="space-y-2">
+          <p className="text-sm font-medium text-on-surface-variant">Exam diagnostics</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-page-title">试卷调试</h1>
+          <p className="max-w-2xl text-sm text-on-surface-variant">
+            用于检查认证状态、试卷接口和题目接口响应。所有输出保持暗色控制台样式。
+          </p>
+        </header>
+
+        <section className="app-card p-6">
+          <h2 className="mb-4 text-lg font-semibold text-page-title">认证信息</h2>
+          <div className="grid gap-3 text-sm sm:grid-cols-3">
+            <InfoCell label="认证状态" value={isAuthenticated ? '已认证' : '未认证'} />
+            <InfoCell label="试卷 ID" value={examId} mono />
+            <InfoCell label="用户" value={user ? user.displayName || user.username : '未登录'} />
           </div>
-        </div>
+          {user ? (
+            <pre className="mt-4 max-h-72 overflow-auto rounded-lg bg-[var(--terminal-bg)] p-4 font-mono text-xs text-[var(--terminal-text)] shadow-[0_0_0_1px_var(--terminal-border)]">
+              {JSON.stringify(user, null, 2)}
+            </pre>
+          ) : null}
+        </section>
 
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-bold mb-4">试卷信息 API 测试</h2>
-          <button
-            onClick={testExamAPI}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mb-4"
-          >
-            测试 /server/labs/{examId}
-          </button>
-          
-          {examError && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              <strong>错误:</strong> {examError}
-            </div>
-          )}
-          
-          {examData && (
-            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-              <strong>成功:</strong>
-              <pre className="mt-2 text-sm overflow-auto">{JSON.stringify(examData, null, 2)}</pre>
-            </div>
-          )}
-        </div>
+        <DiagnosticSection
+          title="试卷信息 API"
+          endpoint={`/server/labs/${examId}`}
+          onTest={testExamAPI}
+          error={examError}
+          data={examData}
+        />
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold mb-4">题目 API 测试</h2>
-          <button
-            onClick={testQuestionsAPI}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mb-4"
-          >
-            测试 /server/labs/{examId}/questions
-          </button>
-          
-          {questionsError && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              <strong>错误:</strong> {questionsError}
-            </div>
-          )}
-          
-          {questionsData && (
-            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-              <strong>成功 ({questionsData.length} 道题目):</strong>
-              <pre className="mt-2 text-sm overflow-auto">{JSON.stringify(questionsData, null, 2)}</pre>
-            </div>
-          )}
-        </div>
+        <DiagnosticSection
+          title="题目 API"
+          endpoint={`/server/labs/${examId}/questions`}
+          onTest={testQuestionsAPI}
+          error={questionsError}
+          data={questionsData}
+          successLabel={Array.isArray(questionsData) ? `成功，${questionsData.length} 道题` : '成功'}
+        />
       </div>
     </div>
+  );
+}
+
+function InfoCell({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="rounded-lg bg-surface-container p-4">
+      <p className="mb-1 text-xs text-on-surface-variant">{label}</p>
+      <p className={`truncate text-sm font-medium text-on-surface ${mono ? 'font-mono' : ''}`} title={value}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function DiagnosticSection({
+  title,
+  endpoint,
+  onTest,
+  error,
+  data,
+  successLabel = '成功',
+}: {
+  title: string;
+  endpoint: string;
+  onTest: () => void;
+  error: string | null;
+  data: unknown;
+  successLabel?: string;
+}) {
+  return (
+    <section className="app-card p-6">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-page-title">{title}</h2>
+          <p className="mt-1 font-mono text-xs text-on-surface-variant">{endpoint}</p>
+        </div>
+        <button type="button" onClick={onTest} className="text-button text-button-primary shrink-0">
+          测试接口
+        </button>
+      </div>
+
+      {error ? (
+        <div className="mb-4 rounded-lg bg-status-error-bg px-4 py-3 text-sm text-status-error-text">
+          <span className="font-medium">错误：</span>
+          {error}
+        </div>
+      ) : null}
+
+      {data ? (
+        <div>
+          <p className="mb-2 text-sm font-medium text-status-success-text">{successLabel}</p>
+          <pre className="max-h-96 overflow-auto rounded-lg bg-[var(--terminal-bg)] p-4 font-mono text-xs text-[var(--terminal-text)] shadow-[0_0_0_1px_var(--terminal-border)]">
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        </div>
+      ) : (
+        <p className="text-sm text-on-surface-variant">等待测试请求。</p>
+      )}
+    </section>
   );
 }

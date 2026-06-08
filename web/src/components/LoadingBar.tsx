@@ -7,24 +7,22 @@ interface LoadingBarProps {
 
 export default function LoadingBar({ text = '星火实验室', showProgress = true }: LoadingBarProps) {
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="w-80 space-y-3">
-        {/* 主加载条 */}
-        <div className="h-1 bg-surface-container-high rounded-full overflow-hidden relative">
+    <div className="flex min-h-screen items-center justify-center bg-background px-6 text-on-surface" aria-busy="true">
+      <div className="w-full max-w-80 space-y-4">
+        <div className="relative h-px overflow-hidden rounded-full bg-surface-high">
           {showProgress ? (
-            <div 
+            <div
               className="absolute inset-y-0 left-0 bg-primary animate-progress-fill"
             />
           ) : (
-            <div 
+            <div
               className="absolute inset-0 bg-primary/80 animate-loading-slide"
             />
           )}
         </div>
-        
-        {/* 可选：品牌文字 */}
+
         <div className="text-center">
-          <p className="text-sm text-on-surface-variant/50 tracking-wider">{text}</p>
+          <p className="text-sm font-medium text-on-surface-variant">{text}</p>
         </div>
       </div>
     </div>

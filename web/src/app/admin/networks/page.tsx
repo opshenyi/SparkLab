@@ -257,7 +257,7 @@ export default function NetworksPage() {
             <button
               type="button"
               onClick={() => setShowCreateModal(true)}
-              className="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-sm transition-all flex items-center gap-2 hover:opacity-95 disabled:bg-surface-lowest disabled:text-on-surface-variant disabled:opacity-100 disabled:shadow-none dark:disabled:bg-surface-container"
+              className="text-button text-button-primary disabled:bg-surface-lowest disabled:text-on-surface-variant disabled:opacity-100 dark:disabled:bg-surface-container"
               disabled={!selectedServer}
             >
               创建网络
@@ -315,7 +315,7 @@ export default function NetworksPage() {
                         <span className="text-on-surface text-sm font-medium">{net.Name || '-'}</span>
                       </td>
                       <td className="p-3">
-                        <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded text-xs">
+                        <span className="rounded bg-primary/10 px-2 py-1 text-xs text-primary">
                           {net.Driver || '-'}
                         </span>
                       </td>
@@ -331,7 +331,7 @@ export default function NetworksPage() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleShowDetails(net)}
-                            className="text-blue-400 hover:text-blue-300 transition-colors text-sm flex items-center gap-1"
+                            className="text-sm font-medium text-primary transition-colors hover:opacity-80"
                             title="查看详情"
                           >
                             详情
@@ -340,7 +340,7 @@ export default function NetworksPage() {
                             <button
                               type="button"
                               onClick={() => void handleRemoveNetwork(net)}
-                              className="text-red-400 hover:text-red-300 transition-colors text-sm flex items-center gap-1"
+                              className="text-sm font-medium text-status-error-text transition-colors hover:text-status-error"
                               title="删除网络"
                             >
                               删除
@@ -363,13 +363,13 @@ export default function NetworksPage() {
             </div>
             <div className="app-card p-4">
               <p className="text-xs text-on-surface-variant mb-1">自定义网络</p>
-              <p className="text-2xl font-bold text-blue-400">
+              <p className="text-2xl font-bold text-primary">
                 {networks.filter(n => n.Name && !['bridge', 'host', 'none'].includes(n.Name)).length}
               </p>
             </div>
             <div className="app-card p-4">
               <p className="text-xs text-on-surface-variant mb-1">本机 Docker</p>
-              <p className="text-2xl font-bold text-green-400">{servers.length}</p>
+              <p className="text-2xl font-bold text-status-success-text">{servers.length}</p>
             </div>
           </div>
             </>
@@ -415,17 +415,17 @@ export default function NetworksPage() {
                   <option value="macvlan">macvlan - MAC VLAN 网络</option>
                 </select>
                 {formData.driver === 'overlay' && (
-                  <p className="text-xs text-yellow-400 mt-1">
+                  <p className="mt-1 text-xs text-status-warning-text">
                     Overlay 网络需要 Docker Swarm 模式。如果未初始化 Swarm，请先运行: docker swarm init
                   </p>
                 )}
                 {formData.driver === 'ipvlan' && (
-                  <p className="text-xs text-yellow-400 mt-1">
+                  <p className="mt-1 text-xs text-status-warning-text">
                     IPvlan 需要 Linux 内核版本 4.2 或更高
                   </p>
                 )}
                 {formData.driver === 'macvlan' && (
-                  <p className="text-xs text-blue-400 mt-1">
+                  <p className="mt-1 text-xs text-primary">
                     Macvlan 需要在高级选项中指定 parent 参数，例如: parent=eth0
                   </p>
                 )}
@@ -592,14 +592,14 @@ export default function NetworksPage() {
                 <button
                   onClick={handleCreateNetwork}
                   disabled={loading || !formData.name}
-                  className="flex-1 py-2 bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-all disabled:opacity-50"
+                  className="text-button text-button-primary flex-1 disabled:opacity-50"
                 >
                   {loading ? '创建中...' : '创建'}
                 </button>
                 <button
                   onClick={() => setShowCreateModal(false)}
                   disabled={loading}
-                  className="flex-1 py-2 bg-surface-container text-on-surface rounded-lg hover:bg-surface-bright transition-all disabled:opacity-50"
+                  className="text-button text-button-secondary flex-1 disabled:opacity-50"
                 >
                   取消
                 </button>
@@ -660,13 +660,13 @@ export default function NetworksPage() {
                         <label className="block text-sm text-on-surface-variant mb-1">IPv6 支持</label>
                         <p className="text-sm text-on-surface">
                           {selectedNetwork.EnableIPv6 ? (
-                            <span className="text-green-400">已启用</span>
+                            <span className="text-status-success-text">已启用</span>
                           ) : (
                             <span className="text-on-surface-variant">未启用</span>
                           )}
                         </p>
                         {!selectedNetwork.EnableIPv6 && selectedNetwork.IPAM?.Config && selectedNetwork.IPAM.Config.length > 1 && (
-                          <p className="text-xs text-yellow-400 mt-1">
+                          <p className="mt-1 text-xs text-status-warning-text">
                             检测到 IPv6 配置但 EnableIPv6 为 false，可能是 Docker daemon 未启用 IPv6 支持
                           </p>
                         )}
@@ -797,7 +797,7 @@ export default function NetworksPage() {
             <div className="p-6 pt-4">
               <button
                 onClick={() => setShowDetailsModal(false)}
-                className="w-full py-2 bg-surface-container text-on-surface rounded-lg hover:bg-surface-bright transition-all"
+                className="text-button text-button-secondary w-full"
               >
                 关闭
               </button>

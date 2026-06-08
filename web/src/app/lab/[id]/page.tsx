@@ -646,7 +646,7 @@ export default function LabPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex-1 bg-white relative">
+                <div className="relative flex-1 bg-surface-lowest">
                   {webLoadError ? (
                     <div className="h-full bg-surface-container flex items-center justify-center">
                       <div className="text-center">
@@ -666,7 +666,7 @@ export default function LabPage() {
                       ref={iframeRef}
                       key={webUrl}
                       src={webUrl}
-                      className="w-full h-full border-0"
+                      className="h-full w-full border-0 bg-surface-lowest"
                       title="Container Web Access"
                     />
                   )}

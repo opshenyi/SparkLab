@@ -22,7 +22,7 @@ export default function TopNavBar() {
         <div className="flex items-center gap-4">
           <button 
             onClick={handleStartLab}
-            className="cursor-pointer rounded-full border-none bg-white px-6 py-2.5 text-sm font-medium text-black transition-opacity duration-150 hover:opacity-90"
+            className="cursor-pointer rounded-full bg-white/10 px-6 py-2.5 text-sm font-medium text-white shadow-[0_0_0_1px_rgba(255,255,255,0.18)] backdrop-blur transition-colors duration-150 hover:bg-white/16"
           >
             开始实验
           </button>

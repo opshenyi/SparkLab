@@ -241,7 +241,7 @@ export default function Login() {
                             )}
 
                             {success && (
-                                <div className="px-4 py-3 text-sm text-green-800 bg-green-100 rounded-lg">
+                                <div className="rounded-lg bg-status-success-bg px-4 py-3 text-sm text-status-success-text">
                                     {success}
                                 </div>
                             )}

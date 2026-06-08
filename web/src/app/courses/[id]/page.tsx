@@ -127,10 +127,10 @@ export default function CoursePage() {
             </div>
             <span className={`text-xs font-semibold ml-6 flex-shrink-0 ${
               course.difficulty === 'beginner' 
-                ? 'text-emerald-600 dark:text-emerald-400' 
+                ? 'text-status-success-text'
                 : course.difficulty === 'intermediate' 
-                ? 'text-amber-600 dark:text-amber-400' 
-                : 'text-red-600 dark:text-red-400'
+                ? 'text-status-warning-text'
+                : 'text-status-error-text'
             }`}>
               {course.difficulty === 'beginner' ? '入门' : course.difficulty === 'intermediate' ? '进阶' : '高级'}
             </span>

@@ -256,7 +256,7 @@ function RingGauge({ label, value, detail }: { label: string; value: number; det
     <div className="flex flex-col items-center text-center">
       <div
         className="relative flex h-32 w-32 items-center justify-center rounded-full"
-        style={{ background: `conic-gradient(#3b82f6 ${pct}%, rgba(148, 163, 184, 0.16) 0)` }}
+        style={{ background: `conic-gradient(var(--color-primary) ${pct}%, color-mix(in srgb, var(--color-on-surface-variant) 16%, transparent) 0)` }}
       >
         <div className="flex h-[104px] w-[104px] flex-col items-center justify-center rounded-full bg-background">
           <span className="text-2xl font-bold tabular-nums text-on-surface">{pct.toFixed(1)}%</span>

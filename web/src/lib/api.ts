@@ -11,6 +11,8 @@ const api = axios.create({
   },
 });
 
+const AUTH_CHECK_TIMEOUT_MS = 8_000;
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -53,10 +55,10 @@ export const authAPI = {
     api.post('/auth/logout'),
   
   getProfile: () =>
-    api.get('/auth/profile'),
+    api.get('/auth/profile', { timeout: AUTH_CHECK_TIMEOUT_MS }),
   
   checkAuth: () =>
-    api.get('/auth/check'),
+    api.get('/auth/check', { timeout: AUTH_CHECK_TIMEOUT_MS }),
   
   getStats: () =>
     api.get('/auth/stats'),

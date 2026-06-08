@@ -15,7 +15,7 @@ const ContainerTerminal = dynamic(() => import('@/components/ContainerTerminal')
   ssr: false,
   loading: () => (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="text-white">加载终端...</div>
+      <div className="text-sm font-medium text-[var(--terminal-text)]">加载终端...</div>
     </div>
   ),
 });
@@ -296,7 +296,7 @@ export default function AdminContainersPage() {
                           return (
                             <tr key={`${c.type}-${c.id}`} className="border-t border-outline-variant/30 transition-colors hover:bg-surface-container">
                               <td className="p-3">
-                                <span className={`rounded px-2 py-1 text-xs ${c.type === 'lab' ? 'bg-primary/15 text-primary' : 'bg-blue-400/15 text-blue-400'}`}>
+                                <span className={`rounded px-2 py-1 text-xs ${c.type === 'lab' ? 'bg-primary/15 text-primary' : 'bg-status-neutral-bg text-status-neutral-text'}`}>
                                   {c.type === 'lab' ? '实验' : '系统'}
                                 </span>
                               </td>

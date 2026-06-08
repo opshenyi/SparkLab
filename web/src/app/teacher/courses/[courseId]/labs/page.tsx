@@ -786,7 +786,7 @@ export default function TeacherCourseLabsPage() {
                         </button>
                         <button
                           onClick={() => handleDeleteLab(lab.id)}
-                          className="bg-red-500/20 text-red-400 px-2 py-2 rounded-lg hover:bg-red-500/30 transition-all flex items-center justify-center gap-1 text-xs"
+                          className="flex items-center justify-center gap-1 rounded-lg bg-status-error-bg px-2 py-2 text-xs text-status-error-text transition-opacity hover:opacity-85"
                           title="删除实验"
                         >
                           删除
@@ -834,7 +834,7 @@ export default function TeacherCourseLabsPage() {
                             alert('删除失败');
                           }
                         }}
-                        className="w-full bg-red-500/20 text-red-400 px-3 py-2 rounded-lg hover:bg-red-500/30 transition-all flex items-center justify-center gap-2 text-sm font-medium"
+                        className="flex w-full items-center justify-center gap-2 rounded-lg bg-status-error-bg px-3 py-2 text-sm font-medium text-status-error-text transition-opacity hover:opacity-85"
                       >
                         删除
                       </button>
@@ -1180,7 +1180,7 @@ export default function TeacherCourseLabsPage() {
                           <button
                             type="button"
                             onClick={() => removePortMapping(index)}
-                            className="text-sm text-red-400 hover:text-red-300 px-2 py-1 rounded"
+                            className="rounded px-2 py-1 text-sm text-status-error-text transition-colors hover:text-status-error"
                           >
                             删除
                           </button>
@@ -1233,7 +1233,7 @@ export default function TeacherCourseLabsPage() {
                           <button
                             type="button"
                             onClick={() => removeEnvironmentVar(index)}
-                            className="text-sm text-red-400 hover:text-red-300 px-2 py-1 rounded"
+                            className="rounded px-2 py-1 text-sm text-status-error-text transition-colors hover:text-status-error"
                           >
                             删除
                           </button>
@@ -1297,7 +1297,7 @@ export default function TeacherCourseLabsPage() {
                           <button
                             type="button"
                             onClick={() => removeVolumeMount(index)}
-                            className="text-sm text-red-400 hover:text-red-300 px-2 py-1 rounded"
+                            className="rounded px-2 py-1 text-sm text-status-error-text transition-colors hover:text-status-error"
                           >
                             删除
                           </button>

@@ -264,14 +264,14 @@ export default function AdminImagesPage() {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setShowPullModal(true)}
-                className="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-sm transition-all flex items-center gap-2 hover:opacity-95 disabled:bg-surface-lowest disabled:text-on-surface-variant disabled:opacity-100 disabled:shadow-none dark:disabled:bg-surface-container"
+                className="text-button text-button-primary disabled:bg-surface-lowest disabled:text-on-surface-variant disabled:opacity-100 dark:disabled:bg-surface-container"
                 disabled={!selectedServer}
               >
                 拉取镜像
               </button>
               <button
                 onClick={() => setShowBuildModal(true)}
-                className="px-4 py-2 rounded-lg bg-sky-600 text-white shadow-sm transition-all flex items-center gap-2 hover:bg-sky-700 disabled:bg-surface-lowest disabled:text-on-surface-variant disabled:opacity-100 disabled:shadow-none dark:disabled:bg-surface-container"
+                className="text-button text-button-secondary disabled:bg-surface-lowest disabled:text-on-surface-variant disabled:opacity-100 dark:disabled:bg-surface-container"
                 disabled={!selectedServer}
               >
                 构建镜像
@@ -354,7 +354,7 @@ export default function AdminImagesPage() {
                         <button
                           type="button"
                           onClick={() => void handleRemoveImage(img)}
-                          className="text-red-400 hover:text-red-300 transition-colors text-sm flex items-center gap-1"
+                          className="text-sm font-medium text-status-error-text transition-colors hover:text-status-error"
                         >
                           删除
                         </button>
@@ -374,13 +374,13 @@ export default function AdminImagesPage() {
             </div>
             <div className="app-card p-4">
               <p className="text-xs text-on-surface-variant mb-1">总大小</p>
-              <p className="text-2xl font-bold text-blue-400">
+              <p className="text-2xl font-bold text-primary">
                 {formatSize(images.reduce((sum, img) => sum + img.size, 0))}
               </p>
             </div>
             <div className="app-card p-4">
               <p className="text-xs text-on-surface-variant mb-1">本机 Docker</p>
-              <p className="text-2xl font-bold text-green-400">{servers.length}</p>
+              <p className="text-2xl font-bold text-status-success-text">{servers.length}</p>
             </div>
           </div>
             </>
@@ -421,14 +421,14 @@ export default function AdminImagesPage() {
               {pullLogs.length > 0 && (
                 <div>
                   <label className="block text-sm text-on-surface-variant mb-2">拉取日志</label>
-                  <div className="bg-surface-container rounded-lg p-4 max-h-60 overflow-y-auto font-mono text-xs">
+                  <div className="terminal-shell max-h-60 overflow-y-auto rounded-lg p-4 font-mono text-xs">
                     {pullLogs.map((log, idx) => (
-                      <div key={idx} className="text-green-400 mb-1">
+                      <div key={idx} className="mb-1 text-[var(--terminal-text)]">
                         {log}
                       </div>
                     ))}
                     {loading && (
-                      <div className="text-blue-400 animate-pulse">
+                      <div className="animate-pulse text-[var(--terminal-accent)]">
                         拉取中...
                       </div>
                     )}
@@ -440,7 +440,7 @@ export default function AdminImagesPage() {
                 <button
                   onClick={handlePullImage}
                   disabled={loading || !pullImageName}
-                  className="flex-1 py-2 bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-all disabled:opacity-50"
+                  className="text-button text-button-primary flex-1 disabled:opacity-50"
                 >
                   {loading ? '拉取中...' : '拉取'}
                 </button>
@@ -450,7 +450,7 @@ export default function AdminImagesPage() {
                     setPullLogs([]);
                   }}
                   disabled={loading}
-                  className="flex-1 py-2 bg-surface-container text-on-surface rounded-lg hover:bg-surface-bright transition-all disabled:opacity-50"
+                  className="text-button text-button-secondary flex-1 disabled:opacity-50"
                 >
                   {loading ? '拉取中请稍候' : '取消'}
                 </button>
@@ -503,14 +503,14 @@ export default function AdminImagesPage() {
               {buildLogs.length > 0 && (
                 <div>
                   <label className="block text-sm text-on-surface-variant mb-2">构建日志</label>
-                  <div className="bg-surface-container rounded-lg p-4 max-h-60 overflow-y-auto font-mono text-xs">
+                  <div className="terminal-shell max-h-60 overflow-y-auto rounded-lg p-4 font-mono text-xs">
                     {buildLogs.map((log, idx) => (
-                      <div key={idx} className="text-green-400 mb-1">
+                      <div key={idx} className="mb-1 text-[var(--terminal-text)]">
                         {log}
                       </div>
                     ))}
                     {loading && (
-                      <div className="text-blue-400 animate-pulse">
+                      <div className="animate-pulse text-[var(--terminal-accent)]">
                         构建中...
                       </div>
                     )}
@@ -522,7 +522,7 @@ export default function AdminImagesPage() {
                 <button
                   onClick={handleBuildImage}
                   disabled={loading || !buildImageName || !dockerfile}
-                  className="flex-1 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all disabled:opacity-50"
+                  className="text-button text-button-primary flex-1 disabled:opacity-50"
                 >
                   {loading ? '构建中...' : '构建'}
                 </button>
@@ -532,7 +532,7 @@ export default function AdminImagesPage() {
                     setBuildLogs([]);
                   }}
                   disabled={loading}
-                  className="flex-1 py-2 bg-surface-container text-on-surface rounded-lg hover:bg-surface-bright transition-all disabled:opacity-50"
+                  className="text-button text-button-secondary flex-1 disabled:opacity-50"
                 >
                   {loading ? '构建中请稍候' : '取消'}
                 </button>

@@ -12,19 +12,19 @@ interface TerminalLine {
 }
 
 const terminalLines: TerminalLine[] = [
-  { text: 'docker run -d --name sparklab huaqiao:v1.2 -p 80:80', color: 'text-white/90', delay: 500, isCommand: true, prefix: '$ ', showPrefixFirst: true },
-  { text: 'Unable to find image \'huaqiao:v1.2\' locally', color: 'text-white/58', delay: 800, prefix: '  ' },
-  { text: 'v1.2: Pulling from library/huaqiao', color: 'text-white/58', delay: 100, prefix: '  ' },
-  { text: 'a2abf6c4d29d: Pull complete', color: 'text-white/72', delay: 150, prefix: '  ' },
-  { text: 'a9edb18cadd1: Pull complete', color: 'text-white/72', delay: 150, prefix: '  ' },
-  { text: '589b7251471a: Pull complete', color: 'text-white/72', delay: 150, prefix: '  ' },
-  { text: 'Digest: sha256:0d17b565c37bcbd895e9d92315a05c1c3c9a29f762b011a10c54a66cd53c9b31', color: 'text-white/78', delay: 100, prefix: '  ' },
-  { text: 'Status: Downloaded newer image for huaqiao:v1.2', color: 'text-white/78', delay: 100, prefix: '  ' },
-  { text: 'f8a9c3e5d7b2a1c4e6f8d9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0', color: 'text-white/90', delay: 100, prefix: '  ' },
+  { text: 'docker run -d --name sparklab huaqiao:v1.2 -p 80:80', color: 'terminal-line-strong', delay: 500, isCommand: true, prefix: '$ ', showPrefixFirst: true },
+  { text: 'Unable to find image \'huaqiao:v1.2\' locally', color: 'terminal-line-muted', delay: 800, prefix: '  ' },
+  { text: 'v1.2: Pulling from library/huaqiao', color: 'terminal-line-muted', delay: 100, prefix: '  ' },
+  { text: 'a2abf6c4d29d: Pull complete', color: 'terminal-line-default', delay: 150, prefix: '  ' },
+  { text: 'a9edb18cadd1: Pull complete', color: 'terminal-line-default', delay: 150, prefix: '  ' },
+  { text: '589b7251471a: Pull complete', color: 'terminal-line-default', delay: 150, prefix: '  ' },
+  { text: 'Digest: sha256:0d17b565c37bcbd895e9d92315a05c1c3c9a29f762b011a10c54a66cd53c9b31', color: 'terminal-line-default', delay: 100, prefix: '  ' },
+  { text: 'Status: Downloaded newer image for huaqiao:v1.2', color: 'terminal-line-default', delay: 100, prefix: '  ' },
+  { text: 'f8a9c3e5d7b2a1c4e6f8d9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0', color: 'terminal-line-strong', delay: 100, prefix: '  ' },
   { text: '', color: '', delay: 600, prefix: '' },
-  { text: 'docker ps', color: 'text-white/90', delay: 800, isCommand: true, prefix: '$ ', showPrefixFirst: true },
-  { text: 'CONTAINER ID   IMAGE          STATUS         PORTS                NAMES', color: 'text-white/50', delay: 200, prefix: '  ' },
-  { text: 'f8a9c3e5d7b2   huaqiao:v1.2   Up 2 seconds   0.0.0.0:80->80/tcp   sparklab', color: 'text-white/90', delay: 100, prefix: '  ' },
+  { text: 'docker ps', color: 'terminal-line-strong', delay: 800, isCommand: true, prefix: '$ ', showPrefixFirst: true },
+  { text: 'CONTAINER ID   IMAGE          STATUS         PORTS                NAMES', color: 'terminal-line-dim', delay: 200, prefix: '  ' },
+  { text: 'f8a9c3e5d7b2   huaqiao:v1.2   Up 2 seconds   0.0.0.0:80->80/tcp   sparklab', color: 'terminal-line-strong', delay: 100, prefix: '  ' },
 ]
 
 export default function AnimatedTerminal() {
@@ -120,16 +120,16 @@ export default function AnimatedTerminal() {
     <div className="max-w-3xl mx-auto">
       <div className="terminal-shell overflow-hidden rounded-lg">
         {/* 终端头部 */}
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
-          <div className="text-xs font-medium text-white/72">Terminal</div>
-          <div className="text-xs text-white/44 font-mono">huaqiao@sparklab</div>
+        <div className="flex items-center justify-between border-b border-[var(--terminal-border)] px-4 py-2.5">
+          <div className="text-xs font-medium terminal-line-default">Terminal</div>
+          <div className="font-mono text-xs terminal-line-dim">huaqiao@sparklab</div>
         </div>
         
         {/* 终端内容 - 固定高度 */}
         <div className="p-5 font-mono text-xs h-[280px] overflow-hidden">
           {lines.map((line, index) => (
             <div key={index} className={`${line.color} leading-relaxed`}>
-              {line.prefix && <span className={line.prefix.includes('$') ? 'text-white/90' : ''}>{line.prefix}</span>}
+              {line.prefix && <span className={line.prefix.includes('$') ? 'terminal-line-strong' : ''}>{line.prefix}</span>}
               {line.text}
             </div>
           ))}
@@ -138,21 +138,21 @@ export default function AnimatedTerminal() {
           {(currentText || showPrefix) && currentLineIndex < terminalLines.length && (
             <div className={`${terminalLines[currentLineIndex].color} leading-relaxed`}>
               {(showPrefix || terminalLines[currentLineIndex].prefix) && (
-                <span className={terminalLines[currentLineIndex].prefix?.includes('$') ? 'text-white/90' : ''}>
+                <span className={terminalLines[currentLineIndex].prefix?.includes('$') ? 'terminal-line-strong' : ''}>
                   {terminalLines[currentLineIndex].prefix}
                 </span>
               )}
               {currentText}
-              <span className="inline-block w-1.5 border-b-2 border-white ml-0.5"></span>
+              <span className="ml-0.5 inline-block w-1.5 border-b-2 border-[var(--terminal-text)]"></span>
             </div>
           )}
 
           {/* 最终提示符 - 带闪烁光标 */}
           {currentLineIndex >= terminalLines.length && (
             <div className="leading-relaxed mt-1">
-              <span className="text-white/90">$ </span>
+              <span className="terminal-line-strong">$ </span>
               {showCursor && (
-                <span className="inline-block w-1.5 border-b-2 border-white"></span>
+                <span className="inline-block w-1.5 border-b-2 border-[var(--terminal-text)]"></span>
               )}
             </div>
           )}

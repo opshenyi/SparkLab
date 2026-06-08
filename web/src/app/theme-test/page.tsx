@@ -72,10 +72,10 @@ function ThemeTestContent() {
             <button className="bg-surface-container text-on-surface-variant px-6 py-3 rounded-full hover:bg-surface-bright transition-all">
               普通按钮
             </button>
-            <button className="bg-green-500 text-white px-6 py-3 rounded-full hover:bg-green-600 transition-all">
+            <button className="rounded-full bg-status-success-bg px-6 py-3 text-status-success-text transition-colors hover:opacity-90">
               成功按钮
             </button>
-            <button className="bg-red-500 text-white px-6 py-3 rounded-full hover:bg-red-600 transition-all">
+            <button className="rounded-full bg-status-error-bg px-6 py-3 text-status-error-text transition-colors hover:opacity-90">
               危险按钮
             </button>
           </div>
