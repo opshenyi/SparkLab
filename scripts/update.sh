@@ -1,28 +1,48 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(git rev-parse --show-toplevel)"
-cd "$ROOT_DIR"
-
-echo "[SparkLab] Updating from ${SPARKLAB_FROM_VERSION:-unknown} to ${SPARKLAB_TO_VERSION:-unknown}"
-
-echo "[SparkLab] Preparing backend"
-cd "$ROOT_DIR/server"
-go mod download
-mkdir -p bin
-go build -o bin/sparklab-server ./cmd/server
-
-echo "[SparkLab] Preparing frontend"
-cd "$ROOT_DIR/web"
-npm ci
-npm run build
-
-cd "$ROOT_DIR"
-if [[ -n "${SPARKLAB_RESTART_COMMAND:-}" ]]; then
-  echo "[SparkLab] Running restart command"
-  bash -lc "$SPARKLAB_RESTART_COMMAND"
+if [[ -n "${APP_REPO_DIR:-}" ]]; then
+  ROOT_DIR="$APP_REPO_DIR"
 else
-  echo "[SparkLab] No restart command configured. Restart the SparkLab services manually."
+  ROOT_DIR="$(git rev-parse --show-toplevel)"
 fi
 
-echo "[SparkLab] Update script finished"
+cd "$ROOT_DIR"
+
+if ! command -v docker >/dev/null 2>&1; then
+  echo "[SparkLab] Docker CLI is not available"
+  exit 1
+fi
+
+if docker compose version >/dev/null 2>&1; then
+  COMPOSE=(docker compose)
+elif command -v docker-compose >/dev/null 2>&1; then
+  COMPOSE=(docker-compose)
+else
+  echo "[SparkLab] Docker Compose is not available"
+  exit 1
+fi
+
+git config --global --add safe.directory "$ROOT_DIR" >/dev/null 2>&1 || true
+
+echo "[SparkLab] Updating from ${SPARKLAB_FROM_VERSION:-unknown} to ${SPARKLAB_TO_VERSION:-unknown}"
+echo "[SparkLab] Repository: $ROOT_DIR"
+
+mkdir -p data/server data/uploads data/web-uploads
+
+echo "[SparkLab] Building Docker images"
+"${COMPOSE[@]}" build --pull
+
+log_file="${SPARKLAB_UPDATE_LOG:-/tmp/sparklab-compose-update.log}"
+delay="${SPARKLAB_REDEPLOY_DELAY_SECONDS:-2}"
+
+echo "[SparkLab] Scheduling Docker Compose redeploy in ${delay}s"
+(
+  sleep "$delay"
+  cd "$ROOT_DIR"
+  "${COMPOSE[@]}" up -d --remove-orphans --no-build
+  "${COMPOSE[@]}" ps
+) >"$log_file" 2>&1 &
+
+echo "[SparkLab] Redeploy scheduled. Follow progress with: docker compose logs -f"
+echo "[SparkLab] Background redeploy log: $log_file"

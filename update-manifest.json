@@ -1,17 +1,28 @@
 {
   "appId": "sparklab",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "channel": "main",
   "releasedAt": "2026-06-09T00:00:00+08:00",
-  "title": "本机 Docker 与 GitHub 更新流程",
+  "title": "Docker Compose 一键部署与更新流程",
   "mandatory": false,
   "announcement": {
     "enabled": true,
     "level": "info",
-    "title": "SparkLab 更新通道已启用",
-    "message": "系统现在会通过 GitHub 发布清单检查版本、公告和更新日志。管理员可在控制台检查并应用更新。"
+    "title": "SparkLab Docker 更新通道已启用",
+    "message": "部署主机现在可以通过 GitHub 发布清单检查版本、公告和更新日志，并在管理后台一键拉取代码、重建镜像、重启服务。"
   },
   "changelog": [
+    {
+      "version": "0.4.0",
+      "date": "2026-06-09",
+      "title": "新增 Docker-only 部署与更新",
+      "items": [
+        "新增根目录 docker-compose.yml、后端 Dockerfile、前端 Dockerfile 和统一 .env.example。",
+        "更新脚本改为 Docker Compose 构建镜像并后台重启服务，不再依赖宿主机 Go 或 Node 构建。",
+        "后端容器挂载宿主机仓库与 Docker socket，可通过管理后台从 GitHub 拉取最新代码并完成重部署。",
+        "前端容器代理改用 SERVER_URL 访问后端，浏览器侧继续通过公开端口连接 WebSocket。"
+      ]
+    },
     {
       "version": "0.3.0",
       "date": "2026-06-09",

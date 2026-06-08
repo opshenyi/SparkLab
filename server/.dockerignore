@@ -1,0 +1,9 @@
+.env
+.env.*
+bin
+node_modules
+uploads
+prisma/*.db
+prisma/*.db-shm
+prisma/*.db-wal
+*.exe

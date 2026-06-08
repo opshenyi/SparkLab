@@ -172,7 +172,7 @@ func (h *Handler) ApplyUpdate(c *gin.Context) {
 	scriptOut, scriptErr := runUpdateScript(ctx, before.RepoDir, status)
 	if scriptErr != nil {
 		c.JSON(http.StatusConflict, gin.H{
-			"message":         "代码已拉取，但更新脚本执行失败: " + scriptErr.Error(),
+			"message":         "代码已拉取，但 Docker 更新脚本执行失败: " + scriptErr.Error(),
 			"output":          fetchOut + pullOut + scriptOut,
 			"restartRequired": true,
 		})
@@ -191,13 +191,14 @@ func (h *Handler) ApplyUpdate(c *gin.Context) {
 
 	clearRemoteUpdateCache()
 	c.JSON(http.StatusOK, gin.H{
-		"message":         "更新完成，按部署方式重启服务后生效",
-		"fromVersion":     status.CurrentVersion,
-		"toVersion":       status.LatestVersion,
-		"beforeCommit":    before.Commit,
-		"afterCommit":     after.Commit,
-		"output":          fetchOut + pullOut + scriptOut,
-		"restartRequired": true,
+		"message":           "更新已拉取，Docker 镜像已重建，服务重启已安排",
+		"fromVersion":       status.CurrentVersion,
+		"toVersion":         status.LatestVersion,
+		"beforeCommit":      before.Commit,
+		"afterCommit":       after.Commit,
+		"output":            fetchOut + pullOut + scriptOut,
+		"redeployScheduled": true,
+		"restartRequired":   true,
 	})
 }
 

@@ -27,6 +27,7 @@ server/bin/
 *.db-wal
 server/uploads/
 web/public/uploads/
+data/
 
 # debug
 npm-debug.log*

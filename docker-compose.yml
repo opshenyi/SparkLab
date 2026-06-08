@@ -1,0 +1,67 @@
+services:
+  backend:
+    build:
+      context: ./server
+    image: sparklab-backend:local
+    container_name: sparklab-backend
+    restart: unless-stopped
+    environment:
+      PORT: "3001"
+      GIN_MODE: ${GIN_MODE:-release}
+      DATABASE_URL: ${DATABASE_URL:-file:/app/data/spark_lab.db}
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-before-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      WEB_URL: ${WEB_URL:-http://localhost:3000}
+      DOCKER_HOST: ${DOCKER_HOST:-unix:///var/run/docker.sock}
+      DOCKER_API_HTTP_TIMEOUT_SEC: ${DOCKER_API_HTTP_TIMEOUT_SEC:-300}
+      GITHUB_REPO: ${GITHUB_REPO:-opshenyi/SparkLab}
+      GITHUB_BRANCH: ${GITHUB_BRANCH:-main}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      APP_REPO_DIR: /app/repo
+      UPDATE_CHECK_CACHE_SECONDS: ${UPDATE_CHECK_CACHE_SECONDS:-300}
+      UPDATE_SCRIPT_TIMEOUT_SECONDS: ${UPDATE_SCRIPT_TIMEOUT_SECONDS:-1200}
+      SEED_ON_START: ${SEED_ON_START:-true}
+      TZ: ${TZ:-Asia/Shanghai}
+    ports:
+      - "${BACKEND_PORT:-3001}:3001"
+    volumes:
+      - ./:/app/repo
+      - ./data/server:/app/data
+      - ./data/uploads:/app/uploads
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  web:
+    build:
+      context: ./web
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+    image: sparklab-web:local
+    container_name: sparklab-web
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      SERVER_URL: ${SERVER_URL:-http://backend:3001}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      SPARK_AI_API_KEY: ${SPARK_AI_API_KEY:-}
+      SPARK_AI_API_URL: ${SPARK_AI_API_URL:-}
+      TZ: ${TZ:-Asia/Shanghai}
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    volumes:
+      - ./data/web-uploads:/app/public/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000 >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
