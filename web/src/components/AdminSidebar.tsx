@@ -8,7 +8,6 @@ import {
   Users,
   Container,
   LogOut,
-  Server,
   Disc,
   Network,
   HardDrive,
@@ -25,7 +24,6 @@ import ThemeToggleButton from './ThemeToggleButton';
 const adminNavItems = [
   { icon: LayoutDashboard, label: '统计概览', href: '/admin' },
   { icon: Users, label: '用户管理', href: '/admin/users' },
-  { icon: Server, label: '服务器管理', href: '/admin/servers' },
   { icon: Container, label: '容器管理', href: '/admin/containers' },
   { icon: Disc, label: '镜像管理', href: '/admin/images' },
   { icon: Network, label: '网络管理', href: '/admin/networks' },

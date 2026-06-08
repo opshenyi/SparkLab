@@ -1,50 +1,31 @@
 'use client';
 
-import Link from 'next/link';
-
 type Variant = 'none' | 'no-online';
 
 type Props = {
-  /** 页面名称，用于文案 */
   context?: string;
-  /** none：库里没有任何服务器；no-online：有记录但当前无在线节点 */
   variant?: Variant;
 };
 
 export function AdminNoServersPrompt({ context, variant = 'none' }: Props) {
-  if (variant === 'no-online') {
-    return (
-      <div className="app-card rounded-2xl border border-outline-variant/60 bg-surface-container/40 p-10 text-center dark:bg-surface-container/20">
-        <p className="text-lg font-semibold text-on-surface mb-2">当前没有在线的服务器</p>
-        <p className="text-sm text-on-surface-variant mb-6 max-w-md mx-auto leading-relaxed">
-          {context
-            ? `「${context}」需要至少一台状态为在线的服务器。请到服务器管理检查连接与心跳。`
-            : '请先到服务器管理检查各节点是否在线。'}
-        </p>
-        <Link
-          href="/admin/servers"
-          className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-on-primary transition-opacity hover:opacity-95"
-        >
-          前往服务器管理
-        </Link>
-      </div>
-    );
-  }
+  const title =
+    variant === 'no-online' ? '本机 Docker 暂不可用' : '本机 Docker 未初始化';
+  const message =
+    variant === 'no-online'
+      ? `${context || '当前功能'} 只连接本机 Docker，请确认 Docker 服务正在运行，并且容器已挂载 /var/run/docker.sock。`
+      : `${context || '当前功能'} 使用本机 Docker，不需要添加服务器。系统会自动使用 unix:///var/run/docker.sock。`;
 
   return (
     <div className="app-card rounded-2xl border border-outline-variant/60 bg-surface-container/40 p-10 text-center dark:bg-surface-container/20">
-      <p className="text-lg font-semibold text-on-surface mb-2">还没有添加服务器</p>
-      <p className="text-sm text-on-surface-variant mb-6 max-w-md mx-auto leading-relaxed">
-        {context
-          ? `「${context}」依赖已接入的 Docker 执行节点。请先在服务器管理中新增服务器并完成连接，再管理镜像、容器与存储卷。`
-          : '请先在服务器管理中新增服务器并完成连接，再使用镜像、容器与存储卷等功能。'}
+      <p className="mb-2 text-lg font-semibold text-on-surface">{title}</p>
+      <p className="mx-auto max-w-md text-sm leading-relaxed text-on-surface-variant">
+        {message}
       </p>
-      <Link
-        href="/admin/servers"
-        className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-on-primary transition-opacity hover:opacity-95"
-      >
-        去添加服务器
-      </Link>
+      <div className="mx-auto mt-6 max-w-lg rounded-xl bg-surface-low p-4 text-left text-xs leading-relaxed text-on-surface-variant">
+        <div>检查命令：</div>
+        <div className="mt-2 font-mono text-on-surface">docker compose logs backend</div>
+        <div className="mt-1 font-mono text-on-surface">docker ps</div>
+      </div>
     </div>
   );
 }

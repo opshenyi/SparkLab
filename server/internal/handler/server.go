@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -16,7 +17,10 @@ import (
 	"sparklab/server/internal/model"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
+
+const localDockerServerID = "local-docker"
 
 type dockerImageSummary struct {
 	ID       string   `json:"Id"`
@@ -544,11 +548,11 @@ func (h *Handler) listContainerCounts(server *model.Server) (running int, total 
 }
 
 func (h *Handler) findServerForAdmin(id string) (*model.Server, bool) {
-	var s model.Server
-	if err := h.db.Where("id = ?", id).First(&s).Error; err != nil {
+	s, err := h.ensureLocalDockerServer()
+	if err != nil {
 		return nil, false
 	}
-	return &s, true
+	return s, true
 }
 
 func (h *Handler) findContainerByServer(serverID, containerID string) (*model.Container, bool) {
@@ -595,29 +599,55 @@ func randomToken32() string {
 	return fmt.Sprintf("%032s", id)
 }
 
-func (h *Handler) CreateServer(c *gin.Context) {
-	var req createServerReq
-	if err := c.ShouldBindJSON(&req); err != nil || req.Name == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "name is required"})
-		return
-	}
-
-	if strings.TrimSpace(req.Host) == "" {
-		req.Host = "local-docker"
-	}
-
+func (h *Handler) ensureLocalDockerServer() (*model.Server, error) {
 	now := time.Now()
-	server := model.Server{
-		ID:               newID(),
-		Name:             req.Name,
-		Host:             req.Host,
-		Port:             req.Port,
+	host := strings.TrimSpace(h.cfg.DockerHost)
+	if host == "" {
+		host = "unix:///var/run/docker.sock"
+	}
+
+	var server model.Server
+	err := h.db.Where("id = ?", localDockerServerID).First(&server).Error
+	if err == nil {
+		updates := map[string]any{
+			"host":       host,
+			"port":       0,
+			"username":   "",
+			"authType":   "local-unix",
+			"password":   nil,
+			"privateKey": nil,
+			"updatedAt":  now,
+		}
+		if strings.TrimSpace(server.Name) == "" {
+			updates["name"] = "本机 Docker"
+		}
+		if server.MaxContainers <= 0 {
+			updates["maxContainers"] = 100
+		}
+		if err := h.db.Model(&server).Updates(updates).Error; err != nil {
+			return nil, err
+		}
+		if err := h.db.Where("id = ?", localDockerServerID).First(&server).Error; err != nil {
+			return nil, err
+		}
+		return &server, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	server = model.Server{
+		ID:               localDockerServerID,
+		Name:             "本机 Docker",
+		Host:             host,
+		Port:             0,
 		Username:         "",
-		AuthType:         "none",
+		AuthType:         "local-unix",
 		Password:         nil,
-		Status:           "offline", // Default to offline until first check
+		PrivateKey:       nil,
+		Status:           "offline",
 		LastCheckAt:      now,
-		MaxContainers:    10,
+		MaxContainers:    100,
 		CPUCores:         0,
 		TotalMemory:      0,
 		ActiveContainers: 0,
@@ -626,12 +656,19 @@ func (h *Handler) CreateServer(c *gin.Context) {
 		CreatedAt:        now,
 		UpdatedAt:        now,
 	}
-
 	if err := h.db.Create(&server).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Create server failed"})
+		return nil, err
+	}
+	return &server, nil
+}
+
+func (h *Handler) CreateServer(c *gin.Context) {
+	server, err := h.ensureLocalDockerServer()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Prepare local Docker node failed"})
 		return
 	}
-
+	h.updateServerStats(server)
 	c.JSON(http.StatusOK, gin.H{
 		"id":               server.ID,
 		"name":             server.Name,
@@ -654,13 +691,14 @@ func (h *Handler) CreateServer(c *gin.Context) {
 }
 
 func (h *Handler) GetServers(c *gin.Context) {
-	var servers []model.Server
-	err := h.db.Order("createdAt desc").Find(&servers).Error
+	local, err := h.ensureLocalDockerServer()
 	if err != nil {
 		log.Printf("[ERROR] Failed to load servers: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Load servers failed"})
 		return
 	}
+
+	servers := []model.Server{*local}
 
 	// Update stats for each server synchronously on first load
 	// Use a channel to wait for all updates to complete with timeout
@@ -696,7 +734,9 @@ func (h *Handler) GetServers(c *gin.Context) {
 
 buildResponse:
 	// Reload servers from database to get updated stats
-	h.db.Order("createdAt desc").Find(&servers)
+	if refreshed, err := h.ensureLocalDockerServer(); err == nil {
+		servers = []model.Server{*refreshed}
+	}
 
 	resp := make([]gin.H, 0, len(servers))
 	for _, s := range servers {
@@ -743,9 +783,8 @@ buildResponse:
 }
 
 func (h *Handler) GetServer(c *gin.Context) {
-	id := c.Param("id")
-	var s model.Server
-	if err := h.db.Where("id = ?", id).First(&s).Error; err != nil {
+	s, ok := h.findServerForAdmin(c.Param("id"))
+	if !ok {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Server not found"})
 		return
 	}
@@ -1112,19 +1151,7 @@ func (h *Handler) UpdateServer(c *gin.Context) {
 }
 
 func (h *Handler) DeleteServer(c *gin.Context) {
-	id := c.Param("id")
-	var active int64
-	h.db.Model(&model.Container{}).Where("serverId = ? AND status IN ?", id, []string{"creating", "running"}).Count(&active)
-	if active > 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("Cannot delete server with %d active containers", active)})
-		return
-	}
-
-	if err := h.db.Delete(&model.Server{}, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Delete server failed"})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "Server deleted successfully"})
+	c.JSON(http.StatusBadRequest, gin.H{"message": "SparkLab uses the local Docker socket only. The local Docker node cannot be deleted."})
 }
 
 func (h *Handler) RefreshServerStats(c *gin.Context) {

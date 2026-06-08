@@ -1,6 +1,6 @@
 {
   "appId": "sparklab",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "channel": "main",
   "releasedAt": "2026-06-09T00:00:00+08:00",
   "title": "Docker Compose 一键部署与更新流程",
@@ -12,6 +12,17 @@
     "message": "部署主机现在可以通过 GitHub 发布清单检查版本、公告和更新日志，并在管理后台一键拉取代码、重建镜像、重启服务。"
   },
   "changelog": [
+    {
+      "version": "0.4.1",
+      "date": "2026-06-09",
+      "title": "切换为本机 Docker 单节点管理",
+      "items": [
+        "后端自动维护一个本机 Docker 节点，统一使用 unix:///var/run/docker.sock。",
+        "移除管理侧边栏中的服务器管理入口，不再引导添加远程 Docker 服务器。",
+        "服务器状态页改为本机 Docker 状态页，去掉远程地址、2375 端口和添加服务器表单。",
+        "容器、镜像、网络和存储页面继续复用本机 Docker 节点，不需要额外配置服务器。"
+      ]
+    },
     {
       "version": "0.4.0",
       "date": "2026-06-09",
