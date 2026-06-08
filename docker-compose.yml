@@ -3,6 +3,7 @@ services:
     build:
       context: ./server
     image: sparklab-backend:local
+    pull_policy: build
     container_name: sparklab-backend
     restart: unless-stopped
     environment:
@@ -42,6 +43,7 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
     image: sparklab-web:local
+    pull_policy: build
     container_name: sparklab-web
     restart: unless-stopped
     depends_on:
