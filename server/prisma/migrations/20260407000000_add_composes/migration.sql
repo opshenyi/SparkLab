@@ -1,0 +1,3 @@
+-- Add composes support
+-- This migration was created for compose functionality
+-- No schema changes needed at this time

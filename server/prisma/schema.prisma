@@ -1,0 +1,315 @@
+// Spark Lab - 星火实验室数据库设计
+// 支持 SQLite（开发）和 PostgreSQL（生产）
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // 可切换为 "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== 用户系统 ====================
+model User {
+  id            String   @id @default(uuid())
+  username      String   @unique
+  displayName   String   @default("未命名") // 学生名字，用于显示
+  email         String   @unique
+  password      String
+  role          String   @default("STUDENT") // STUDENT, TEACHER, ADMIN, AUTHOR
+  avatar        String?
+  qqNumber      String?  // QQ号，用于获取QQ头像
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastActiveAt  DateTime @default(now()) // 用于自动回收
+  
+  // 关联
+  containers    Container[]
+  submissions   Submission[]
+  enrollments   Enrollment[]
+  answers       Answer[]
+  videoProgress VideoProgress[]
+  activityLogs  ActivityLog[]
+  
+  @@map("users")
+}
+
+// ==================== 课程系统 ====================
+model Course {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  cover       String?
+  type        String   @default("lab") // lab(实验), video(视频), exam(试卷)
+  difficulty  String   @default("beginner") // beginner, intermediate, advanced
+  duration    Int      @default(0) // 预计完成时间（分钟）
+  isActive    Boolean  @default(true) // 是否开课（true=开课，false=停课）
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // 关联
+  labs        Lab[]
+  enrollments Enrollment[]
+  
+  @@map("courses")
+}
+
+model Enrollment {
+  id         String   @id @default(uuid())
+  userId     String
+  courseId   String
+  progress   Int      @default(0) // 0-100
+  startedAt  DateTime @default(now())
+  completedAt DateTime?
+  
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+// ==================== 实验系统 ====================
+model Lab {
+  id          String   @id @default(uuid())
+  courseId    String
+  type        String   @default("lab") // lab(实验), video(视频), exam(试卷)
+  title       String
+  description String
+  content     String   @default("") // Markdown 内容
+  difficulty  String   @default("beginner")
+  order       Int      @default(0)
+  points      Int      @default(100)
+  timeLimit   Int      @default(60) // 分钟
+  
+  // 视频相关字段
+  videoUrl    String?  // 视频URL
+  videoDuration Int    @default(0) // 视频时长（秒）
+  
+  // 服务器配置
+  serverId    String?
+  
+  // 容器核心配置
+  dockerImage String   @default("ubuntu:22.04")
+  cpuLimit    Float    @default(1.0)
+  memoryLimit Int      @default(512) // MB
+  
+  // 启动与执行配置
+  shellCommand     String   @default("/bin/bash")  // 进入容器的 bash 命令
+  
+  // 端口映射配置 (JSON 格式存储)
+  // [{"containerPort": 3306, "hostPort": 3306, "protocol": "tcp", "random": false}]
+  portMappings     String?
+  
+  // 环境变量配置 (JSON 格式存储)
+  // [{"name": "MYSQL_ROOT_PASSWORD", "value": "123456"}]
+  environmentVars  String?
+  
+  // 卷挂载配置 (JSON 格式存储)
+  // [{"hostPath": "/mydata/mysql/data", "containerPath": "/var/lib/mysql", "mode": "rw"}]
+  volumeMounts     String?
+  
+  // 重启策略
+  restartPolicy    String   @default("unless-stopped") // no, always, unless-stopped, on-failure
+  
+  // 判题配置
+  judgeScript String?  // 判题脚本路径
+  judgeType   String   @default("manual") // manual, auto
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // 关联
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  server      Server?  @relation(fields: [serverId], references: [id], onDelete: SetNull)
+  steps       Step[]
+  containers  Container[]
+  submissions Submission[]
+  questions   Question[]
+  videoProgress VideoProgress[]
+  
+  @@map("labs")
+}
+
+// ==================== 试卷题目系统 ====================
+model Question {
+  id          String   @id @default(uuid())
+  labId       String
+  type        String   @default("single") // single(单选), multiple(多选), judge(判断), fill(填空), essay(简答)
+  title       String
+  content     String   // 题目内容
+  options     String?  // JSON 格式存储选项 ["A. 选项1", "B. 选项2"]
+  answer      String   // 正确答案，JSON 格式
+  explanation String?  // 答案解析
+  points      Int      @default(10)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // 关联
+  lab         Lab      @relation(fields: [labId], references: [id], onDelete: Cascade)
+  answers     Answer[]
+  
+  @@map("questions")
+}
+
+model Answer {
+  id           String   @id @default(uuid())
+  userId       String
+  questionId   String
+  submissionId String
+  answer       String   // 学生答案，JSON 格式
+  isCorrect    Boolean  @default(false)
+  score        Int      @default(0)
+  createdAt    DateTime @default(now())
+  
+  // 关联
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question     Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  
+  @@map("answers")
+}
+
+// ==================== 视频观看进度 ====================
+model VideoProgress {
+  id              String   @id @default(uuid())
+  userId          String
+  labId           String
+  watchedDuration Int      @default(0) // 已观看时长（秒）
+  totalDuration   Int      @default(0) // 总时长（秒）
+  completed       Boolean  @default(false)
+  lastWatchedAt   DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // 关联
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lab             Lab      @relation(fields: [labId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, labId])
+  @@map("video_progress")
+}
+
+model Step {
+  id          String   @id @default(uuid())
+  labId       String
+  title       String
+  content     String   // Markdown
+  order       Int
+  hint        String?
+  
+  lab         Lab      @relation(fields: [labId], references: [id], onDelete: Cascade)
+  
+  @@map("steps")
+}
+
+// ==================== 容器系统 ====================
+model Container {
+  id           String   @id @default(uuid())
+  userId       String
+  labId        String
+  serverId     String?  // 所属服务器
+  containerId  String   @unique // Docker 容器 ID
+  status       String   @default("creating") // creating, running, stopped, error
+  
+  // 端口映射 (JSON 格式存储实际分配的端口)
+  // [{"containerPort": 3306, "hostPort": 3306, "protocol": "tcp"}]
+  portMappings String?
+  
+  // 资源限制
+  cpuLimit     Float    @default(1.0)
+  memoryLimit  Int      @default(512)
+  
+  // 时间管理
+  createdAt    DateTime @default(now())
+  startedAt    DateTime?
+  stoppedAt    DateTime?
+  lastActiveAt DateTime @default(now()) // 心跳更新
+  autoStopAt   DateTime? // 自动停止时间
+  
+  // 关联
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lab          Lab      @relation(fields: [labId], references: [id], onDelete: Cascade)
+  server       Server?  @relation(fields: [serverId], references: [id], onDelete: SetNull)
+  
+  @@map("containers")
+}
+
+// ==================== 评分系统 ====================
+model Submission {
+  id          String   @id @default(uuid())
+  userId      String
+  labId       String
+  score       Int      @default(0)
+  maxScore    Int      @default(100)
+  status      String   @default("pending") // pending, passed, failed
+  output      String?  // 判题输出
+  logs        String?  // 执行日志
+  submittedAt DateTime @default(now())
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lab         Lab      @relation(fields: [labId], references: [id], onDelete: Cascade)
+  answers     Answer[]
+  
+  @@map("submissions")
+}
+
+// ==================== 服务器管理系统 ====================
+model Server {
+  id            String   @id @default(uuid())
+  name          String   // 服务器名称，如 "实验服务器1"
+  host          String   @default("") // Agent 模式不需要
+  port          Int      @default(0) // Agent 模式不需要
+  username      String   @default("") // Agent 模式不需要
+  authType      String   @default("password") // password, key
+  password      String?  // Agent Token（Agent 模式）或 SSH 密码
+  privateKey    String?  // SSH 私钥（SSH 模式）
+  
+  // 服务器状态
+  status        String   @default("offline") // online, offline, error, maintenance
+  lastCheckAt   DateTime @default(now())
+  
+  // 资源配置
+  maxContainers Int      @default(10) // 最大容器数（保留字段）
+  cpuCores      Int      @default(0) // CPU 核心数（Agent 上报）
+  cpuModel      String?  // CPU 型号（Agent 上报）
+  totalMemory   Int      @default(0) // 总内存 MB（Agent 上报）
+  
+  // 统计信息
+  activeContainers Int   @default(0) // 当前活跃容器数
+  cpuUsage      Float    @default(0.0) // CPU 使用率 0-100
+  memoryUsage   Float    @default(0.0) // 内存使用率 0-100
+  
+  // CPU 追踪字段（用于准确计算 CPU 使用率）
+  cpuIdlePrev   BigInt   @default(0)
+  cpuTotalPrev  BigInt   @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // 关联
+  containers    Container[]
+  labs          Lab[]
+
+  @@map("servers")
+}
+
+
+// ==================== 活动日志系统 ====================
+model ActivityLog {
+  id          String   @id @default(uuid())
+  userId      String
+  action      String   // 操作类型：enroll_course, start_lab, start_video, start_exam, submit_lab, complete_video, complete_exam, create_container, stop_container, delete_container
+  targetType  String?  // 目标类型：course, lab, video, exam, container
+  targetId    String?  // 目标ID
+  targetName  String?  // 目标名称（冗余字段，方便显示）
+  metadata    String?  // JSON格式的额外信息
+  createdAt   DateTime @default(now())
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, createdAt])
+  @@map("activity_logs")
+}

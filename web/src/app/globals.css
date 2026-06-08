@@ -1,0 +1,472 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  /* 学生端 / 管理端页面主标题与区块标题统一色（与课程中心一致） */
+  .text-page-title {
+    @apply text-blue-900 dark:text-blue-200;
+  }
+
+  /* 隐藏滚动条但保持滚动功能 */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* 系统字体栈，不请求 Google Fonts，避免国内/离线环境下 next dev 编译期 fetch 超时与 Abort 刷屏 */
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  :root {
+    --font-inter: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+      'Microsoft YaHei', sans-serif;
+    --font-plus-jakarta: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei',
+      sans-serif;
+    --font-jetbrains-mono: ui-monospace, 'Cascadia Mono', 'Cascadia Code', Consolas, 'Sarasa Mono SC', monospace;
+    /* Light — 底与卡片/区块拉开对比，避免灰阶糊成一片 */
+    --color-background: #e2e8f0;
+    --color-sidebar-canvas: #d8e0ec;
+    --color-surface-lowest: #ffffff;
+    --color-surface-low: #f1f5f9;
+    --color-surface-container: #e8eef5;
+    --color-surface-high: #dce6f2;
+    --color-surface-bright: #cfd9ea;
+    /* 与 tailwind surface-container-high 对齐（原 bg-nav-blue-vein 曾引用未定义变量） */
+    --color-surface-container-high: var(--color-surface-high);
+
+    --color-primary: #2563eb;
+    --color-primary-dim: #1d4ed8;
+    --color-on-primary: #ffffff;
+
+    --color-on-surface: #0f172a;
+    --color-on-surface-variant: #64748b;
+
+    --color-outline-variant: #cbd5e1;
+
+    --color-success: #059669;
+    --color-success-bg: #d1fae5;
+    --color-success-text: #047857;
+    --color-info: #2563eb;
+    --color-info-bg: #dbeafe;
+    --color-info-text: #1d4ed8;
+    --color-warning: #d97706;
+    --color-warning-bg: #fef3c7;
+    --color-warning-text: #b45309;
+    --color-error: #dc2626;
+    --color-error-bg: #fee2e2;
+    --color-error-text: #b91c1c;
+    --color-neutral: #64748b;
+    --color-neutral-bg: #e8eef5;
+    --color-neutral-text: #475569;
+
+    /* 用户角色标签（与 status-* 一样用实色，避免 Tailwind 透明度类在表格里不生效） */
+    --color-role-teacher-bg: #e0f2fe;
+    --color-role-teacher-text: #075985;
+    --color-role-author-bg: #ede9fe;
+    --color-role-author-text: #5b21b6;
+  }
+
+  .dark {
+    /* Dark — Next / Vercel 式深 slate，高对比可读、主色略亮 */
+    --color-background: #0f1419;
+    --color-sidebar-canvas: #0a0e14;
+    --color-surface-lowest: #141b24;
+    --color-surface-low: #1a222e;
+    --color-surface-container: #222c3a;
+    --color-surface-high: #2b3648;
+    --color-surface-bright: #354356;
+
+    --color-primary: #60a5fa;
+    --color-primary-dim: #3b82f6;
+    --color-on-primary: #0c1220;
+
+    --color-on-surface: #f1f5f9;
+    --color-on-surface-variant: #94a3b8;
+
+    --color-outline-variant: #334155;
+
+    --color-success: #34d399;
+    --color-success-bg: #064e3b;
+    --color-success-text: #6ee7b7;
+    --color-info: #60a5fa;
+    --color-info-bg: #1e3a5f;
+    --color-info-text: #93c5fd;
+    --color-warning: #fbbf24;
+    --color-warning-bg: #422006;
+    --color-warning-text: #fcd34d;
+    --color-error: #f87171;
+    --color-error-bg: #450a0a;
+    --color-error-text: #fecaca;
+    --color-neutral: #94a3b8;
+    --color-neutral-bg: #1e293b;
+    --color-neutral-text: #cbd5e1;
+
+    --color-role-teacher-bg: #0c4a6e;
+    --color-role-teacher-text: #7dd3fc;
+    --color-role-author-bg: #1e1b4b;
+    --color-role-author-text: #c4b5fd;
+
+    --color-surface-container-high: var(--color-surface-high);
+  }
+
+  html {
+    background-color: var(--color-background);
+    transition: background-color 0.3s ease;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-on-surface);
+    font-family: var(--font-inter), system-ui, sans-serif;
+    font-weight: 400;
+    line-height: 1.65;
+    letter-spacing: -0.013em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overscroll-behavior: none;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-plus-jakarta), var(--font-inter);
+    font-weight: 700;
+    letter-spacing: -0.028em;
+    line-height: 1.22;
+  }
+
+  /* 优化按钮和标签字体 */
+  button, .button, label {
+    font-weight: 500;
+    letter-spacing: -0.006em;
+  }
+
+  /* 优化输入框字体 */
+  input, textarea, select {
+    font-weight: 400;
+    letter-spacing: -0.011em;
+  }
+
+  /* 优化输入框在浅色模式下的样式 */
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    background-color: var(--color-surface-lowest);
+    border: 1px solid var(--color-outline-variant);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgb(37 99 235 / 0.2);
+  }
+
+  .dark input:not([type="checkbox"]):not([type="radio"]):focus,
+  .dark textarea:focus,
+  .dark select:focus {
+    box-shadow: 0 0 0 3px rgb(96 165 250 / 0.22);
+  }
+
+  /* 优化按钮样式 */
+  button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  /* 优化链接样式 */
+  a:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+@layer utilities {
+  .shadow-soft {
+    box-shadow:
+      0 1px 2px rgb(15 23 42 / 0.04),
+      0 1px 3px rgb(15 23 42 / 0.03);
+  }
+
+  .shadow-soft-md {
+    box-shadow:
+      0 2px 4px rgb(15 23 42 / 0.04),
+      0 8px 20px -6px rgb(15 23 42 / 0.08);
+  }
+
+  .shadow-soft-lg {
+    box-shadow:
+      0 4px 8px rgb(15 23 42 / 0.05),
+      0 16px 40px -10px rgb(15 23 42 / 0.12);
+  }
+
+  /* 内容区标准卡片：与深色一致，无描边、无默认阴影，靠底色与页面区分 */
+  .app-card {
+    border-radius: 1.25rem;
+    border: none;
+    background-color: var(--color-surface-lowest);
+    box-shadow: none;
+  }
+
+  .dark .app-card {
+    background-color: color-mix(in srgb, var(--color-surface-lowest) 94%, var(--color-background));
+  }
+
+  /* 卡片内数据表：浅色柔和 / 深色与背景融合，避免发白分割线 */
+  table.app-data-table thead tr {
+    border-bottom: 1px solid color-mix(in srgb, var(--color-outline-variant) 42%, transparent);
+  }
+
+  table.app-data-table tbody tr {
+    border-bottom: 1px solid color-mix(in srgb, var(--color-outline-variant) 28%, transparent);
+  }
+
+  .dark table.app-data-table thead tr {
+    border-bottom-color: color-mix(in srgb, var(--color-outline-variant) 50%, var(--color-background));
+  }
+
+  .dark table.app-data-table tbody tr {
+    border-bottom-color: color-mix(in srgb, var(--color-outline-variant) 32%, var(--color-background));
+  }
+
+  table.app-data-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  /* 管理后台：工具栏选择框 / 次级按钮（与深色相同：无描边，靠底色与 hover 区分） */
+  .admin-control {
+    border-radius: 0.5rem;
+    border: none;
+    background-color: var(--color-surface-container);
+    color: var(--color-on-surface);
+    box-shadow: none;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .admin-control:hover:enabled {
+    background-color: var(--color-surface-high);
+  }
+
+  /* 与 Tailwind rounded-xl 同用时加大圆角（admin-control 默认为 8px） */
+  .admin-control.rounded-xl {
+    border-radius: 0.75rem;
+  }
+
+  .dark .shadow-soft {
+    box-shadow:
+      0 1px 2px 0 rgba(8, 16, 28, 0.35),
+      0 1px 3px -1px rgba(8, 16, 28, 0.25);
+  }
+
+  .dark .shadow-soft-md {
+    box-shadow:
+      0 4px 8px -2px rgba(8, 16, 28, 0.4),
+      0 2px 4px -2px rgba(8, 16, 28, 0.28);
+  }
+
+  .dark .shadow-soft-lg {
+    box-shadow:
+      0 12px 24px -4px rgba(8, 16, 28, 0.45),
+      0 4px 8px -4px rgba(8, 16, 28, 0.3);
+  }
+
+  /* 右侧粘性侧栏卡片 */
+  .bg-nav-blue-vein {
+    background-color: var(--color-surface-high);
+  }
+
+  /* 左侧固定侧栏轨条 */
+  .bg-sidebar-blue-vein {
+    background-color: var(--color-sidebar-canvas);
+  }
+
+  /* Gray Button Gradient */
+  .bg-gray-gradient {
+    background: linear-gradient(to bottom, #6b7280 0%, #4b5563 100%);
+  }
+
+  /* Animations */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+
+  /* Google-style Loading Animation */
+  @keyframes loading-slide {
+    0% {
+      transform: translateX(-100%);
+    }
+    50% {
+      transform: translateX(0%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  .animate-loading-slide {
+    animation: loading-slide 1.5s ease-in-out infinite;
+  }
+
+  /* Progress Fill Animation */
+  @keyframes progress-fill {
+    0% {
+      width: 0%;
+    }
+    100% {
+      width: 100%;
+    }
+  }
+
+  .animate-progress-fill {
+    animation: progress-fill 3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  /* Custom Scrollbar Styles - 全局美化滚动条 */
+  
+  /* Webkit 浏览器（Chrome, Safari, Edge）的滚动条样式 */
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-surface-container);
+    border-radius: 6px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-on-surface-variant);
+    opacity: 0.3;
+    border-radius: 6px;
+    border: 3px solid var(--color-surface-container);
+    transition: background 0.2s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-on-surface-variant);
+    opacity: 0.5;
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background: var(--color-primary);
+    opacity: 0.7;
+  }
+
+  /* Firefox 的滚动条样式 */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(112, 117, 121, 0.35) var(--color-surface-container);
+  }
+
+  .dark * {
+    scrollbar-color: rgba(139, 155, 171, 0.4) var(--color-surface-container);
+  }
+
+  /* 细滚动条样式（可选） */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: var(--color-on-surface-variant);
+    opacity: 0.2;
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: opacity 0.2s ease, background 0.2s ease;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    opacity: 0.4;
+    background: var(--color-on-surface-variant);
+    background-clip: padding-box;
+  }
+
+  /* Firefox scrollbar */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(112, 117, 121, 0.25) transparent;
+  }
+
+  .dark .scrollbar-thin {
+    scrollbar-color: rgba(139, 155, 171, 0.35) transparent;
+  }
+
+  /* Smooth transitions for theme switching - DISABLED */
+  /* 移除颜色过渡，让主题切换更直接 */
+  
+  /* Preserve existing transitions for specific properties */
+  button, a, input, textarea, select {
+    transition-property: opacity, box-shadow, transform;
+    transition-duration: 0.3s;
+    transition-timing-function: ease;
+  }
+
+  /* 在主题切换动画期间禁用过渡 */
+  body.theme-transitioning * {
+    transition: none !important;
+  }
+
+  /* Disable theme transitions for animations */
+  @keyframes fade-in,
+  @keyframes loading-slide,
+  @keyframes progress-fill,
+  @keyframes ripple-expand {
+    * {
+      transition: none !important;
+    }
+  }
+
+  /* Disable transitions for reduced motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+
+  /* View Transition API 配置 - 禁用默认的交叉渐变 */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+
+  ::view-transition-old(root) {
+    z-index: 1;
+  }
+
+  ::view-transition-new(root) {
+    z-index: 2;
+  }
+}
