@@ -47,6 +47,47 @@ detect_host_project_dir() {
 
 detect_host_project_dir
 
+detect_compose_project_name() {
+  if [[ -n "${COMPOSE_PROJECT_NAME:-}" ]]; then
+    export COMPOSE_PROJECT_NAME
+    return
+  fi
+  if [[ -n "${SPARKLAB_COMPOSE_PROJECT_NAME:-}" ]]; then
+    COMPOSE_PROJECT_NAME="$SPARKLAB_COMPOSE_PROJECT_NAME"
+    export COMPOSE_PROJECT_NAME
+    return
+  fi
+
+  local existing_project=""
+  existing_project="$(docker inspect sparklab-backend --format '{{ index .Config.Labels "com.docker.compose.project" }}' 2>/dev/null || true)"
+  existing_project="$(printf '%s' "$existing_project" | tr -d '\r\n')"
+  if [[ -n "$existing_project" && "$existing_project" != "<no value>" ]]; then
+    COMPOSE_PROJECT_NAME="$existing_project"
+  else
+    COMPOSE_PROJECT_NAME="sparklab"
+  fi
+  export COMPOSE_PROJECT_NAME
+}
+
+host_visible_path() {
+  local path="${1:-}"
+  if [[ -n "${HOST_PROJECT_DIR:-}" ]]; then
+    case "$path" in
+      /app/data/*)
+        printf '%s/data/server/%s' "$HOST_PROJECT_DIR" "${path#/app/data/}"
+        return
+        ;;
+      "$ROOT_DIR"/data/server/*)
+        printf '%s/data/server/%s' "$HOST_PROJECT_DIR" "${path#"$ROOT_DIR"/data/server/}"
+        return
+        ;;
+    esac
+  fi
+  printf '%s' "$path"
+}
+
+detect_compose_project_name
+
 git config --global --add safe.directory "$ROOT_DIR" >/dev/null 2>&1 || true
 
 echo "[SparkLab] Updating from ${SPARKLAB_FROM_VERSION:-unknown} to ${SPARKLAB_TO_VERSION:-unknown}"
@@ -54,11 +95,13 @@ echo "[SparkLab] Repository: $ROOT_DIR"
 if [[ -n "${HOST_PROJECT_DIR:-}" ]]; then
   echo "[SparkLab] Host project directory: $HOST_PROJECT_DIR"
 fi
+echo "[SparkLab] Compose project: $COMPOSE_PROJECT_NAME"
 
 mkdir -p data/server data/uploads data/web-uploads
 
 status_file="${SPARKLAB_UPDATE_STATUS_FILE:-}"
 log_file="${SPARKLAB_UPDATE_LOG:-/tmp/sparklab-compose-update.log}"
+display_log_file="$(host_visible_path "$log_file")"
 target_version="${SPARKLAB_TO_VERSION:-unknown}"
 target_commit="${SPARKLAB_TARGET_COMMIT:-unknown}"
 
@@ -84,7 +127,7 @@ write_failed_status() {
 {
   "id": "$(json_escape "${SPARKLAB_UPDATE_ID:-}")",
   "state": "failed",
-  "message": "Docker Compose redeploy failed. Check update log: $(json_escape "$log_file")",
+  "message": "Docker Compose redeploy failed. Check update log: $(json_escape "$display_log_file")",
   "repo": "$(json_escape "${GITHUB_REPO:-}")",
   "branch": "$(json_escape "${GITHUB_BRANCH:-main}")",
   "fromVersion": "$(json_escape "${SPARKLAB_FROM_VERSION:-}")",
@@ -92,8 +135,9 @@ write_failed_status() {
   "targetCommit": "$(json_escape "$target_commit")",
   "updatedAt": "$(json_escape "$now")",
   "completedAt": "$(json_escape "$now")",
-  "error": "Docker Compose redeploy failed. Check update log: $(json_escape "$log_file")",
-  "logPath": "$(json_escape "$log_file")",
+  "error": "Docker Compose redeploy failed. Check update log: $(json_escape "$display_log_file")",
+  "logPath": "$(json_escape "$display_log_file")",
+  "containerLogPath": "$(json_escape "$log_file")",
   "refreshRecommended": false
 }
 EOF
@@ -114,6 +158,7 @@ build_args+=(--build-arg "SPARKLAB_COMMIT=$target_commit")
 delay="${SPARKLAB_REDEPLOY_DELAY_SECONDS:-2}"
 
 echo "[SparkLab] Scheduling Docker Compose redeploy in ${delay}s"
+mkdir -p "$(dirname "$log_file")"
 (
   sleep "$delay"
   cd "$ROOT_DIR"

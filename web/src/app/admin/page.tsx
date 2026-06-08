@@ -17,6 +17,8 @@ type UpdateApplyProgress = {
   currentCommit?: string;
   targetCommit?: string;
   outputTail?: string;
+  logPath?: string;
+  containerLogPath?: string;
   updatedAt?: string;
   completedAt?: string;
   refreshRecommended?: boolean;
@@ -245,6 +247,8 @@ export default function AdminPage() {
         message,
         error: message,
         outputTail: error?.response?.data?.output || error?.response?.data?.progress?.outputTail,
+        logPath: error?.response?.data?.progress?.logPath,
+        containerLogPath: error?.response?.data?.progress?.containerLogPath,
       });
       setIsApplyingUpdate(false);
     }
@@ -390,6 +394,22 @@ export default function AdminPage() {
                           <pre className="mt-3 max-h-32 overflow-auto whitespace-pre-wrap break-words rounded-md bg-surface-container p-3 text-xs text-on-surface-variant">
                             {updateProgress.outputTail}
                           </pre>
+                        ) : null}
+                        {updateState === 'failed' && (updateProgress?.logPath || updateProgress?.containerLogPath) ? (
+                          <div className="mt-3 rounded-md bg-surface-container p-3 text-xs text-on-surface-variant">
+                            {updateProgress.logPath ? (
+                              <div className="break-all">
+                                <span className="font-medium text-on-surface">日志路径：</span>
+                                <span className="font-mono">{updateProgress.logPath}</span>
+                              </div>
+                            ) : null}
+                            {updateProgress.containerLogPath && updateProgress.containerLogPath !== updateProgress.logPath ? (
+                              <div className="mt-1 break-all">
+                                <span className="font-medium text-on-surface">容器内路径：</span>
+                                <span className="font-mono">{updateProgress.containerLogPath}</span>
+                              </div>
+                            ) : null}
+                          </div>
                         ) : null}
                       </div>
                     ) : null}

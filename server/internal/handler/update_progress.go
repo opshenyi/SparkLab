@@ -40,6 +40,7 @@ type updateApplyProgress struct {
 	Error                  string     `json:"error,omitempty"`
 	OutputTail             string     `json:"outputTail,omitempty"`
 	LogPath                string     `json:"logPath,omitempty"`
+	ContainerLogPath       string     `json:"containerLogPath,omitempty"`
 	RefreshRecommended     bool       `json:"refreshRecommended"`
 	AutoReloadDelaySeconds int        `json:"autoReloadDelaySeconds,omitempty"`
 }

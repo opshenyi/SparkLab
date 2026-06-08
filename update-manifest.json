@@ -1,17 +1,29 @@
 {
   "appId": "sparklab",
-  "version": "0.4.6",
+  "version": "0.4.7",
   "channel": "main",
-  "releasedAt": "2026-06-09T07:19:13+08:00",
-  "title": "全站视觉与暗黑模式重构",
+  "releasedAt": "2026-06-09T07:30:39+08:00",
+  "title": "修复容器内更新重部署冲突",
   "mandatory": false,
   "announcement": {
     "enabled": true,
-    "level": "info",
-    "title": "全站 UI/UX 已完成重构",
-    "message": "本次更新将前端整体调整为 Apple 与 Vercel 风格的克制工作台体验，统一浅色与暗黑模式，终端固定适配暗黑显示，并移除图标化与装饰性视觉干扰。"
+    "level": "warning",
+    "title": "更新重部署流程已修复",
+    "message": "本次修复容器内执行 Docker Compose 时项目名漂移导致的 sparklab-backend 容器名冲突，并让失败日志路径显示为宿主机可查看的位置。"
   },
   "changelog": [
+    {
+      "version": "0.4.7",
+      "date": "2026-06-09",
+      "title": "修复容器内更新重部署冲突",
+      "items": [
+        "更新脚本会读取现有 sparklab-backend 容器的 Compose project name，避免容器内 /app/repo 路径导致项目名变化。",
+        "修复 Docker Compose up 时尝试创建新 sparklab-backend 并与旧容器名称冲突的问题。",
+        "失败状态中的日志路径改为宿主机可查看路径，同时保留容器内路径用于排查挂载问题。",
+        "管理后台更新进度卡片会显示日志路径，避免只看到 /app/data 这类容器内路径。",
+        "更新脚本在后台重部署前会确保日志目录存在，失败时可稳定写入 update-redeploy.log。"
+      ]
+    },
     {
       "version": "0.4.6",
       "date": "2026-06-09",

@@ -69,11 +69,57 @@ try {
 
 Set-HostProjectDir
 
+function Set-ComposeProjectName {
+  if ($env:COMPOSE_PROJECT_NAME) {
+    return
+  }
+  if ($env:SPARKLAB_COMPOSE_PROJECT_NAME) {
+    $env:COMPOSE_PROJECT_NAME = $env:SPARKLAB_COMPOSE_PROJECT_NAME
+    return
+  }
+
+  $existingProject = ""
+  try {
+    $existingProject = (& docker inspect sparklab-backend --format '{{ index .Config.Labels "com.docker.compose.project" }}' 2>$null | Select-Object -First 1)
+    if ($existingProject) {
+      $existingProject = "$existingProject".Trim()
+    }
+  } catch {
+    $existingProject = ""
+  }
+  if ($existingProject -and $existingProject -ne "<no value>") {
+    $env:COMPOSE_PROJECT_NAME = $existingProject
+  } else {
+    $env:COMPOSE_PROJECT_NAME = "sparklab"
+  }
+}
+
+function Get-HostVisiblePath {
+  param([string]$Path)
+
+  if ($env:HOST_PROJECT_DIR) {
+    if ($Path.StartsWith("/app/data/")) {
+      $suffix = $Path.Substring("/app/data/".Length)
+      return (Join-Path (Join-Path $env:HOST_PROJECT_DIR "data/server") $suffix)
+    }
+    $serverDir = (Join-Path $root "data/server")
+    if ($Path.StartsWith($serverDir)) {
+      $suffix = $Path.Substring($serverDir.Length).TrimStart([char]'/', [char]'\')
+      return (Join-Path (Join-Path $env:HOST_PROJECT_DIR "data/server") $suffix)
+    }
+  }
+
+  return $Path
+}
+
+Set-ComposeProjectName
+
 Write-Host "[SparkLab] Updating from $env:SPARKLAB_FROM_VERSION to $env:SPARKLAB_TO_VERSION"
 Write-Host "[SparkLab] Repository: $root"
 if ($env:HOST_PROJECT_DIR) {
   Write-Host "[SparkLab] Host project directory: $env:HOST_PROJECT_DIR"
 }
+Write-Host "[SparkLab] Compose project: $env:COMPOSE_PROJECT_NAME"
 
 New-Item -ItemType Directory -Force -Path "data/server", "data/uploads", "data/web-uploads" | Out-Null
 
@@ -92,9 +138,11 @@ Invoke-Compose -ComposeArgs $buildArgs
 
 $delay = if ($env:SPARKLAB_REDEPLOY_DELAY_SECONDS) { [int]$env:SPARKLAB_REDEPLOY_DELAY_SECONDS } else { 2 }
 $logFile = if ($env:SPARKLAB_UPDATE_LOG) { $env:SPARKLAB_UPDATE_LOG } else { Join-Path $env:TEMP "sparklab-compose-update.log" }
+$displayLogFile = Get-HostVisiblePath -Path $logFile
 $statusFile = if ($env:SPARKLAB_UPDATE_STATUS_FILE) { $env:SPARKLAB_UPDATE_STATUS_FILE } else { "" }
 $escapedRoot = $root.Replace("'", "''")
 $escapedLog = $logFile.Replace("'", "''")
+$escapedDisplayLog = $displayLogFile.Replace("'", "''")
 $escapedStatus = $statusFile.Replace("'", "''")
 $escapedId = "$env:SPARKLAB_UPDATE_ID".Replace("'", "''")
 $escapedRepo = "$env:GITHUB_REPO".Replace("'", "''")
@@ -118,7 +166,7 @@ if ($statusFile) {
   `$payload = [ordered]@{
     id = '$escapedId'
     state = 'failed'
-    message = 'Docker Compose redeploy failed. Check update log: $escapedLog'
+    message = 'Docker Compose redeploy failed. Check update log: $escapedDisplayLog'
     repo = '$escapedRepo'
     branch = '$escapedBranch'
     fromVersion = '$escapedFromVersion'
@@ -126,8 +174,9 @@ if ($statusFile) {
     targetCommit = '$escapedTargetCommit'
     updatedAt = `$now
     completedAt = `$now
-    error = 'Docker Compose redeploy failed. Check update log: $escapedLog'
-    logPath = '$escapedLog'
+    error = 'Docker Compose redeploy failed. Check update log: $escapedDisplayLog'
+    logPath = '$escapedDisplayLog'
+    containerLogPath = '$escapedLog'
     refreshRecommended = `$false
   }
   `$payload | ConvertTo-Json -Depth 4 | Set-Content -Encoding UTF8 -LiteralPath '$escapedStatus'
@@ -136,6 +185,7 @@ if ($statusFile) {
 $command = @"
 Start-Sleep -Seconds $delay
 Set-Location -LiteralPath '$escapedRoot'
+New-Item -ItemType Directory -Force -Path (Split-Path -Parent '$escapedLog') | Out-Null
 $composeCommand up -d --remove-orphans --no-build *> '$escapedLog'
 if (`$LASTEXITCODE -ne 0) {
   $statusCommand
