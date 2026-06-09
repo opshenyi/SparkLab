@@ -268,7 +268,7 @@ export default function AdminContainersPage() {
               </div>
 
               <div className="app-card overflow-hidden">
-                <div className="border-b border-outline-variant/40 px-5 py-4">
+                <div className="border-b border-[color:var(--color-hairline)] px-5 py-4">
                   <div className="flex items-center gap-3">
                     <h3 className="text-xl font-bold text-page-title">容器列表</h3>
                     <span className="text-sm text-on-surface-variant">{node?.name || '本机 Docker'}</span>
@@ -294,7 +294,7 @@ export default function AdminContainersPage() {
                         {containers.map((c) => {
                           const isBusy = operating.has(c.id);
                           return (
-                            <tr key={`${c.type}-${c.id}`} className="border-t border-outline-variant/30 transition-colors hover:bg-surface-container">
+                            <tr key={`${c.type}-${c.id}`} className="border-t border-[color:var(--color-hairline)] transition-colors hover:bg-surface-container">
                               <td className="p-3">
                                 <span className={`rounded px-2 py-1 text-xs ${c.type === 'lab' ? 'bg-primary/15 text-primary' : 'bg-status-neutral-bg text-status-neutral-text'}`}>
                                   {c.type === 'lab' ? '实验' : '系统'}

@@ -279,7 +279,7 @@ function DockerMetric({ label, value }: { label: string; value: string | number 
 
 function InfoRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="flex gap-4 border-b border-outline-variant/30 py-3 last:border-b-0">
+    <div className="flex gap-4 border-b border-[color:var(--color-hairline)] py-3 last:border-b-0">
       <span className="w-20 shrink-0 text-sm text-on-surface-variant">{label}</span>
       <span className={`min-w-0 flex-1 break-words text-sm text-on-surface ${mono ? 'font-mono' : ''}`}>{value}</span>
     </div>

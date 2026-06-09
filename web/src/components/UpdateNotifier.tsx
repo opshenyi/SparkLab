@@ -73,7 +73,7 @@ export default function UpdateNotifier() {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-[70] w-[calc(100vw-2rem)] max-w-md rounded-xl border border-outline/40 bg-surface-lowest/95 p-4 shadow-soft-lg backdrop-blur-md">
+    <div className="fixed bottom-4 right-4 z-[70] w-[calc(100vw-2rem)] max-w-md rounded-xl border border-[color:var(--color-hairline)] bg-surface-lowest/95 p-4 shadow-[0_0_0_1px_var(--color-hairline)] backdrop-blur-md">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
