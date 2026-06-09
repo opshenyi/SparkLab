@@ -22,6 +22,32 @@ import { profilePageCardClass, profilePageFontClass, profilePageMainInnerClass }
 
 
 
+type RecentSubmission = {
+
+  id: string;
+
+  labId: string;
+
+  labTitle: string;
+
+  labType: string;
+
+  courseId: string;
+
+  courseTitle: string;
+
+  score: number;
+
+  maxScore: number;
+
+  status: string;
+
+  submittedAt: number;
+
+};
+
+
+
 type StudentRow = {
 
   id: string;
@@ -44,6 +70,8 @@ type StudentRow = {
 
   learningLabel?: string;
 
+  recentSubmissions?: RecentSubmission[];
+
 };
 
 
@@ -55,6 +83,42 @@ function formatRegisteredAt(ts?: number) {
   const ms = ts > 1_000_000_000_000 ? ts : ts * 1000;
 
   return new Date(ms).toLocaleString('zh-CN', { dateStyle: 'short', timeStyle: 'short' });
+
+}
+
+
+
+function formatSubmittedAt(ts?: number) {
+
+  if (ts == null || ts === 0) return '—';
+
+  const ms = ts > 1_000_000_000_000 ? ts : ts * 1000;
+
+  return new Date(ms).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
+
+}
+
+
+
+function submissionStatusText(status: string) {
+
+  if (status === 'passed') return '通过';
+
+  if (status === 'failed') return '未通过';
+
+  return '待批改';
+
+}
+
+
+
+function submissionStatusClass(status: string) {
+
+  if (status === 'passed') return 'text-status-success-text';
+
+  if (status === 'failed') return 'text-status-error-text';
+
+  return 'text-on-surface-variant';
 
 }
 
@@ -258,7 +322,7 @@ export default function TeacherStudentsPage() {
 
           <div className={`${profilePageCardClass} overflow-x-auto`}>
 
-            <table className="w-full text-sm min-w-[720px]">
+            <table className="w-full text-sm min-w-[980px]">
 
               <thead className="bg-surface-container text-on-surface-variant">
 
@@ -277,6 +341,8 @@ export default function TeacherStudentsPage() {
                   <th className="text-right p-4 font-medium tabular-nums">通过率</th>
 
                   <th className="text-right p-4 font-medium tabular-nums">平均得分率</th>
+
+                  <th className="text-left p-4 font-medium">最近提交</th>
 
                   <th className="text-left p-4 font-medium">注册时间</th>
 
@@ -336,6 +402,60 @@ export default function TeacherStudentsPage() {
 
                     </td>
 
+                    <td className="p-4">
+
+                      {r.recentSubmissions?.length ? (
+
+                        <div className="space-y-2">
+
+                          {r.recentSubmissions.slice(0, 3).map((s) => (
+
+                            <Link
+
+                              key={s.id}
+
+                              href={`/submissions/${s.id}`}
+
+                              className="block rounded-md bg-surface-container px-3 py-2 text-xs transition-colors hover:bg-surface-bright"
+
+                            >
+
+                              <span className="block truncate font-medium text-on-surface" title={`${s.courseTitle} · ${s.labTitle}`}>
+
+                                {s.labTitle || s.courseTitle}
+
+                              </span>
+
+                              <span className="mt-1 flex min-w-0 items-center justify-between gap-2 text-on-surface-variant">
+
+                                <span className={`shrink-0 font-medium ${submissionStatusClass(s.status)}`}>
+
+                                  {submissionStatusText(s.status)}
+
+                                </span>
+
+                                <span className="min-w-0 truncate tabular-nums">
+
+                                  {s.score}/{s.maxScore} · {formatSubmittedAt(s.submittedAt)}
+
+                                </span>
+
+                              </span>
+
+                            </Link>
+
+                          ))}
+
+                        </div>
+
+                      ) : (
+
+                        <span className="text-on-surface-variant">—</span>
+
+                      )}
+
+                    </td>
+
                     <td className="p-4 text-on-surface-variant whitespace-nowrap">
 
                       {formatRegisteredAt(r.createdAt)}
@@ -367,4 +487,3 @@ export default function TeacherStudentsPage() {
   );
 
 }
-

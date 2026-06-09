@@ -60,18 +60,24 @@ func (h *Handler) TeacherOverview(c *gin.Context) {
 	}
 
 	var submissionCount int64
-	h.db.Model(&model.Submission{}).
-		Joins(`INNER JOIN users u ON u.id = submissions.userId AND u.role = 'STUDENT'`).
-		Joins(`LEFT JOIN group_memberships gm ON gm.userId = u.id AND gm.classId = ?`, cid).
-		Where("u.classId = ? OR gm.id IS NOT NULL", cid).
-		Count(&submissionCount)
+	if len(courseIDs) > 0 {
+		h.db.Model(&model.Submission{}).
+			Joins(`INNER JOIN users u ON u.id = submissions.userId AND u.role = 'STUDENT'`).
+			Joins(`INNER JOIN labs l ON l.id = submissions.labId`).
+			Joins(`LEFT JOIN group_memberships gm ON gm.userId = u.id AND gm.classId = ?`, cid).
+			Where("(u.classId = ? OR gm.id IS NOT NULL) AND l.courseId IN ?", cid, courseIDs).
+			Count(&submissionCount)
+	}
 
 	var runningContainers int64
-	h.db.Model(&model.Container{}).
-		Joins(`INNER JOIN users u ON u.id = containers.userId AND u.role = 'STUDENT'`).
-		Joins(`LEFT JOIN group_memberships gm ON gm.userId = u.id AND gm.classId = ?`, cid).
-		Where("(u.classId = ? OR gm.id IS NOT NULL) AND containers.status = ?", cid, cid, "running").
-		Count(&runningContainers)
+	if len(courseIDs) > 0 {
+		h.db.Model(&model.Container{}).
+			Joins(`INNER JOIN users u ON u.id = containers.userId AND u.role = 'STUDENT'`).
+			Joins(`INNER JOIN labs l ON l.id = containers.labId`).
+			Joins(`LEFT JOIN group_memberships gm ON gm.userId = u.id AND gm.classId = ?`, cid).
+			Where("(u.classId = ? OR gm.id IS NOT NULL) AND containers.status = ? AND l.courseId IN ?", cid, "running", courseIDs).
+			Count(&runningContainers)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"group": gin.H{
@@ -82,13 +88,13 @@ func (h *Handler) TeacherOverview(c *gin.Context) {
 			"id":   cl.ID,
 			"name": cl.Name,
 		},
-		"studentCount":        studentCount,
-		"courseCount":         courseCount,
-		"activeCourseCount":   activeCourseCount,
-		"labCount":            labCount,
-		"materialCount":       materialCount,
-		"submissionCount":     submissionCount,
-		"runningContainers":   runningContainers,
+		"studentCount":      studentCount,
+		"courseCount":       courseCount,
+		"activeCourseCount": activeCourseCount,
+		"labCount":          labCount,
+		"materialCount":     materialCount,
+		"submissionCount":   submissionCount,
+		"runningContainers": runningContainers,
 	})
 }
 
@@ -125,6 +131,11 @@ func (h *Handler) TeacherListStudents(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"message": "您不是该小组的小组老师"})
 		return
 	}
+	courseIDs, err := h.courseIDsForTeacherGroup(cid)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "加载课程失败"})
+		return
+	}
 	type row struct {
 		ID          string `gorm:"column:id"`
 		Username    string `gorm:"column:username"`
@@ -132,7 +143,7 @@ func (h *Handler) TeacherListStudents(c *gin.Context) {
 		CreatedAt   int64  `gorm:"column:createdAt"`
 	}
 	var rows []row
-	err := h.db.Table("users").
+	err = h.db.Table("users").
 		Select("DISTINCT users.id, users.username, users.displayName, cast(users.createdAt as integer) as createdAt").
 		Joins("LEFT JOIN group_memberships gm ON gm.userId = users.id AND gm.classId = ?", cid).
 		Where("users.role = ? AND (users.classId = ? OR gm.id IS NOT NULL)", "STUDENT", cid).
@@ -155,17 +166,18 @@ func (h *Handler) TeacherListStudents(c *gin.Context) {
 		AvgRatio        float64 `gorm:"column:avgRatio"`
 	}
 	aggByUser := map[string]aggRow{}
-	if len(ids) > 0 {
+	if len(ids) > 0 && len(courseIDs) > 0 {
 		var aggs []aggRow
 		q := `
-SELECT userId,
+SELECT s.userId,
   COUNT(*) AS submissionCount,
-  SUM(CASE WHEN status = 'passed' THEN 1 ELSE 0 END) AS passedCount,
-  COALESCE(AVG(CASE WHEN maxScore > 0 THEN (CAST(score AS REAL) / maxScore) ELSE NULL END), 0) AS avgRatio
-FROM submissions
-WHERE userId IN ?
-GROUP BY userId`
-		if err := h.db.Raw(q, ids).Scan(&aggs).Error; err != nil {
+  SUM(CASE WHEN s.status = 'passed' THEN 1 ELSE 0 END) AS passedCount,
+  COALESCE(AVG(CASE WHEN s.maxScore > 0 THEN (CAST(s.score AS REAL) / s.maxScore) ELSE NULL END), 0) AS avgRatio
+FROM submissions s
+INNER JOIN labs l ON l.id = s.labId
+WHERE s.userId IN ? AND l.courseId IN ?
+GROUP BY s.userId`
+		if err := h.db.Raw(q, ids, courseIDs).Scan(&aggs).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "加载学习数据失败"})
 			return
 		}
@@ -174,21 +186,76 @@ GROUP BY userId`
 		}
 	}
 
+	type latestSubmissionRow struct {
+		ID          string `gorm:"column:id"`
+		UserID      string `gorm:"column:userId"`
+		LabID       string `gorm:"column:labId"`
+		LabTitle    string `gorm:"column:labTitle"`
+		LabType     string `gorm:"column:labType"`
+		CourseID    string `gorm:"column:courseId"`
+		CourseTitle string `gorm:"column:courseTitle"`
+		Score       int    `gorm:"column:score"`
+		MaxScore    int    `gorm:"column:maxScore"`
+		Status      string `gorm:"column:status"`
+		SubmittedAt int64  `gorm:"column:submittedAt"`
+	}
+	latestByUser := map[string][]gin.H{}
+	if len(ids) > 0 && len(courseIDs) > 0 {
+		var latest []latestSubmissionRow
+		q := `
+SELECT id, userId, labId, labTitle, labType, courseId, courseTitle, score, maxScore, status, submittedAt
+FROM (
+  SELECT s.id, s.userId, s.labId, l.title AS labTitle, l.type AS labType,
+    c.id AS courseId, c.title AS courseTitle, s.score, s.maxScore, s.status,
+    cast(s.submittedAt as integer) AS submittedAt,
+    ROW_NUMBER() OVER (PARTITION BY s.userId ORDER BY s.submittedAt DESC, s.id DESC) AS rn
+  FROM submissions s
+  INNER JOIN labs l ON l.id = s.labId
+  INNER JOIN courses c ON c.id = l.courseId
+  WHERE s.userId IN ? AND l.courseId IN ?
+)
+WHERE rn <= 3
+ORDER BY submittedAt DESC`
+		if err := h.db.Raw(q, ids, courseIDs).Scan(&latest).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "加载最近提交失败"})
+			return
+		}
+		for _, s := range latest {
+			latestByUser[s.UserID] = append(latestByUser[s.UserID], gin.H{
+				"id":          s.ID,
+				"labId":       s.LabID,
+				"labTitle":    s.LabTitle,
+				"labType":     s.LabType,
+				"courseId":    s.CourseID,
+				"courseTitle": s.CourseTitle,
+				"score":       s.Score,
+				"maxScore":    s.MaxScore,
+				"status":      s.Status,
+				"submittedAt": s.SubmittedAt,
+			})
+		}
+	}
+
 	out := make([]gin.H, 0, len(rows))
 	for _, r := range rows {
 		a := aggByUser[r.ID]
 		level, label, avgPct, passPct := teacherLearningInsight(a.SubmissionCount, a.PassedCount, a.AvgRatio)
+		recent := latestByUser[r.ID]
+		if recent == nil {
+			recent = []gin.H{}
+		}
 		out = append(out, gin.H{
-			"id":              r.ID,
-			"username":        r.Username,
-			"displayName":     r.DisplayName,
-			"createdAt":       r.CreatedAt,
-			"submissionCount": a.SubmissionCount,
-			"passedCount":     a.PassedCount,
-			"passRatePercent": passPct,
-			"avgScorePercent": avgPct,
-			"learningLevel":   level,
-			"learningLabel":   label,
+			"id":                r.ID,
+			"username":          r.Username,
+			"displayName":       r.DisplayName,
+			"createdAt":         r.CreatedAt,
+			"submissionCount":   a.SubmissionCount,
+			"passedCount":       a.PassedCount,
+			"passRatePercent":   passPct,
+			"avgScorePercent":   avgPct,
+			"learningLevel":     level,
+			"learningLabel":     label,
+			"recentSubmissions": recent,
 		})
 	}
 	c.JSON(http.StatusOK, out)

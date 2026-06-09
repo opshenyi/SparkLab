@@ -4,11 +4,14 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import Sidebar from '@/components/Sidebar';
+import TeacherSidebar from '@/components/TeacherSidebar';
+import AdminSidebar from '@/components/AdminSidebar';
 import LoadingBar from '@/components/LoadingBar';
 
 interface AnswerDetail {
   questionId: string;
   questionTitle: string;
+  question?: string;
   questionType: string;
   studentAnswer: any;
   correctAnswer: any;
@@ -20,17 +23,32 @@ interface AnswerDetail {
 
 interface Submission {
   id: string;
+  userId: string;
+  labId: string;
   score: number;
   maxScore: number;
   status: string;
   submittedAt: number;
+  student?: {
+    id: string;
+    username: string;
+    displayName: string;
+  };
+  lab?: {
+    id: string;
+    title: string;
+    type: string;
+  };
+  course?: {
+    id: string;
+    title: string;
+  };
   answers: AnswerDetail[];
 }
 
 export default function ExamResultPage() {
   const params = useParams();
   const router = useRouter();
-  const examId = params.id as string;
   const submissionId = params.submissionId as string;
   const { user, isAuthenticated, isLoading, checkAuth } = useAuthStore();
   
@@ -91,6 +109,12 @@ export default function ExamResultPage() {
     return '待批改';
   };
 
+  const backHref = user?.role === 'TEACHER'
+    ? '/teacher/students'
+    : user?.role === 'ADMIN' || user?.role === 'AUTHOR'
+      ? '/admin'
+      : '/dashboard';
+
   if (isLoading || loading) {
     return <LoadingBar />;
   }
@@ -99,14 +123,31 @@ export default function ExamResultPage() {
     return null;
   }
 
-  const percentage = Math.round((submission.score / submission.maxScore) * 100);
+  const percentage = submission.maxScore > 0 ? Math.round((submission.score / submission.maxScore) * 100) : 0;
+  const ShellSidebar = user?.role === 'TEACHER'
+    ? TeacherSidebar
+    : user?.role === 'ADMIN' || user?.role === 'AUTHOR'
+      ? AdminSidebar
+      : Sidebar;
+  const studentAnswerLabel = user?.role === 'STUDENT' ? '你的答案' : '学生答案';
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-      <main className="flex-1 lg:ml-64 p-8">
+    <div className="flex min-h-screen bg-background text-on-surface">
+      <ShellSidebar />
+      <main className="flex-1 lg:ml-64 p-6 sm:p-8">
         <div className="max-w-4xl mx-auto">
-          {/* 成绩卡片 */}
+          <header className="mb-6">
+            <p className="text-sm font-medium text-on-surface-variant">
+              {submission.course?.title || '课程'} · {submission.lab?.title || '提交'}
+            </p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-page-title">提交详情</h1>
+            {submission.student ? (
+              <p className="mt-2 text-sm text-on-surface-variant">
+                学生 {submission.student.displayName || submission.student.username} · @{submission.student.username}
+              </p>
+            ) : null}
+          </header>
+
           <div className="app-card p-8 mb-8 text-center">
             <div className={`text-7xl font-bold mb-3 ${getStatusColor(submission.status)}`}>
               {submission.score}
@@ -119,14 +160,17 @@ export default function ExamResultPage() {
             </div>
           </div>
 
-          {/* 答题详情 */}
           <div className="space-y-3">
+            {submission.answers.length === 0 ? (
+              <div className="app-card p-6 text-sm text-on-surface-variant">
+                该提交没有逐题答题记录。实操实验会先记录提交状态，后续可接入人工评分或自动评测日志。
+              </div>
+            ) : null}
             {submission.answers.map((answer, index) => (
               <div
                 key={answer.questionId}
                 className="app-card p-5"
               >
-                {/* 题目头部 */}
                 <div className="flex items-center gap-3 mb-4">
                   <span className={`text-lg font-bold ${
                     answer.isCorrect ? 'text-status-success-text' : 'text-error'
@@ -144,17 +188,15 @@ export default function ExamResultPage() {
                   </span>
                 </div>
 
-                {/* 答案区域 */}
                 <div className="space-y-3 pl-7">
-                  {/* 你的答案 */}
+                  <div className="text-sm font-medium text-on-surface">{answer.question || answer.questionTitle}</div>
                   <div className="flex items-start gap-3">
-                    <span className="text-sm text-on-surface-variant w-20 flex-shrink-0 pt-0.5">你的答案</span>
+                    <span className="text-sm text-on-surface-variant w-20 flex-shrink-0 pt-0.5">{studentAnswerLabel}</span>
                     <span className={`text-sm flex-1 ${answer.isCorrect ? 'text-on-surface' : 'text-error font-medium'}`}>
                       {formatAnswer(answer.studentAnswer, answer.questionType)}
                     </span>
                   </div>
 
-                  {/* 正确答案 - 只在答错时显示 */}
                   {!answer.isCorrect && (
                     <div className="flex items-start gap-3">
                       <span className="text-sm text-on-surface-variant w-20 flex-shrink-0 pt-0.5">正确答案</span>
@@ -164,7 +206,6 @@ export default function ExamResultPage() {
                     </div>
                   )}
 
-                  {/* 答案解析 */}
                   {answer.explanation && (
                     <div className="flex items-start gap-3">
                       <span className="text-sm text-on-surface-variant w-20 flex-shrink-0 pt-0.5">答案解析</span>
@@ -178,13 +219,12 @@ export default function ExamResultPage() {
             ))}
           </div>
 
-          {/* 底部按钮 */}
           <div className="mt-8 flex justify-center">
             <button
-              onClick={() => router.push('/dashboard')}
+              onClick={() => router.push(backHref)}
               className="text-primary hover:bg-surface-container px-6 py-2 rounded-lg transition-all"
             >
-              返回课程
+              返回
             </button>
           </div>
         </div>

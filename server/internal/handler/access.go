@@ -116,6 +116,37 @@ func (h *Handler) teacherManagesCourse(userID, courseID string) bool {
 	return false
 }
 
+func (h *Handler) teacherCanReviewStudentSubmission(teacherUserID, studentUserID, courseID string) bool {
+	assigned := h.courseAssignedGroupIDs(courseID)
+	if len(assigned) == 0 {
+		return false
+	}
+	studentGroups := h.studentGroupIDs(studentUserID)
+	if len(studentGroups) == 0 {
+		return false
+	}
+	studentGroupSet := make(map[string]struct{}, len(studentGroups))
+	for _, id := range studentGroups {
+		id = strings.TrimSpace(id)
+		if id != "" {
+			studentGroupSet[id] = struct{}{}
+		}
+	}
+	for _, groupID := range assigned {
+		groupID = strings.TrimSpace(groupID)
+		if groupID == "" {
+			continue
+		}
+		if _, ok := studentGroupSet[groupID]; !ok {
+			continue
+		}
+		if h.teacherIsAdvisorOfGroup(teacherUserID, groupID) {
+			return true
+		}
+	}
+	return false
+}
+
 func (h *Handler) abortUnlessCourseVisible(c *gin.Context, courseID string) bool {
 	var course model.Course
 	if err := h.db.Where("id = ?", courseID).First(&course).Error; err != nil {

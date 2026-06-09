@@ -381,22 +381,43 @@ func sameStringSet(a, b []string) bool {
 func (h *Handler) GetExamSubmission(c *gin.Context) {
 	submissionID := c.Param("submissionId")
 	uid, _ := userIDFromCtx(c)
+	role := userRoleFromCtx(c)
 
 	var submission model.Submission
-	if err := h.db.Where("id = ? AND userId = ?", submissionID, uid).First(&submission).Error; err != nil {
+	if err := h.db.Where("id = ?", submissionID).First(&submission).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Submission not found"})
 		return
 	}
 
-	courseID, err := h.labCourseID(submission.LabID)
-	if err == nil {
-		if co, err2 := h.courseByID(courseID); err2 == nil {
-			role := userRoleFromCtx(c)
-			if !h.userCanViewCourse(co, uid, role, true) {
-				c.JSON(http.StatusForbidden, gin.H{"message": "Forbidden"})
-				return
-			}
-		}
+	var lab model.Lab
+	if err := h.db.Where("id = ?", submission.LabID).First(&lab).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Lab not found"})
+		return
+	}
+	var course model.Course
+	if err := h.db.Where("id = ?", lab.CourseID).First(&course).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Course not found"})
+		return
+	}
+
+	canView := false
+	switch role {
+	case "ADMIN", "AUTHOR":
+		canView = true
+	case "TEACHER":
+		canView = h.teacherCanReviewStudentSubmission(uid, submission.UserID, course.ID)
+	default:
+		canView = submission.UserID == uid && h.userCanViewCourse(&course, uid, role, true)
+	}
+	if !canView {
+		c.JSON(http.StatusForbidden, gin.H{"message": "Forbidden"})
+		return
+	}
+
+	var student model.User
+	if err := h.db.Select("id", "username", "displayName", "role", "qqNumber", "avatar", "classId").Where("id = ?", submission.UserID).Take(&student).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Student not found"})
+		return
 	}
 
 	// 获取答案详情
@@ -417,6 +438,7 @@ func (h *Handler) GetExamSubmission(c *gin.Context) {
 		answerDetails = append(answerDetails, gin.H{
 			"questionId":    ans.QuestionID,
 			"questionTitle": question.Title,
+			"question":      question.Content,
 			"questionType":  question.Type,
 			"studentAnswer": studentAnswer,
 			"correctAnswer": correctAnswer,
@@ -429,10 +451,30 @@ func (h *Handler) GetExamSubmission(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"id":          submission.ID,
+		"userId":      submission.UserID,
+		"labId":       submission.LabID,
 		"score":       submission.Score,
 		"maxScore":    submission.MaxScore,
 		"status":      submission.Status,
 		"submittedAt": submission.SubmittedAt,
-		"answers":     answerDetails,
+		"student": gin.H{
+			"id":          student.ID,
+			"username":    student.Username,
+			"displayName": student.DisplayName,
+			"role":        student.Role,
+			"qqNumber":    student.QQNumber,
+			"avatar":      student.Avatar,
+			"classId":     student.ClassID,
+		},
+		"lab": gin.H{
+			"id":    lab.ID,
+			"title": lab.Title,
+			"type":  lab.Type,
+		},
+		"course": gin.H{
+			"id":    course.ID,
+			"title": course.Title,
+		},
+		"answers": answerDetails,
 	})
 }
