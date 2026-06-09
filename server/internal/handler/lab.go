@@ -32,11 +32,23 @@ func (h *Handler) GetLab(c *gin.Context) {
 	h.db.Where("labId = ?", lab.ID).Order("`order` asc").Find(&steps)
 
 	var lastSubmission *model.Submission
+	var videoProgress *gin.H
 	if hasUser {
 		var s model.Submission
 		if err := h.db.Where("userId = ? AND labId = ?", uid, lab.ID).
 			Order("submittedAt desc").Limit(1).Find(&s).Error; err == nil && s.ID != "" {
 			lastSubmission = &s
+		}
+		if lab.Type == "video" {
+			var vp model.VideoProgress
+			if err := h.db.Where("userId = ? AND labId = ?", uid, lab.ID).Limit(1).Find(&vp).Error; err == nil && vp.ID != "" {
+				videoProgress = &gin.H{
+					"watchedDuration": vp.WatchedDuration,
+					"totalDuration":   vp.TotalDuration,
+					"completed":       vp.Completed,
+					"lastWatchedAt":   vp.LastWatchedAt,
+				}
+			}
 		}
 	}
 
@@ -60,6 +72,7 @@ func (h *Handler) GetLab(c *gin.Context) {
 		"course":         gin.H{"id": course.ID, "title": course.Title, "isActive": course.IsActive},
 		"steps":          steps,
 		"lastSubmission": lastSubmission,
+		"videoProgress":  videoProgress,
 	})
 }
 

@@ -79,6 +79,11 @@ func TestGradeSubmissionUpdatesAnswerScoreAndFeedback(t *testing.T) {
 	if answer.Score != 4 || answer.IsCorrect {
 		t.Fatalf("expected partial answer score without full correctness, got score=%d correct=%v", answer.Score, answer.IsCorrect)
 	}
+	var enrollment model.Enrollment
+	mustCreate(t, database.Where("userId = ? AND courseId = ?", studentID, courseID).Take(&enrollment).Error)
+	if enrollment.Progress != 100 || enrollment.CompletedAt == nil {
+		t.Fatalf("expected grading to refresh course completion, got progress=%d completedAt=%#v", enrollment.Progress, enrollment.CompletedAt)
+	}
 }
 
 func mustCreate(t *testing.T, err error) {

@@ -92,6 +92,9 @@ export const labAPI = {
   
   submit: (id: string, code?: string) =>
     api.post(`/labs/${id}/submit`, { code }),
+
+  completeVideo: (id: string, data: { watchedDuration: number; totalDuration: number; progress: number }) =>
+    api.post(`/labs/${id}/complete-video`, data),
 };
 
 // ==================== Container API ====================

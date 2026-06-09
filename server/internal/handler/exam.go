@@ -349,6 +349,7 @@ func (h *Handler) SubmitExam(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to submit exam"})
 		return
 	}
+	_, _ = h.refreshCourseProgressForUser(uid, lab.CourseID)
 
 	c.JSON(http.StatusOK, gin.H{
 		"submissionId": submission.ID,

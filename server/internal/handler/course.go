@@ -422,10 +422,11 @@ func (h *Handler) EnrollCourse(c *gin.Context) {
 	}
 
 	e = model.Enrollment{
-		ID:       newID(),
-		UserID:   uid,
-		CourseID: courseID,
-		Progress: 0,
+		ID:        newID(),
+		UserID:    uid,
+		CourseID:  courseID,
+		Progress:  0,
+		StartedAt: model.Now(),
 	}
 	if err := h.db.Create(&e).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Enroll failed"})

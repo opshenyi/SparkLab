@@ -18,6 +18,8 @@ export default function VideoPage() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -41,6 +43,7 @@ export default function VideoPage() {
       const res = await labAPI.getOne(videoId);
       setVideo(res.data);
       setDuration(res.data.videoDuration || 0);
+      setIsCompleted(Boolean(res.data.videoProgress?.completed));
     } catch (error) {
       console.error('Failed to load video:', error);
     }
@@ -100,11 +103,32 @@ export default function VideoPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleComplete = async () => {
-    if (progress >= 90) {
-      alert('恭喜完成视频学习！');
-      router.push('/dashboard');
+  const completeVideo = async () => {
+    const watchedDuration = Math.floor(videoRef.current?.currentTime || currentTime || 0);
+    const totalDuration = Math.floor(videoRef.current?.duration || duration || video?.videoDuration || 0);
+    const effectiveProgress = totalDuration > 0
+      ? Math.max(progress, (watchedDuration / totalDuration) * 100)
+      : progress;
+    if (effectiveProgress < 90 || isCompleting || isCompleted) return;
+    setIsCompleting(true);
+    try {
+      await labAPI.completeVideo(videoId, {
+        watchedDuration,
+        totalDuration,
+        progress: Math.round(effectiveProgress),
+      });
+      setIsCompleted(true);
+      router.push(`/courses/${video.courseId}`);
+    } catch (error) {
+      console.error('Failed to complete video:', error);
+      alert('完成进度保存失败，请稍后重试');
+    } finally {
+      setIsCompleting(false);
     }
+  };
+
+  const handleComplete = async () => {
+    await completeVideo();
   };
 
   if (isLoading) {
@@ -130,7 +154,7 @@ export default function VideoPage() {
             <div className="flex items-center gap-2 text-sm text-on-surface-variant">
               <span>{formatTime(currentTime)} / {formatTime(duration)}</span>
             </div>
-            {progress >= 90 && (
+            {(progress >= 90 || isCompleted) && (
               <div className="flex items-center gap-2 text-status-success-text text-sm">
                 已完成
               </div>
@@ -223,12 +247,13 @@ export default function VideoPage() {
                 <ReactMarkdown>{video.content || '暂无内容'}</ReactMarkdown>
               </div>
 
-              {progress >= 90 && (
+              {(progress >= 90 || isCompleted) && (
                 <button
-                  onClick={() => router.push('/dashboard')}
+                  onClick={completeVideo}
+                  disabled={isCompleting || isCompleted}
                   className="w-full mt-6 bg-primary text-on-primary px-4 py-3 rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2"
                 >
-                  完成学习
+                  {isCompleted ? '已完成学习' : isCompleting ? '保存中' : '完成学习'}
                 </button>
               )}
             </div>

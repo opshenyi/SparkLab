@@ -86,6 +86,7 @@ func New(cfg *config.Config, db *gorm.DB) *gin.Engine {
 		labGroup.GET("/:id", h.GetLab)
 		labGroup.GET("/course/:courseId", h.GetLabsByCourse)
 		labGroup.POST("/:id/submit", auth.JWTAuth(cfg.JWTSecret), h.SubmitLab)
+		labGroup.POST("/:id/complete-video", auth.JWTAuth(cfg.JWTSecret), h.CompleteVideo)
 		// 试卷相关
 		labGroup.GET("/:id/questions", h.GetExamQuestions)
 		labGroup.POST("/:id/submit-exam", auth.JWTAuth(cfg.JWTSecret), h.SubmitExam)

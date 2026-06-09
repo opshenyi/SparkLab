@@ -211,6 +211,7 @@ func (h *Handler) GradeSubmission(c *gin.Context) {
 	}
 
 	_ = h.LogActivity(uid, "grade_submission", "submission", submissionID, ctx.Lab.Title)
+	_, _ = h.refreshCourseProgressForUser(submission.UserID, ctx.Course.ID)
 
 	c.JSON(http.StatusOK, gin.H{
 		"id":       submissionID,
