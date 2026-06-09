@@ -59,17 +59,6 @@ type execStartReq struct {
 func (h *Handler) CreateContainer(c *gin.Context) {
 	uid, _ := userIDFromCtx(c)
 
-	var activeCount int64
-	h.db.Model(&model.Container{}).
-		Where("userId = ? AND status IN ?", uid, []string{"creating", "running"}).
-		Count(&activeCount)
-
-	maxContainers := envInt("MAX_CONTAINERS_PER_USER", 3)
-	if int(activeCount) >= maxContainers {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Maximum containers per user exceeded"})
-		return
-	}
-
 	var req createContainerReq
 	if err := c.ShouldBindJSON(&req); err != nil || req.LabID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "labId is required"})
@@ -86,6 +75,29 @@ func (h *Handler) CreateContainer(c *gin.Context) {
 	}
 	if lab.Type != "" && lab.Type != "lab" {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Only hands-on labs can create containers"})
+		return
+	}
+
+	var existing model.Container
+	if err := h.db.
+		Where("userId = ? AND labId = ? AND status IN ?", uid, req.LabID, []string{"creating", "running"}).
+		Order("createdAt DESC").
+		First(&existing).Error; err == nil {
+		c.JSON(http.StatusOK, existing)
+		return
+	}
+
+	var activeCount int64
+	h.db.Model(&model.Container{}).
+		Where("userId = ? AND status IN ?", uid, []string{"creating", "running"}).
+		Count(&activeCount)
+
+	maxContainers := envInt("MAX_CONTAINERS_PER_USER", 3)
+	if maxContainers <= 0 {
+		maxContainers = 3
+	}
+	if int(activeCount) >= maxContainers {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Maximum containers per user exceeded"})
 		return
 	}
 
