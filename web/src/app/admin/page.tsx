@@ -44,6 +44,7 @@ type UpdateInfo = {
 };
 
 const activeUpdateStates = new Set(['checking', 'fetching', 'pulling', 'building', 'restarting']);
+const completedUpdateDismissMs = 5 * 60 * 1000;
 const updateStatePercent: Record<string, number> = {
   checking: 10,
   fetching: 25,
@@ -157,9 +158,44 @@ export default function AdminPage() {
     }
   };
 
+  const completedProgressKey = (progress: UpdateApplyProgress) =>
+    `sparklab-update-reloaded:${progress.id || progress.currentCommit || progress.targetCommit || progress.toVersion || 'latest'}`;
+
+  const completedProgressAge = (progress: UpdateApplyProgress) => {
+    if (!progress.completedAt) return 0;
+    const completedAt = new Date(progress.completedAt).getTime();
+    if (!Number.isFinite(completedAt)) return 0;
+    return Date.now() - completedAt;
+  };
+
+  const isCompletedProgressDismissed = (progress: UpdateApplyProgress) => {
+    if (progress.state !== 'completed') return false;
+    if (completedProgressAge(progress) > completedUpdateDismissMs) return true;
+    if (typeof window === 'undefined') return false;
+
+    const key = completedProgressKey(progress);
+    return Boolean(window.sessionStorage.getItem(key) || window.localStorage.getItem(key));
+  };
+
+  const dismissCompletedProgress = () => {
+    setUpdateProgress(null);
+    setUpdateMessage('');
+    setAutoReloadIn(null);
+    setIsApplyingUpdate(false);
+    void checkUpdates();
+  };
+
   const handleUpdateProgress = (progress: UpdateApplyProgress | null) => {
     if (!progress?.state || progress.state === 'idle') {
       setUpdateProgress(progress);
+      setUpdateMessage('');
+      setAutoReloadIn(null);
+      setIsApplyingUpdate(false);
+      return;
+    }
+
+    if (progress.state === 'completed' && isCompletedProgressDismissed(progress)) {
+      dismissCompletedProgress();
       return;
     }
 
@@ -196,9 +232,10 @@ export default function AdminPage() {
       }
     }
 
-    const key = `sparklab-update-reloaded:${progress.id || progress.currentCommit || progress.toVersion || 'latest'}`;
-    if (window.sessionStorage.getItem(key)) return;
+    const key = completedProgressKey(progress);
+    if (window.sessionStorage.getItem(key) || window.localStorage.getItem(key)) return;
     window.sessionStorage.setItem(key, '1');
+    window.localStorage.setItem(key, String(Date.now()));
 
     if (reloadTimerRef.current) window.clearTimeout(reloadTimerRef.current);
     if (reloadCountdownRef.current) window.clearInterval(reloadCountdownRef.current);
@@ -266,6 +303,8 @@ export default function AdminPage() {
   const updateAvailable = Boolean(
     updateInfo?.hasUpdate || updateInfo?.codeChangedWithoutVersion || updateInfo?.needsRedeploy
   );
+  const latestReleaseNote = updateInfo?.changelog?.[0];
+  const showReleaseNotes = Boolean(latestReleaseNote?.items?.length && (updateAvailable || showUpdateProgress));
   const canApplyUpdate = Boolean(updateAvailable && updateInfo?.canApply);
   const runningVersion = updateInfo?.runningVersion || updateInfo?.currentVersion;
   const runningCommit = updateInfo?.runningCommit || updateInfo?.currentCommit;
@@ -413,13 +452,13 @@ export default function AdminPage() {
                         ) : null}
                       </div>
                     ) : null}
-                    {updateInfo?.changelog?.[0]?.items?.length ? (
+                    {showReleaseNotes ? (
                       <div className="mt-4 rounded-lg bg-surface-low p-3">
                         <div className="mb-2 text-sm font-semibold text-on-surface">
-                          {updateInfo.changelog[0].title || `版本 ${updateInfo.latestVersion}`}
+                          {latestReleaseNote?.title || `版本 ${updateInfo?.latestVersion || ''}`}
                         </div>
                         <ul className="space-y-1 text-sm text-on-surface-variant">
-                          {updateInfo.changelog[0].items.slice(0, 4).map((item: string) => (
+                          {latestReleaseNote?.items?.slice(0, 4).map((item: string) => (
                             <li key={item}>· {item}</li>
                           ))}
                         </ul>

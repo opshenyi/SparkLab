@@ -23,6 +23,8 @@ const (
 	updateApplyStateFailed     = "failed"
 )
 
+const completedUpdateProgressVisibleFor = 5 * time.Minute
+
 type updateApplyProgress struct {
 	ID                     string     `json:"id"`
 	State                  string     `json:"state"`
@@ -60,6 +62,15 @@ func (h *Handler) UpdateApplyStatus(c *gin.Context) {
 	}
 
 	progress = h.refreshUpdateProgress(ctx, progress)
+	if progress.State == updateApplyStateCompleted && progress.CompletedAt != nil &&
+		time.Since(*progress.CompletedAt) > completedUpdateProgressVisibleFor {
+		c.JSON(200, updateApplyProgress{
+			State:     updateApplyStateIdle,
+			Message:   "暂无更新任务",
+			UpdatedAt: time.Now(),
+		})
+		return
+	}
 	c.JSON(200, progress)
 }
 
