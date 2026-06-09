@@ -447,7 +447,7 @@ export default function AdminUsersPage() {
                   placeholder="用于登录"
                   minLength={3}
                   maxLength={32}
-                  pattern="[a-zA-Z0-9_-]+"
+                  pattern="[A-Za-z0-9_\-]+"
                   title="只能包含字母、数字、下划线和短横线"
                   className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />

@@ -103,7 +103,7 @@ export default function Register() {
                                     required
                                     minLength={3}
                                     maxLength={32}
-                                    pattern="[a-zA-Z0-9_-]+"
+                                    pattern="[A-Za-z0-9_\-]+"
                                     title="只能包含字母、数字、下划线和短横线"
                                     className="w-full h-12 px-4 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                 />

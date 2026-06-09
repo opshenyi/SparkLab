@@ -1,9 +1,9 @@
 {
   "appId": "sparklab",
-  "version": "0.4.53",
+  "version": "0.4.54",
   "channel": "main",
-  "releasedAt": "2026-06-10T01:24:45+08:00",
-  "title": "重做系统更新模块",
+  "releasedAt": "2026-06-10T01:59:56+08:00",
+  "title": "修复用户名输入规则警告",
   "mandatory": true,
   "announcement": {
     "enabled": false,
@@ -12,6 +12,16 @@
     "message": ""
   },
   "changelog": [
+    {
+      "version": "0.4.54",
+      "date": "2026-06-10",
+      "title": "修复用户名输入规则警告",
+      "items": [
+        "修复用户管理页在新版 Chrome 下提示 HTML pattern 正则无效的问题。",
+        "注册、登录页内注册、个人资料和管理员用户表单的用户名输入规则统一改为 /v 正则兼容写法。",
+        "用户名仍只允许字母、数字、下划线和短横线，服务端校验规则不变。"
+      ]
+    },
     {
       "version": "0.4.53",
       "date": "2026-06-10",

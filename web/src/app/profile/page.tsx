@@ -185,7 +185,7 @@ export default function ProfilePage() {
                             onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
                             minLength={3}
                             maxLength={32}
-                            pattern="[a-zA-Z0-9_-]+"
+                            pattern="[A-Za-z0-9_\-]+"
                             title="只能包含字母、数字、下划线和短横线"
                             className={inputClass}
                           />
