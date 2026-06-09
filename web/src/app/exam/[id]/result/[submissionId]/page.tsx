@@ -28,6 +28,7 @@ interface Submission {
   score: number;
   maxScore: number;
   status: string;
+  feedback?: string;
   submittedAt: number;
   student?: {
     id: string;
@@ -54,6 +55,11 @@ export default function ExamResultPage() {
   
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSavingGrade, setIsSavingGrade] = useState(false);
+  const [gradeMessage, setGradeMessage] = useState('');
+  const [scoreDrafts, setScoreDrafts] = useState<Record<string, string>>({});
+  const [overallScoreDraft, setOverallScoreDraft] = useState('');
+  const [feedbackDraft, setFeedbackDraft] = useState('');
 
   useEffect(() => {
     checkAuth();
@@ -79,11 +85,51 @@ export default function ExamResultPage() {
       if (response.ok) {
         const data = await response.json();
         setSubmission(data);
+        setScoreDrafts(
+          Object.fromEntries((data.answers || []).map((answer: AnswerDetail) => [answer.questionId, String(answer.score)]))
+        );
+        setOverallScoreDraft(String(data.score ?? 0));
+        setFeedbackDraft(data.feedback || '');
       }
     } catch (error) {
       console.error('Failed to load submission:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const saveGrade = async () => {
+    if (!submission) return;
+    setIsSavingGrade(true);
+    setGradeMessage('');
+    try {
+      const body: any = {
+        feedback: feedbackDraft,
+      };
+      if (submission.answers.length > 0) {
+        body.answers = submission.answers.map((answer) => ({
+          questionId: answer.questionId,
+          score: Number(scoreDrafts[answer.questionId] || 0),
+        }));
+      } else {
+        body.score = Number(overallScoreDraft || 0);
+      }
+      const response = await fetch(`/server/submissions/${submission.id}/grade`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data?.message || '保存评分失败');
+      }
+      setGradeMessage('评分已保存');
+      await loadSubmission();
+    } catch (error) {
+      setGradeMessage(error instanceof Error ? error.message : '保存评分失败');
+    } finally {
+      setIsSavingGrade(false);
     }
   };
 
@@ -130,6 +176,7 @@ export default function ExamResultPage() {
       ? AdminSidebar
       : Sidebar;
   const studentAnswerLabel = user?.role === 'STUDENT' ? '你的答案' : '学生答案';
+  const canGrade = user?.role === 'TEACHER' || user?.role === 'ADMIN' || user?.role === 'AUTHOR';
 
   return (
     <div className="flex min-h-screen bg-background text-on-surface">
@@ -160,6 +207,56 @@ export default function ExamResultPage() {
             </div>
           </div>
 
+          {(canGrade || submission.feedback) ? (
+            <section className="app-card mb-8 p-5">
+              <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-lg font-semibold text-page-title">评分反馈</h2>
+                <span className="text-xs text-on-surface-variant">
+                  {canGrade ? '教师评分会同步更新学生可见结果' : '教师反馈'}
+                </span>
+              </div>
+              {canGrade && submission.answers.length === 0 ? (
+                <label className="mb-4 block text-sm">
+                  <span className="mb-2 block text-on-surface-variant">总分</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={submission.maxScore}
+                    value={overallScoreDraft}
+                    onChange={(event) => setOverallScoreDraft(event.target.value)}
+                    className="w-full rounded-md bg-surface-container px-3 py-2 text-on-surface"
+                  />
+                </label>
+              ) : null}
+              {canGrade ? (
+                <textarea
+                  value={feedbackDraft}
+                  onChange={(event) => setFeedbackDraft(event.target.value)}
+                  rows={4}
+                  placeholder="给学生的总体反馈"
+                  className="w-full resize-none rounded-md bg-surface-container px-3 py-2 text-sm text-on-surface"
+                />
+              ) : (
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-on-surface">{submission.feedback}</p>
+              )}
+              {canGrade ? (
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                  {gradeMessage ? (
+                    <span className="text-sm text-on-surface-variant">{gradeMessage}</span>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={saveGrade}
+                    disabled={isSavingGrade}
+                    className="text-button text-button-primary disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSavingGrade ? '保存中' : '保存评分'}
+                  </button>
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+
           <div className="space-y-3">
             {submission.answers.length === 0 ? (
               <div className="app-card p-6 text-sm text-on-surface-variant">
@@ -184,7 +281,23 @@ export default function ExamResultPage() {
                      answer.questionType === 'fill' ? '填空' : '简答'}
                   </span>
                   <span className={`text-sm font-medium ml-auto ${answer.isCorrect ? 'text-status-success-text' : 'text-error'}`}>
-                    {answer.score}/{answer.maxScore} 分
+                    {canGrade ? (
+                      <label className="flex items-center gap-1 text-on-surface">
+                        <input
+                          type="number"
+                          min={0}
+                          max={answer.maxScore}
+                          value={scoreDrafts[answer.questionId] ?? String(answer.score)}
+                          onChange={(event) =>
+                            setScoreDrafts((prev) => ({ ...prev, [answer.questionId]: event.target.value }))
+                          }
+                          className="h-8 w-16 rounded-md bg-surface-container px-2 text-right text-sm text-on-surface"
+                        />
+                        <span className="text-on-surface-variant">/ {answer.maxScore} 分</span>
+                      </label>
+                    ) : (
+                      `${answer.score}/${answer.maxScore} 分`
+                    )}
                   </span>
                 </div>
 

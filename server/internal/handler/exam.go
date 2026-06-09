@@ -383,33 +383,15 @@ func (h *Handler) GetExamSubmission(c *gin.Context) {
 	uid, _ := userIDFromCtx(c)
 	role := userRoleFromCtx(c)
 
-	var submission model.Submission
-	if err := h.db.Where("id = ?", submissionID).First(&submission).Error; err != nil {
+	submissionCtx, err := h.loadSubmissionContext(submissionID)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Submission not found"})
 		return
 	}
-
-	var lab model.Lab
-	if err := h.db.Where("id = ?", submission.LabID).First(&lab).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"message": "Lab not found"})
-		return
-	}
-	var course model.Course
-	if err := h.db.Where("id = ?", lab.CourseID).First(&course).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"message": "Course not found"})
-		return
-	}
-
-	canView := false
-	switch role {
-	case "ADMIN", "AUTHOR":
-		canView = true
-	case "TEACHER":
-		canView = h.teacherCanReviewStudentSubmission(uid, submission.UserID, course.ID)
-	default:
-		canView = submission.UserID == uid && h.userCanViewCourse(&course, uid, role, true)
-	}
-	if !canView {
+	submission := submissionCtx.Submission
+	lab := submissionCtx.Lab
+	course := submissionCtx.Course
+	if !h.userCanViewSubmission(submissionCtx, uid, role) {
 		c.JSON(http.StatusForbidden, gin.H{"message": "Forbidden"})
 		return
 	}
@@ -456,6 +438,7 @@ func (h *Handler) GetExamSubmission(c *gin.Context) {
 		"score":       submission.Score,
 		"maxScore":    submission.MaxScore,
 		"status":      submission.Status,
+		"feedback":    submission.Feedback,
 		"submittedAt": submission.SubmittedAt,
 		"student": gin.H{
 			"id":          student.ID,

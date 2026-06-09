@@ -96,6 +96,7 @@ func New(cfg *config.Config, db *gorm.DB) *gin.Engine {
 	submissionGroup.Use(auth.JWTAuth(cfg.JWTSecret))
 	{
 		submissionGroup.GET("/:submissionId", h.GetExamSubmission)
+		submissionGroup.PATCH("/:submissionId/grade", h.GradeSubmission)
 	}
 
 	containerGroup := r.Group("/containers")

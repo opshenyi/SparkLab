@@ -247,6 +247,7 @@ model Submission {
   status      String   @default("pending") // pending, passed, failed
   output      String?  // 判题输出
   logs        String?  // 执行日志
+  feedback    String?  // 教师评分反馈
   submittedAt DateTime @default(now())
   
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)

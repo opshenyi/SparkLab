@@ -144,6 +144,7 @@ type Submission struct {
 	Status      string   `gorm:"column:status" json:"status"`
 	Output      *string  `gorm:"column:output" json:"output,omitempty"`
 	Logs        *string  `gorm:"column:logs" json:"logs,omitempty"`
+	Feedback    *string  `gorm:"column:feedback" json:"feedback,omitempty"`
 	SubmittedAt UnixTime `gorm:"column:submittedAt" json:"submittedAt"`
 }
 
