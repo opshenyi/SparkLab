@@ -32,7 +32,7 @@ func (h *Handler) ContainerTerminal(c *gin.Context) {
 	}
 
 	// 升级 HTTP 连接为 WebSocket
-	wsConn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	wsConn, err := h.upgradeWebSocket(c)
 	if err != nil {
 		log.Printf("Failed to upgrade WebSocket: %v", err)
 		return
@@ -156,7 +156,7 @@ func (h *Handler) validateAdminTerminalContainer(serverID, dockerContainerID str
 // UserContainerTerminal handles WebSocket terminal connections for student users
 func (h *Handler) UserContainerTerminal(c *gin.Context) {
 	// 升级 HTTP 连接为 WebSocket
-	wsConn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	wsConn, err := h.upgradeWebSocket(c)
 	if err != nil {
 		log.Printf("Failed to upgrade WebSocket: %v", err)
 		return

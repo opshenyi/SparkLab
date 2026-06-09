@@ -1,17 +1,29 @@
 {
   "appId": "sparklab",
-  "version": "0.4.34",
+  "version": "0.4.35",
   "channel": "main",
-  "releasedAt": "2026-06-09T12:51:10+08:00",
-  "title": "收紧监控 Docker 容器边界",
+  "releasedAt": "2026-06-09T12:57:59+08:00",
+  "title": "加固 WebSocket Origin 校验",
   "mandatory": false,
   "announcement": {
     "enabled": true,
     "level": "warning",
-    "title": "Docker 监控入口已加固",
-    "message": "监控页的容器详情、日志、统计和控制操作现在会先校验 SparkLab 受管容器，系统容器仅只读展示。"
+    "title": "WebSocket 终端握手已加固",
+    "message": "容器终端和监控流现在会校验 WebSocket Origin，只允许配置的站点或同源代理发起连接。"
   },
   "changelog": [
+    {
+      "version": "0.4.35",
+      "date": "2026-06-09",
+      "title": "加固 WebSocket Origin 校验",
+      "items": [
+        "容器终端、管理员容器终端、资源监控流和容器统计流统一改为 Handler 级 WebSocket 升级函数。",
+        "WebSocket 握手新增 Origin 校验，只允许 WEB_URL 配置的站点来源或同源代理主机连接。",
+        "缺失、畸形、协议不匹配或外部恶意站点的 Origin 会在升级前被拒绝，降低跨站 WebSocket 劫持风险。",
+        "保留 HTTPS 反向代理场景下的 X-Forwarded-Proto 同源兼容，避免生产域名部署误伤。",
+        "新增后端单元测试覆盖允许来源、同源代理和拒绝外部来源的握手策略。"
+      ]
+    },
     {
       "version": "0.4.34",
       "date": "2026-06-09",

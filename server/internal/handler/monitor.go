@@ -18,14 +18,6 @@ import (
 	"gorm.io/gorm"
 )
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  8192,
-	WriteBufferSize: 8192,
-	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow all origins for development
-	},
-}
-
 func (h *Handler) managedLocalDockerContainerSet() (map[string]struct{}, error) {
 	var rows []model.Container
 	if err := h.db.Select("containerId").Where("serverId = ? AND containerId <> ''", localDockerServerID).Find(&rows).Error; err != nil {
@@ -101,7 +93,7 @@ func (h *Handler) GetResourceStats(c *gin.Context) {
 
 // StreamResourceStats streams resource statistics via WebSocket
 func (h *Handler) StreamResourceStats(c *gin.Context) {
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	conn, err := h.upgradeWebSocket(c)
 	if err != nil {
 		return
 	}
@@ -364,7 +356,7 @@ func (h *Handler) StreamDockerContainerStats(c *gin.Context) {
 		return
 	}
 
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	conn, err := h.upgradeWebSocket(c)
 	if err != nil {
 		return
 	}
