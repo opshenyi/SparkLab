@@ -27,7 +27,6 @@ export default function Login() {
         password: '',
         confirmPassword: '',
         qqNumber: '',
-        role: 'STUDENT' as 'STUDENT' | 'TEACHER',
         classId: '',
     });
     const [publicClasses, setPublicClasses] = useState<{ id: string; name: string }[]>([]);
@@ -96,8 +95,7 @@ export default function Login() {
                 displayName: registerData.displayName,
                 password: registerData.password,
                 qqNumber: registerData.qqNumber || undefined,
-                role: registerData.role,
-                classId: registerData.role === 'STUDENT' ? registerData.classId : undefined,
+                classId: registerData.classId || undefined,
             });
             setSuccess('注册成功！请登录您的账号');
             setIsRegisterMode(false);
@@ -107,7 +105,6 @@ export default function Login() {
                 password: '',
                 confirmPassword: '',
                 qqNumber: '',
-                role: 'STUDENT',
                 classId: '',
             });
         } catch (err: any) {
@@ -296,41 +293,23 @@ export default function Login() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-on-surface mb-1.5">注册身份</label>
+                                <label className="block text-sm font-medium text-on-surface mb-1.5">学习小组（可选）</label>
+                                <p className="mb-2 text-xs text-on-surface-variant">
+                                    公开注册仅创建学生账号。教师账号请联系管理员创建。
+                                </p>
                                 <select
-                                    value={registerData.role}
-                                    onChange={(e) =>
-                                        setRegisterData({
-                                            ...registerData,
-                                            role: e.target.value as 'STUDENT' | 'TEACHER',
-                                            classId: e.target.value === 'TEACHER' ? '' : registerData.classId,
-                                        })
-                                    }
+                                    value={registerData.classId}
+                                    onChange={(e) => setRegisterData({ ...registerData, classId: e.target.value })}
                                     className="w-full h-12 px-4 bg-surface-container-high border border-outline-variant rounded-xl text-sm"
                                 >
-                                    <option value="STUDENT">学生（需选择班级）</option>
-                                    <option value="TEACHER">老师（由管理员分配班主任与班级）</option>
+                                    <option value="">暂不加入小组</option>
+                                    {publicClasses.map((cl) => (
+                                        <option key={cl.id} value={cl.id}>
+                                            {cl.name}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
-
-                            {registerData.role === 'STUDENT' && (
-                                <div>
-                                    <label className="block text-sm font-medium text-on-surface mb-1.5">所在班级 *</label>
-                                    <select
-                                        value={registerData.classId}
-                                        onChange={(e) => setRegisterData({ ...registerData, classId: e.target.value })}
-                                        required
-                                        className="w-full h-12 px-4 bg-surface-container-high border border-outline-variant rounded-xl text-sm"
-                                    >
-                                        <option value="">请选择班级</option>
-                                        {publicClasses.map((cl) => (
-                                            <option key={cl.id} value={cl.id}>
-                                                {cl.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )}
 
                             <div>
                                 <label className="block text-sm font-medium text-on-surface mb-1.5">QQ号（可选）</label>

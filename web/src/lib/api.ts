@@ -39,7 +39,7 @@ export const authAPI = {
     displayName: string;
     password: string;
     qqNumber?: string;
-    role?: 'STUDENT' | 'TEACHER';
+    role?: 'STUDENT';
     classId?: string;
     classIds?: string[];
   }) => api.post('/auth/register', data),

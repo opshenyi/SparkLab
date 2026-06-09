@@ -20,7 +20,6 @@ export default function Register() {
         password: '',
         confirmPassword: '',
         qqNumber: '',
-        role: 'STUDENT' as 'STUDENT' | 'TEACHER',
         classIds: [] as string[],
     });
     const [publicClasses, setPublicClasses] = useState<{ id: string; name: string }[]>([]);
@@ -53,13 +52,12 @@ export default function Register() {
         }
 
         try {
-            const classIds = formData.role === 'STUDENT' ? formData.classIds : undefined;
+            const classIds = formData.classIds;
             await authAPI.register({
                 username: formData.username,
                 displayName: formData.displayName,
                 password: formData.password,
                 qqNumber: formData.qqNumber || undefined,
-                role: formData.role,
                 ...(classIds && classIds.length === 1 ? { classId: classIds[0] } : {}),
                 ...(classIds && classIds.length > 1 ? { classIds } : {}),
             });
@@ -134,63 +132,43 @@ export default function Register() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-on-surface mb-1.5">注册身份</label>
-                            <select
-                                value={formData.role}
-                                onChange={(e) =>
-                                    setFormData({
-                                        ...formData,
-                                        role: e.target.value as 'STUDENT' | 'TEACHER',
-                                        classIds: e.target.value === 'TEACHER' ? [] : formData.classIds,
+                            <label className="block text-sm font-medium text-on-surface mb-1.5">
+                                学习小组（可选，可多选）
+                            </label>
+                            <p className="text-xs text-on-surface-variant mb-2">
+                                公开注册仅创建学生账号。教师账号请联系管理员创建。
+                            </p>
+                            <div className="max-h-40 overflow-y-auto rounded-xl border border-outline-variant bg-surface-container-high p-3 space-y-2">
+                                {publicClasses.length === 0 ? (
+                                    <p className="text-sm text-on-surface-variant">暂无小组，可直接注册后在资料页加入。</p>
+                                ) : (
+                                    publicClasses.map((cl) => {
+                                        const checked = formData.classIds.includes(cl.id);
+                                        return (
+                                            <label
+                                                key={cl.id}
+                                                className="flex items-center gap-2 text-sm cursor-pointer"
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checked}
+                                                    onChange={() => {
+                                                        setFormData((prev) => ({
+                                                            ...prev,
+                                                            classIds: checked
+                                                                ? prev.classIds.filter((x) => x !== cl.id)
+                                                                : [...prev.classIds, cl.id],
+                                                        }));
+                                                    }}
+                                                    className="rounded border-outline-variant"
+                                                />
+                                                <span>{cl.name}</span>
+                                            </label>
+                                        );
                                     })
-                                }
-                                className="w-full h-12 px-4 bg-surface-container-high border border-outline-variant rounded-xl text-sm"
-                            >
-                                <option value="STUDENT">学生（可选学习小组）</option>
-                                <option value="TEACHER">老师（也可自行注册）</option>
-                            </select>
-                        </div>
-
-                        {formData.role === 'STUDENT' && (
-                            <div>
-                                <label className="block text-sm font-medium text-on-surface mb-1.5">
-                                    学习小组（可选，可多选）
-                                </label>
-                                <p className="text-xs text-on-surface-variant mb-2">
-                                    注册后也可在「个人资料」中加入或退出小组。
-                                </p>
-                                <div className="max-h-40 overflow-y-auto rounded-xl border border-outline-variant bg-surface-container-high p-3 space-y-2">
-                                    {publicClasses.length === 0 ? (
-                                        <p className="text-sm text-on-surface-variant">暂无小组，可直接注册后在资料页加入。</p>
-                                    ) : (
-                                        publicClasses.map((cl) => {
-                                            const checked = formData.classIds.includes(cl.id);
-                                            return (
-                                                <label
-                                                    key={cl.id}
-                                                    className="flex items-center gap-2 text-sm cursor-pointer"
-                                                >
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={checked}
-                                                        onChange={() => {
-                                                            setFormData((prev) => ({
-                                                                ...prev,
-                                                                classIds: checked
-                                                                    ? prev.classIds.filter((x) => x !== cl.id)
-                                                                    : [...prev.classIds, cl.id],
-                                                            }));
-                                                        }}
-                                                        className="rounded border-outline-variant"
-                                                    />
-                                                    <span>{cl.name}</span>
-                                                </label>
-                                            );
-                                        })
-                                    )}
-                                </div>
+                                )}
                             </div>
-                        )}
+                        </div>
 
                         <div>
                             <label className="block text-sm font-medium text-on-surface mb-1.5">QQ号（可选）</label>

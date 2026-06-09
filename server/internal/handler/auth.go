@@ -33,7 +33,7 @@ type registerReq struct {
 	DisplayName string   `json:"displayName"`
 	Password    string   `json:"password"`
 	QQNumber    *string  `json:"qqNumber"`
-	Role        string   `json:"role"`     // STUDENT（默认）或 TEACHER
+	Role        string   `json:"role"`     // 公开注册仅允许 STUDENT；教师由管理员创建
 	ClassID     *string  `json:"classId"`  // 学生可选，加入单个学习小组
 	ClassIDs    []string `json:"classIds"` // 学生可选，加入多个
 }
@@ -96,8 +96,8 @@ func (h *Handler) Register(c *gin.Context) {
 	if role == "" {
 		role = "STUDENT"
 	}
-	if role != "STUDENT" && role != "TEACHER" {
-		util.BadRequest(c, "role must be STUDENT or TEACHER")
+	if role != "STUDENT" {
+		util.BadRequest(c, "公开注册仅支持学生账号，教师账号请联系管理员创建")
 		return
 	}
 
