@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -857,10 +858,31 @@ func (h *Handler) AdminGetContainers(c *gin.Context) {
 
 func (h *Handler) AdminForceStopContainer(c *gin.Context) {
 	id := c.Param("id")
+	var ct model.Container
+	if err := h.db.Where("id = ?", id).First(&ct).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Container not found"})
+		return
+	}
+
+	dockerID := strings.TrimSpace(ct.ContainerID)
+	if dockerID != "" && ct.Status != "stopped" {
+		resp, err := h.dockerRequest(nil, http.MethodPost, "/containers/"+url.PathEscape(dockerID)+"/stop?t=5", nil, nil)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "Failed to stop Docker container: " + err.Error()})
+			return
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode >= 400 && resp.StatusCode != http.StatusNotModified && resp.StatusCode != http.StatusNotFound {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "Failed to stop Docker container: " + readDockerError(resp)})
+			return
+		}
+	}
+
 	now := time.Now()
 	if err := h.db.Model(&model.Container{}).Where("id = ?", id).Updates(map[string]any{
-		"status":    "stopped",
-		"stoppedAt": now,
+		"status":     "stopped",
+		"stoppedAt":  now,
+		"autoStopAt": nil,
 	}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Force stop failed"})
 		return

@@ -381,40 +381,17 @@ export default function AdminPage() {
 
             <section
               aria-label="系统更新"
-              className="w-full min-w-0 overflow-hidden rounded-lg bg-surface-lowest shadow-[var(--shadow-ring)] xl:w-[560px]"
+              className="w-full min-w-0 overflow-hidden rounded-md bg-surface-lowest shadow-[var(--shadow-ring)] xl:w-[740px]"
             >
-              <div className="px-3 py-2.5">
-                <div className="flex min-w-0 items-center justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <h3 className="shrink-0 text-xs font-semibold leading-none text-page-title">系统更新</h3>
-                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium leading-4 ${updateStatusClass}`}>
+              <div className="flex min-w-0 flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] leading-4 text-on-surface-variant">
+                  <h3 className="shrink-0 text-xs font-semibold leading-4 text-page-title">系统更新</h3>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium leading-4 ${updateStatusClass}`}>
                       {updateStatusLabel}
-                    </span>
-                  </div>
-
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={checkUpdates}
-                      disabled={isCheckingUpdate || isApplyingUpdate}
-                      className="min-h-7 rounded-md bg-surface-low px-2.5 py-1.5 text-xs font-medium leading-none text-on-surface shadow-[var(--shadow-ring)] transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isCheckingUpdate ? '检查中' : '检查'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={applyUpdate}
-                      disabled={!canApplyUpdate || isCheckingUpdate || isApplyingUpdate}
-                      className="min-h-7 rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium leading-none text-on-primary shadow-[var(--shadow-ring)] transition-colors hover:bg-primary-dim disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isApplyingUpdate ? '更新中' : '更新'}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[11px] leading-4 text-on-surface-variant">
+                  </span>
+                  <span className="hidden h-3 w-px shrink-0 bg-outline-variant/70 sm:inline-block" />
                   {versionItems.map((item) => (
-                    <span key={item.label} className="inline-flex min-w-0 max-w-full items-baseline gap-1 truncate">
+                    <span key={item.label} className="inline-flex shrink-0 items-baseline gap-1 whitespace-nowrap">
                       <span className="shrink-0">{item.label}</span>
                       <span className="min-w-0 truncate font-medium text-on-surface">{item.version}</span>
                       {item.commit ? <span className="hidden shrink-0 font-mono text-[11px] sm:inline">({item.commit})</span> : null}
@@ -429,11 +406,47 @@ export default function AdminPage() {
                   {showInlineUpdateMessage ? (
                     <span className="min-w-0 max-w-full truncate">{inlineUpdateMessage}</span>
                   ) : null}
+                  {showReleaseNotes ? (
+                    <span className="min-w-[10rem] flex-1 truncate text-on-surface-variant">
+                      <span className="font-medium text-on-surface">
+                        {latestReleaseNote?.title || `版本 ${updateInfo?.latestVersion || ''}`}
+                      </span>
+                      {releasePreviewText ? <span className="hidden 2xl:inline">：{releasePreviewText}</span> : null}
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {showReleaseNotes && hasReleaseDetails ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowReleaseDetails((value) => !value)}
+                      className="min-h-7 rounded-md px-2 py-1 text-xs font-medium leading-none text-primary transition-colors hover:bg-surface-container hover:text-primary-dim"
+                    >
+                      {showReleaseDetails ? '收起' : '详情'}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={checkUpdates}
+                    disabled={isCheckingUpdate || isApplyingUpdate}
+                    className="min-h-7 rounded-md bg-surface-low px-2.5 py-1.5 text-xs font-medium leading-none text-on-surface shadow-[var(--shadow-ring)] transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isCheckingUpdate ? '检查中' : '检查'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={applyUpdate}
+                    disabled={!canApplyUpdate || isCheckingUpdate || isApplyingUpdate}
+                    className="min-h-7 rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium leading-none text-on-primary shadow-[var(--shadow-ring)] transition-colors hover:bg-primary-dim disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isApplyingUpdate ? '更新中' : '更新'}
+                  </button>
                 </div>
               </div>
 
               {showUpdateProgress ? (
-                <div className="border-t border-outline-variant/40 px-3 py-2">
+                <div className="border-t border-outline-variant/40 px-3 py-1.5">
                   <div className="mb-1.5 flex min-w-0 items-center gap-2 text-[11px] leading-4">
                     <span
                       className={`shrink-0 font-medium ${
@@ -456,34 +469,15 @@ export default function AdminPage() {
                 </div>
               ) : null}
 
-              {showReleaseNotes ? (
-                <div className="border-t border-outline-variant/40 px-3 py-2 text-[11px] leading-4 text-on-surface-variant">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="min-w-0 flex-1 truncate">
-                      <span className="font-medium text-on-surface">
-                        {latestReleaseNote?.title || `版本 ${updateInfo?.latestVersion || ''}`}
-                      </span>
-                      {releasePreviewText ? <span className="hidden sm:inline"> · {releasePreviewText}</span> : null}
-                    </span>
-                    {hasReleaseDetails ? (
-                      <button
-                        type="button"
-                        onClick={() => setShowReleaseDetails((value) => !value)}
-                        className="min-h-0 shrink-0 p-0 text-[11px] font-medium leading-4 text-primary hover:text-primary-dim"
-                      >
-                        {showReleaseDetails ? '收起' : '详情'}
-                      </button>
-                    ) : null}
+              {showReleaseNotes && showReleaseDetails ? (
+                <div className="border-t border-outline-variant/40 bg-surface-low/50 px-3 py-2">
+                  <div className="grid gap-1.5 text-[11px] leading-5 text-on-surface-variant sm:grid-cols-3">
+                    {releaseDetailItems.map((item) => (
+                      <p key={item} className="line-clamp-2">
+                        {item}
+                      </p>
+                    ))}
                   </div>
-                  {showReleaseDetails ? (
-                    <div className="mt-2 space-y-1.5 rounded-md bg-surface-low px-2.5 py-2">
-                      {releaseDetailItems.map((item) => (
-                        <p key={item} className="line-clamp-2 text-[11px] leading-5 text-on-surface-variant">
-                          {item}
-                        </p>
-                      ))}
-                    </div>
-                  ) : null}
                 </div>
               ) : null}
 
