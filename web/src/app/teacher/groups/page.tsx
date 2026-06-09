@@ -17,6 +17,7 @@ type GroupRow = {
   memberCount?: number;
   iAmAdvisor?: boolean;
   iAmCreator?: boolean;
+  canClaimAdvisor?: boolean;
   groupAdvisorName?: string | null;
 };
 
@@ -102,6 +103,7 @@ export default function TeacherGroupsPage() {
   };
 
   const onToggleAdvisor = async (g: GroupRow) => {
+    if (!g.iAmAdvisor && !g.canClaimAdvisor) return;
     setBusy(g.id);
     try {
       if (g.iAmAdvisor) {
@@ -197,7 +199,7 @@ export default function TeacherGroupsPage() {
           <header className="mb-8">
             <h1 className="text-page-title text-[28px] font-semibold leading-8 tracking-tight">学习小组</h1>
             <p className="mt-1.5 max-w-2xl text-sm text-on-surface-variant leading-relaxed">
-              所有小组公开可见。仅老师可新建小组；担任小组老师后，可添加学生入组、创建课程并查看学情。
+              所有小组公开可见。老师新建小组后会自动成为小组老师；不能接管其他老师的小组。
             </p>
           </header>
 
@@ -244,18 +246,25 @@ export default function TeacherGroupsPage() {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      disabled={busy === g.id}
-                      onClick={() => onToggleAdvisor(g)}
-                      className={`inline-flex items-center justify-center rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                        g.iAmAdvisor
-                          ? 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'
-                          : 'bg-surface-container text-primary hover:bg-primary/10'
-                      }`}
-                    >
-                      {g.iAmAdvisor ? '不再担任小组老师' : '担任小组老师'}
-                    </button>
+                    {(g.iAmAdvisor || g.canClaimAdvisor) && (
+                      <button
+                        type="button"
+                        disabled={busy === g.id}
+                        onClick={() => onToggleAdvisor(g)}
+                        className={`inline-flex items-center justify-center rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                          g.iAmAdvisor
+                            ? 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'
+                            : 'bg-surface-container text-primary hover:bg-primary/10'
+                        }`}
+                      >
+                        {g.iAmAdvisor ? '不再担任小组老师' : '担任小组老师'}
+                      </button>
+                    )}
+                    {!g.iAmAdvisor && !g.canClaimAdvisor && (
+                      <span className="inline-flex items-center justify-center rounded-full bg-surface-container px-3 py-1.5 text-xs font-semibold text-on-surface-variant">
+                        {g.groupAdvisorName ? '已有小组老师' : '仅创建者可担任'}
+                      </span>
+                    )}
                     {g.iAmAdvisor && (
                       <button
                         type="button"

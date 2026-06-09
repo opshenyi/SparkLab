@@ -84,6 +84,8 @@ func (h *Handler) TeacherListGroups(c *gin.Context) {
 		item := h.groupToPublicItem(cl, n)
 		item["iAmAdvisor"] = cl.HomeroomTeacherID != nil && *cl.HomeroomTeacherID == uid
 		item["iAmCreator"] = cl.CreatorTeacherID != nil && *cl.CreatorTeacherID == uid
+		item["canClaimAdvisor"] = (cl.HomeroomTeacherID == nil || strings.TrimSpace(*cl.HomeroomTeacherID) == "") &&
+			cl.CreatorTeacherID != nil && *cl.CreatorTeacherID == uid
 		out = append(out, item)
 	}
 	c.JSON(http.StatusOK, out)
@@ -104,11 +106,12 @@ func (h *Handler) TeacherCreateGroup(c *gin.Context) {
 	}
 	tid := uid
 	cl := model.Class{
-		ID:               newID(),
-		Name:             strings.TrimSpace(req.Name),
-		CreatorTeacherID: &tid,
-		CreatedAt:        model.Now(),
-		UpdatedAt:        model.Now(),
+		ID:                newID(),
+		Name:              strings.TrimSpace(req.Name),
+		HomeroomTeacherID: &tid,
+		CreatorTeacherID:  &tid,
+		CreatedAt:         model.Now(),
+		UpdatedAt:         model.Now(),
 	}
 	if err := h.db.Create(&cl).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "创建学习小组失败"})
@@ -140,17 +143,36 @@ func (h *Handler) TeacherUpdateGroup(c *gin.Context) {
 		return
 	}
 
+	isCreator := cl.CreatorTeacherID != nil && *cl.CreatorTeacherID == uid
+	isAdvisor := cl.HomeroomTeacherID != nil && *cl.HomeroomTeacherID == uid
+
 	if strings.TrimSpace(req.Name) != "" {
+		if !isCreator && !isAdvisor {
+			c.JSON(http.StatusForbidden, gin.H{"message": "仅创建者或当前小组老师可修改小组名称"})
+			return
+		}
 		cl.Name = strings.TrimSpace(req.Name)
 	}
 
 	if req.ReleaseAdvisor {
-		if cl.HomeroomTeacherID != nil && *cl.HomeroomTeacherID == uid {
-			cl.HomeroomTeacherID = nil
+		if !isAdvisor {
+			c.JSON(http.StatusForbidden, gin.H{"message": "仅当前小组老师可释放该小组"})
+			return
 		}
+		cl.HomeroomTeacherID = nil
 	}
 	if req.ClaimAdvisor {
-		cl.HomeroomTeacherID = &uid
+		if isAdvisor {
+			// 已是当前小组老师时重复认领视为幂等操作，继续保存本次其他允许变更。
+		} else if cl.HomeroomTeacherID != nil && strings.TrimSpace(*cl.HomeroomTeacherID) != "" {
+			c.JSON(http.StatusConflict, gin.H{"message": "该小组已有小组老师，不能接管"})
+			return
+		} else if !isCreator {
+			c.JSON(http.StatusForbidden, gin.H{"message": "仅创建者可担任自己创建的小组老师"})
+			return
+		} else {
+			cl.HomeroomTeacherID = &uid
+		}
 	}
 
 	cl.UpdatedAt = model.Now()
