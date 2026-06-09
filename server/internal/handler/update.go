@@ -117,13 +117,37 @@ var remoteUpdateCache = struct {
 	err       error
 }{}
 
-// PublicUpdateInfo returns version, announcement, and update availability for frontend entry checks.
+// PublicUpdateInfo intentionally does not expose release announcements to regular pages.
+// Admin update checks still use CheckForUpdates.
 func (h *Handler) PublicUpdateInfo(c *gin.Context) {
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 15*time.Second)
+	c.Header("Cache-Control", "no-store, max-age=0")
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 3*time.Second)
 	defer cancel()
 
-	status := h.buildUpdateStatus(ctx, false)
-	c.JSON(http.StatusOK, status)
+	repoManifest, _ := localManifest(ctx)
+	running := currentRunningBuild()
+	runningVersion := running.Version
+	if runningVersion == "" {
+		runningVersion = repoManifest.Version
+	}
+
+	c.JSON(http.StatusOK, updateStatus{
+		CurrentVersion: runningVersion,
+		LatestVersion:  runningVersion,
+		RunningVersion: runningVersion,
+		RunningCommit:  running.Commit,
+		RunningSource:  running.Source,
+		RepoVersion:    repoManifest.Version,
+		HasUpdate:      false,
+		CanApply:       false,
+		Announcement: updateAnnouncement{
+			Enabled: false,
+			Level:   "info",
+		},
+		Changelog: []updateReleaseNote{},
+		CheckedAt: time.Now(),
+	})
 }
 
 // CheckForUpdates returns a detailed update status for administrators.

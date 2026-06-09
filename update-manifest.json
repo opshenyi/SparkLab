@@ -1,9 +1,9 @@
 {
   "appId": "sparklab",
-  "version": "0.4.51",
+  "version": "0.4.52",
   "channel": "main",
-  "releasedAt": "2026-06-10T01:02:10+08:00",
-  "title": "恢复首页首屏视觉",
+  "releasedAt": "2026-06-10T01:16:08+08:00",
+  "title": "关闭普通页面更新提示",
   "mandatory": true,
   "announcement": {
     "enabled": false,
@@ -12,6 +12,16 @@
     "message": ""
   },
   "changelog": [
+    {
+      "version": "0.4.52",
+      "date": "2026-06-10",
+      "title": "关闭普通页面更新提示",
+      "items": [
+        "公开更新检查接口不再向首页、登录页、注册页等普通页面返回公告、changelog 或发现更新状态。",
+        "即使浏览器缓存中仍残留旧版 UpdateNotifier 前端代码，也会因为后端返回 hasUpdate=false 与 announcement.enabled=false 而不再弹出右上角或右下角更新提示。",
+        "管理后台系统更新检查继续保留完整 GitHub 版本、提交、更新内容和应用更新能力，不影响管理员手动更新流程。"
+      ]
+    },
     {
       "version": "0.4.51",
       "date": "2026-06-10",
