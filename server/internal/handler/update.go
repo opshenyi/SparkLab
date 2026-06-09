@@ -117,6 +117,8 @@ var remoteUpdateCache = struct {
 	err       error
 }{}
 
+var updateApplyMu sync.Mutex
+
 // PublicUpdateInfo intentionally does not expose release announcements to regular pages.
 // Admin update checks still use CheckForUpdates.
 func (h *Handler) PublicUpdateInfo(c *gin.Context) {
@@ -160,8 +162,43 @@ func (h *Handler) CheckForUpdates(c *gin.Context) {
 }
 
 func (h *Handler) ApplyUpdate(c *gin.Context) {
-	ctx, cancel := context.WithTimeout(c.Request.Context(), updateScriptTimeout()+3*time.Minute)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
 	defer cancel()
+
+	if existing, err := h.readUpdateProgress(""); err == nil {
+		existing = h.refreshUpdateProgress(ctx, existing)
+		if isActiveUpdateState(existing.State) {
+			c.JSON(http.StatusAccepted, gin.H{
+				"message":  "更新任务已在运行，正在继续跟踪进度",
+				"progress": existing,
+			})
+			return
+		}
+	}
+
+	if !updateApplyMu.TryLock() {
+		c.JSON(http.StatusAccepted, gin.H{
+			"message": "更新任务正在启动，请稍后查看状态",
+		})
+		return
+	}
+	locked := true
+	defer func() {
+		if locked {
+			updateApplyMu.Unlock()
+		}
+	}()
+
+	if existing, err := h.readUpdateProgress(""); err == nil {
+		existing = h.refreshUpdateProgress(ctx, existing)
+		if isActiveUpdateState(existing.State) {
+			c.JSON(http.StatusAccepted, gin.H{
+				"message":  "更新任务已在运行，正在继续跟踪进度",
+				"progress": existing,
+			})
+			return
+		}
+	}
 
 	status := h.buildUpdateStatus(ctx, true)
 	progress := h.newUpdateProgress(status, updateApplyStateChecking, "正在检查 GitHub 更新")
@@ -196,11 +233,27 @@ func (h *Handler) ApplyUpdate(c *gin.Context) {
 		return
 	}
 
+	responseProgress := *progress
+	c.JSON(http.StatusAccepted, gin.H{
+		"message":  "更新任务已启动，页面将持续跟踪进度",
+		"status":   status,
+		"progress": responseProgress,
+	})
+
+	locked = false
+	go func(status updateStatus, progress *updateApplyProgress) {
+		defer updateApplyMu.Unlock()
+		taskCtx, taskCancel := context.WithTimeout(context.Background(), updateScriptTimeout()+3*time.Minute)
+		defer taskCancel()
+		h.runApplyUpdateTask(taskCtx, status, progress)
+	}(status, progress)
+}
+
+func (h *Handler) runApplyUpdateTask(ctx context.Context, status updateStatus, progress *updateApplyProgress) {
 	before, err := localGitState(ctx)
 	if err != nil {
 		message := "读取 Git 状态失败: " + err.Error()
 		h.failUpdateProgress(status.RepoDir, progress, message, "")
-		c.JSON(http.StatusBadRequest, gin.H{"message": message})
 		return
 	}
 	if progress.BeforeCommit == "" {
@@ -215,7 +268,6 @@ func (h *Handler) ApplyUpdate(c *gin.Context) {
 	if fetchErr != nil {
 		message := "拉取 GitHub 更新失败: " + fetchErr.Error()
 		h.failUpdateProgress(before.RepoDir, progress, message, fetchOut)
-		c.JSON(http.StatusBadGateway, gin.H{"message": message, "output": fetchOut})
 		return
 	}
 	progress.State = updateApplyStatePulling
@@ -228,7 +280,6 @@ func (h *Handler) ApplyUpdate(c *gin.Context) {
 		output := fetchOut + pullOut
 		message := "无法快进更新: " + pullErr.Error()
 		h.failUpdateProgress(before.RepoDir, progress, message, output)
-		c.JSON(http.StatusConflict, gin.H{"message": message, "output": output})
 		return
 	}
 	afterPull, afterPullErr := localGitState(ctx)
@@ -247,11 +298,6 @@ func (h *Handler) ApplyUpdate(c *gin.Context) {
 		output := fetchOut + pullOut + scriptOut
 		message := "代码已拉取，但 Docker 更新脚本执行失败: " + scriptErr.Error()
 		h.failUpdateProgress(before.RepoDir, progress, message, output)
-		c.JSON(http.StatusConflict, gin.H{
-			"message":         message,
-			"output":          output,
-			"restartRequired": true,
-		})
 		return
 	}
 
@@ -261,12 +307,6 @@ func (h *Handler) ApplyUpdate(c *gin.Context) {
 		progress.Message = "更新已执行，服务正在重启"
 		progress.OutputTail = tailText(fetchOut+pullOut+scriptOut, 8000)
 		h.saveUpdateProgress(before.RepoDir, progress)
-		c.JSON(http.StatusOK, gin.H{
-			"message":         "更新已执行，但无法读取更新后的 Git 状态",
-			"output":          fetchOut + pullOut + scriptOut,
-			"progress":        progress,
-			"restartRequired": true,
-		})
 		return
 	}
 
@@ -279,17 +319,6 @@ func (h *Handler) ApplyUpdate(c *gin.Context) {
 	h.saveUpdateProgress(after.RepoDir, progress)
 
 	clearRemoteUpdateCache()
-	c.JSON(http.StatusOK, gin.H{
-		"message":           "更新已拉取，Docker 镜像已重建，服务重启已安排",
-		"fromVersion":       status.CurrentVersion,
-		"toVersion":         status.LatestVersion,
-		"beforeCommit":      progress.BeforeCommit,
-		"afterCommit":       after.Commit,
-		"output":            fetchOut + pullOut + scriptOut,
-		"progress":          progress,
-		"redeployScheduled": true,
-		"restartRequired":   true,
-	})
 }
 
 func (h *Handler) buildUpdateStatus(ctx context.Context, includeLocalDetails bool) updateStatus {

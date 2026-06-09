@@ -45,6 +45,9 @@ type UpdateInfo = {
 
 const activeUpdateStates = new Set(['checking', 'fetching', 'pulling', 'building', 'restarting']);
 const completedUpdateDismissMs = 5 * 60 * 1000;
+const updateRecoveryWindowMs = 45 * 60 * 1000;
+const activeUpdateMarkerKey = 'sparklab-update-active';
+const updateRecoveringMessage = '更新任务仍在后台执行，正在重新连接状态...';
 const updateStatePercent: Record<string, number> = {
   checking: 10,
   fetching: 25,
@@ -53,6 +56,67 @@ const updateStatePercent: Record<string, number> = {
   restarting: 92,
   completed: 100,
   failed: 100,
+};
+
+type ActiveUpdateMarker = {
+  id?: string;
+  targetCommit?: string;
+  toVersion?: string;
+  startedAt: number;
+  expiresAt: number;
+};
+
+const readActiveUpdateMarker = (): ActiveUpdateMarker | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(activeUpdateMarkerKey);
+    if (!raw) return null;
+    const marker = JSON.parse(raw) as Partial<ActiveUpdateMarker>;
+    if (!marker.expiresAt || marker.expiresAt <= Date.now()) {
+      window.localStorage.removeItem(activeUpdateMarkerKey);
+      return null;
+    }
+    return {
+      id: marker.id,
+      targetCommit: marker.targetCommit,
+      toVersion: marker.toVersion,
+      startedAt: marker.startedAt || Date.now(),
+      expiresAt: marker.expiresAt,
+    };
+  } catch {
+    window.localStorage.removeItem(activeUpdateMarkerKey);
+    return null;
+  }
+};
+
+const rememberActiveUpdate = (progress?: UpdateApplyProgress | null) => {
+  if (typeof window === 'undefined') return;
+  const now = Date.now();
+  const existing = readActiveUpdateMarker();
+  const startedAt = existing?.startedAt || now;
+  const marker: ActiveUpdateMarker = {
+    id: progress?.id || existing?.id,
+    targetCommit: progress?.targetCommit || existing?.targetCommit,
+    toVersion: progress?.toVersion || existing?.toVersion,
+    startedAt,
+    expiresAt: existing?.expiresAt && existing.expiresAt > now
+      ? existing.expiresAt
+      : startedAt + updateRecoveryWindowMs,
+  };
+  window.localStorage.setItem(activeUpdateMarkerKey, JSON.stringify(marker));
+};
+
+const clearActiveUpdateMarker = () => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem(activeUpdateMarkerKey);
+};
+
+const isTransientUpdateError = (error: any, includeServerErrors = false) => {
+  if (!error?.response || error?.code === 'ECONNABORTED') return true;
+  const status = Number(error.response.status || 0);
+  const message = error.response.data?.message;
+  if (message === 'Proxy request failed') return true;
+  return includeServerErrors && status >= 500;
 };
 
 export default function AdminPage() {
@@ -87,6 +151,11 @@ export default function AdminPage() {
       loadData();
       checkUpdates();
       loadUpdateStatus();
+      if (readActiveUpdateMarker()) {
+        setUpdateMessage(updateRecoveringMessage);
+        setUpdateProgress((prev) => prev || { state: 'restarting', message: updateRecoveringMessage });
+        setIsApplyingUpdate(true);
+      }
     }
   }, [isAuthenticated, user]);
 
@@ -108,13 +177,8 @@ export default function AdminPage() {
         handleUpdateProgress(res.data);
       } catch (error: any) {
         if (cancelled) return;
-        if (!error?.response) {
-          setUpdateMessage('服务正在重启，等待恢复...');
-          setUpdateProgress((prev) => ({
-            ...prev,
-            state: prev?.state || 'restarting',
-            message: '服务正在重启，等待恢复...',
-          }));
+        if (isTransientUpdateError(error, true)) {
+          keepUpdatePolling('服务正在重启，等待恢复...');
           return;
         }
         setUpdateMessage(error?.response?.data?.message || '读取更新状态失败');
@@ -184,6 +248,7 @@ export default function AdminPage() {
   };
 
   const dismissCompletedProgress = () => {
+    clearActiveUpdateMarker();
     setUpdateProgress(null);
     setUpdateMessage('');
     setAutoReloadIn(null);
@@ -193,6 +258,11 @@ export default function AdminPage() {
 
   const handleUpdateProgress = (progress: UpdateApplyProgress | null) => {
     if (!progress?.state || progress.state === 'idle') {
+      if (readActiveUpdateMarker()) {
+        keepUpdatePolling(updateRecoveringMessage);
+        return;
+      }
+      clearActiveUpdateMarker();
       setUpdateProgress(progress);
       setUpdateMessage('');
       setAutoReloadIn(null);
@@ -209,17 +279,20 @@ export default function AdminPage() {
     setUpdateMessage(progress.message || '');
 
     if (activeUpdateStates.has(progress.state)) {
+      rememberActiveUpdate(progress);
       setIsApplyingUpdate(true);
       return;
     }
 
     if (progress.state === 'failed') {
+      clearActiveUpdateMarker();
       setIsApplyingUpdate(false);
       setUpdateMessage(progress.error || progress.message || '更新失败');
       return;
     }
 
     if (progress.state === 'completed') {
+      clearActiveUpdateMarker();
       setIsApplyingUpdate(false);
       if (progress.refreshRecommended) {
         scheduleAutoReload(progress);
@@ -227,6 +300,17 @@ export default function AdminPage() {
         checkUpdates();
       }
     }
+  };
+
+  const keepUpdatePolling = (message: string) => {
+    rememberActiveUpdate(updateProgress);
+    setUpdateMessage(message);
+    setUpdateProgress((prev) => ({
+      ...prev,
+      state: prev?.state && activeUpdateStates.has(prev.state) ? prev.state : 'restarting',
+      message,
+    }));
+    setIsApplyingUpdate(true);
   };
 
   const scheduleAutoReload = (progress: UpdateApplyProgress) => {
@@ -265,25 +349,24 @@ export default function AdminPage() {
     setIsApplyingUpdate(true);
     setAutoReloadIn(null);
     setUpdateMessage('正在准备更新...');
-    setUpdateProgress({ state: 'checking', message: '正在准备更新...' });
+    const initialProgress = { state: 'checking', message: '正在准备更新...' };
+    rememberActiveUpdate(initialProgress);
+    setUpdateProgress(initialProgress);
     try {
       const res = await adminAPI.applyUpdate();
       if (res.data?.progress) {
         handleUpdateProgress(res.data.progress);
       } else {
+        rememberActiveUpdate(updateProgress);
         setUpdateMessage(res.data?.message || '更新已触发，等待服务重启...');
       }
     } catch (error: any) {
-      if (!error?.response) {
-        setUpdateMessage('服务正在重启，等待恢复...');
-        setUpdateProgress((prev) => ({
-          ...prev,
-          state: 'restarting',
-          message: '服务正在重启，等待恢复...',
-        }));
+      if (isTransientUpdateError(error)) {
+        keepUpdatePolling('更新已交给后台执行，正在等待服务恢复...');
         return;
       }
       const message = error?.response?.data?.message || '执行更新失败';
+      clearActiveUpdateMarker();
       setUpdateMessage(message);
       setUpdateProgress({
         state: 'failed',

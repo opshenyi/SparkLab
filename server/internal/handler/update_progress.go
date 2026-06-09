@@ -25,6 +25,15 @@ const (
 
 const completedUpdateProgressVisibleFor = 5 * time.Minute
 
+func isActiveUpdateState(state string) bool {
+	switch state {
+	case updateApplyStateChecking, updateApplyStateFetching, updateApplyStatePulling, updateApplyStateBuilding, updateApplyStateRestarting:
+		return true
+	default:
+		return false
+	}
+}
+
 type updateApplyProgress struct {
 	ID                     string     `json:"id"`
 	State                  string     `json:"state"`
@@ -130,13 +139,23 @@ func (h *Handler) readUpdateProgress(repoDir string) (*updateApplyProgress, erro
 }
 
 func (h *Handler) refreshUpdateProgress(ctx context.Context, progress *updateApplyProgress) *updateApplyProgress {
-	if progress == nil || progress.State != updateApplyStateRestarting {
+	if progress == nil {
+		return progress
+	}
+
+	if progress.State != updateApplyStateRestarting {
+		if isActiveUpdateState(progress.State) && isUpdateProgressStale(progress) {
+			h.failUpdateProgress("", progress, "更新任务长时间没有状态变化，请查看更新日志", progress.OutputTail)
+		}
 		return progress
 	}
 
 	running := currentRunningBuild()
 	state, err := localGitState(ctx)
 	if err != nil {
+		if isUpdateProgressStale(progress) {
+			h.failUpdateProgress("", progress, "服务重启未确认完成，请查看更新日志", progress.OutputTail)
+		}
 		return progress
 	}
 
@@ -147,14 +166,8 @@ func (h *Handler) refreshUpdateProgress(ctx context.Context, progress *updateApp
 		done = progress.ToVersion != "" && compareVersions(running.Version, progress.ToVersion) >= 0
 	}
 	if !done {
-		if time.Since(progress.UpdatedAt) > updateScriptTimeout()+10*time.Minute {
-			now := time.Now()
-			progress.State = updateApplyStateFailed
-			progress.Message = "服务重启未确认完成，请查看更新日志"
-			progress.Error = progress.Message
-			progress.CompletedAt = &now
-			progress.RefreshRecommended = false
-			h.saveUpdateProgress(state.RepoDir, progress)
+		if isUpdateProgressStale(progress) {
+			h.failUpdateProgress(state.RepoDir, progress, "服务重启未确认完成，请查看更新日志", progress.OutputTail)
 		}
 		return progress
 	}
@@ -168,6 +181,13 @@ func (h *Handler) refreshUpdateProgress(ctx context.Context, progress *updateApp
 	progress.AutoReloadDelaySeconds = 2
 	h.saveUpdateProgress(state.RepoDir, progress)
 	return progress
+}
+
+func isUpdateProgressStale(progress *updateApplyProgress) bool {
+	if progress == nil || progress.UpdatedAt.IsZero() {
+		return false
+	}
+	return time.Since(progress.UpdatedAt) > updateScriptTimeout()+10*time.Minute
 }
 
 func (h *Handler) updateProgressPath(repoDir string) string {
