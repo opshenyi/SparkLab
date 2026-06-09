@@ -118,7 +118,7 @@ export default function AnimatedTerminal() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="terminal-shell overflow-hidden rounded-lg">
+      <div className="terminal-shell landing-terminal-shell overflow-hidden rounded-lg">
         {/* 终端头部 */}
         <div className="flex items-center justify-between border-b border-[var(--terminal-border)] px-4 py-2.5">
           <div className="text-xs font-medium terminal-line-default">Terminal</div>

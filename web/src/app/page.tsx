@@ -44,7 +44,7 @@ export default function LandingPage() {
       <TopNavBar />
       
       <main className="relative">
-        <section className="relative overflow-hidden h-screen flex items-center justify-center px-6">
+        <section className="landing-hero relative overflow-hidden h-screen flex items-center justify-center px-6">
           {/* 视频背景 */}
           <div className="absolute inset-0 z-0">
             <video 
@@ -57,14 +57,15 @@ export default function LandingPage() {
               <source src="/video.mp4" type="video/mp4" />
             </video>
           </div>
+          <div className="landing-hero-scrim absolute inset-0 z-[1]" />
 
           {/* 主要内容 */}
           <div className="max-w-7xl mx-auto w-full relative z-10 pt-24">
             <div className="text-center mb-12">
-              <h1 className="text-5xl lg:text-7xl font-semibold font-headline leading-[1.06] mb-6">
+              <h1 className="landing-hero-title text-5xl lg:text-7xl font-semibold font-headline leading-[1.06] mb-6">
                 在实践中掌握未来
               </h1>
-              <p className="text-lg lg:text-xl text-white/70 mb-10 max-w-2xl mx-auto">
+              <p className="landing-hero-copy text-lg lg:text-xl mb-10 max-w-2xl mx-auto">
                 面向[星火工作坊]学员的技能实验室<br/>
                 处于安全隔离的环境中，自主部署，高效完成实验任务
               </p>

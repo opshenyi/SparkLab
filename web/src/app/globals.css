@@ -295,6 +295,59 @@
     box-shadow: 0 0 0 1px var(--terminal-border), 0 18px 40px -26px rgba(0, 0, 0, 0.8);
   }
 
+  .landing-hero {
+    color: #ffffff;
+  }
+
+  .landing-hero-scrim {
+    background:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.58) 0%, rgba(0, 0, 0, 0.34) 42%, rgba(0, 0, 0, 0.68) 100%),
+      radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.08), transparent 45%);
+    pointer-events: none;
+  }
+
+  .landing-hero-title {
+    color: #ffffff !important;
+    text-shadow: 0 2px 22px rgba(0, 0, 0, 0.42);
+  }
+
+  .landing-hero-copy {
+    color: rgba(255, 255, 255, 0.78) !important;
+    text-shadow: 0 1px 14px rgba(0, 0, 0, 0.48);
+  }
+
+  .landing-terminal-shell {
+    --terminal-text: #f5f5f7;
+    --terminal-border: rgba(255, 255, 255, 0.16);
+    --terminal-panel: rgba(8, 8, 10, 0.62);
+    background:
+      linear-gradient(180deg, rgba(17, 17, 20, 0.74), rgba(4, 4, 6, 0.58)),
+      rgba(8, 8, 10, 0.58);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+      0 24px 70px -32px rgba(0, 0, 0, 0.86),
+      0 12px 36px -24px rgba(255, 255, 255, 0.28);
+    -webkit-backdrop-filter: blur(22px) saturate(150%);
+    backdrop-filter: blur(22px) saturate(150%);
+  }
+
+  .landing-terminal-shell .terminal-line-strong {
+    color: rgba(255, 255, 255, 0.96);
+  }
+
+  .landing-terminal-shell .terminal-line-default {
+    color: rgba(255, 255, 255, 0.78);
+  }
+
+  .landing-terminal-shell .terminal-line-muted {
+    color: rgba(255, 255, 255, 0.58);
+  }
+
+  .landing-terminal-shell .terminal-line-dim {
+    color: rgba(255, 255, 255, 0.42);
+  }
+
   .terminal-line-strong {
     color: color-mix(in srgb, var(--terminal-text) 90%, transparent);
   }
