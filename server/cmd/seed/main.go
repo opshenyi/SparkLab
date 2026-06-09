@@ -4,6 +4,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"log"
+	"os"
+	"strings"
 
 	"sparklab/server/internal/config"
 	"sparklab/server/internal/db"
@@ -32,34 +34,23 @@ func main() {
 
 	log.Println("Seeding database...")
 
-	// Create admin user
-	adminPassword, err := bcrypt.GenerateFromPassword([]byte("admin123"), 10)
-	if err != nil {
-		log.Fatalf("hash admin password failed: %v", err)
+	if err := ensureBootstrapAdmin(database); err != nil {
+		log.Fatalf("bootstrap admin failed: %v", err)
 	}
 
-	qqAdmin := "10000"
-	admin := model.User{
-		ID:           newID(),
-		Username:     "admin",
-		DisplayName:  "管理员",
-		Email:        "admin@sparklab.com",
-		Password:     string(adminPassword),
-		Role:         "ADMIN",
-		QQNumber:     &qqAdmin,
-		CreatedAt:    model.Now(),
-		UpdatedAt:    model.Now(),
-		LastActiveAt: model.Now(),
+	if !envBool("SEED_DEMO_DATA", false) {
+		log.Println("Demo data seeding disabled. Set SEED_DEMO_DATA=true to install sample courses and users.")
+		log.Println("Seeding completed!")
+		return
 	}
 
-	err = database.Where("username = ?", "admin").FirstOrCreate(&admin).Error
-	if err != nil {
-		log.Fatalf("create admin failed: %v", err)
+	// Create demo student user only when demo data is explicitly enabled.
+	studentPasswordRaw := strings.TrimSpace(os.Getenv("SPARKLAB_DEMO_STUDENT_PASSWORD"))
+	if studentPasswordRaw == "" {
+		studentPasswordRaw = randomPassword()
+		writeBootstrapCredential("demo student", "student", studentPasswordRaw)
 	}
-	log.Println("Admin user created:", admin.Username)
-
-	// Create student user
-	studentPassword, err := bcrypt.GenerateFromPassword([]byte("student123"), 10)
+	studentPassword, err := bcrypt.GenerateFromPassword([]byte(studentPasswordRaw), 10)
 	if err != nil {
 		log.Fatalf("hash student password failed: %v", err)
 	}
@@ -262,6 +253,82 @@ cat hello.txt
 	log.Println("Lab created:", lab2.Title)
 
 	log.Println("Seeding completed!")
+}
+
+func ensureBootstrapAdmin(database *gorm.DB) error {
+	username := getEnv("SPARKLAB_BOOTSTRAP_ADMIN_USERNAME", "admin")
+	displayName := getEnv("SPARKLAB_BOOTSTRAP_ADMIN_DISPLAY_NAME", "管理员")
+	passwordRaw := strings.TrimSpace(os.Getenv("SPARKLAB_BOOTSTRAP_ADMIN_PASSWORD"))
+	generated := false
+	if passwordRaw == "" {
+		passwordRaw = randomPassword()
+		generated = true
+	}
+
+	adminPassword, err := bcrypt.GenerateFromPassword([]byte(passwordRaw), 10)
+	if err != nil {
+		return err
+	}
+
+	qqAdmin := "10000"
+	admin := model.User{
+		ID:           newID(),
+		Username:     username,
+		DisplayName:  displayName,
+		Email:        "admin@sparklab.com",
+		Password:     string(adminPassword),
+		Role:         "ADMIN",
+		QQNumber:     &qqAdmin,
+		CreatedAt:    model.Now(),
+		UpdatedAt:    model.Now(),
+		LastActiveAt: model.Now(),
+	}
+
+	result := database.Where("username = ?", username).FirstOrCreate(&admin)
+	if result.Error != nil {
+		return result.Error
+	}
+	log.Println("Admin user created:", admin.Username)
+	if result.RowsAffected > 0 && generated {
+		writeBootstrapCredential("admin", username, passwordRaw)
+	}
+	return nil
+}
+
+func randomPassword() string {
+	return newID()
+}
+
+func writeBootstrapCredential(kind, username, password string) {
+	path := getEnv("SPARKLAB_BOOTSTRAP_CREDENTIALS_FILE", "/app/data/bootstrap-admin.txt")
+	line := kind + " username: " + username + "\n" + kind + " password: " + password + "\n\n"
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	if err != nil {
+		log.Printf("Generated %s password but failed to write %s: %v", kind, path, err)
+		return
+	}
+	defer file.Close()
+	if _, err := file.WriteString(line); err != nil {
+		log.Printf("Generated %s password but failed to append %s: %v", kind, path, err)
+		return
+	}
+	log.Printf("Generated %s credentials and wrote them to %s", kind, path)
+}
+
+func envBool(key string, fallback bool) bool {
+	v := strings.TrimSpace(strings.ToLower(os.Getenv(key)))
+	if v == "" {
+		return fallback
+	}
+	return v == "1" || v == "true" || v == "yes" || v == "on"
+}
+
+func getEnv(key, fallback string) string {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return fallback
+	}
+	return v
 }
 
 func ptr[T any](v T) *T {

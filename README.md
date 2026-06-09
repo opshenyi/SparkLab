@@ -48,6 +48,12 @@ NEXT_PUBLIC_API_URL=http://你的服务器IP:3001
 JWT_SECRET=换成一串足够长的随机密钥
 ```
 
+可以用下面的命令生成 `JWT_SECRET`：
+
+```bash
+openssl rand -hex 32
+```
+
 启动：
 
 ```bash
@@ -66,7 +72,13 @@ docker compose logs -f
 - 前端：`http://服务器IP:3000`
 - 后端健康检查：`http://服务器IP:3001/health`
 
-首次启动会写入基础演示数据。默认管理员账号为 `admin`，密码为 `admin123`。上线后请立刻修改密码和 `.env` 里的 `JWT_SECRET`。
+首次启动会创建一个引导管理员。默认用户名是 `admin`；如果 `.env` 没有设置 `SPARKLAB_BOOTSTRAP_ADMIN_PASSWORD`，系统会生成随机密码并写入：
+
+```text
+data/server/bootstrap-admin.txt
+```
+
+首次登录后请立刻在管理后台创建正式管理员或修改密码。演示课程和演示学生不会默认写入，需要显式设置 `SEED_DEMO_DATA=true`。
 
 ## 数据持久化
 
@@ -155,7 +167,7 @@ WEB_URL=http://localhost:3000
 NEXT_PUBLIC_API_URL=http://localhost:3001
 SERVER_URL=http://backend:3001
 DATABASE_URL=file:/app/data/spark_lab.db
-JWT_SECRET=change-this-secret-before-production
+JWT_SECRET=
 GITHUB_REPO=opshenyi/SparkLab
 GITHUB_BRANCH=main
 HOST_PROJECT_DIR=
@@ -164,6 +176,12 @@ UPDATE_CHECK_CACHE_SECONDS=300
 UPDATE_SCRIPT_TIMEOUT_SECONDS=1200
 SPARKLAB_BUILD_PULL=false
 SEED_ON_START=true
+SEED_DEMO_DATA=false
+SPARKLAB_BOOTSTRAP_ADMIN_USERNAME=admin
+SPARKLAB_BOOTSTRAP_ADMIN_PASSWORD=
+SPARKLAB_BOOTSTRAP_CREDENTIALS_FILE=/app/data/bootstrap-admin.txt
+COOKIE_SECURE=
+COOKIE_SAMESITE=lax
 ```
 
 对外访问地址变更时，通常只需要改 `WEB_URL` 和 `NEXT_PUBLIC_API_URL`。`SERVER_URL=http://backend:3001` 是容器内部地址，一般不要改。

@@ -31,8 +31,8 @@ type registerReq struct {
 	DisplayName string   `json:"displayName"`
 	Password    string   `json:"password"`
 	QQNumber    *string  `json:"qqNumber"`
-	Role        string   `json:"role"`    // STUDENT（默认）或 TEACHER
-	ClassID     *string  `json:"classId"` // 学生可选，加入单个学习小组
+	Role        string   `json:"role"`     // STUDENT（默认）或 TEACHER
+	ClassID     *string  `json:"classId"`  // 学生可选，加入单个学习小组
 	ClassIDs    []string `json:"classIds"` // 学生可选，加入多个
 }
 
@@ -199,7 +199,7 @@ func (h *Handler) Login(c *gin.Context) {
 
 	h.db.Model(&model.User{}).Where("id = ?", u.ID).Update("lastActiveAt", model.Now())
 
-	c.SetCookie("access_token", token, 7*24*3600, "/", "", false, true)
+	h.setAuthCookie(c, token, 7*24*3600)
 	c.JSON(http.StatusOK, gin.H{
 		"access_token": token,
 		"user":         h.userProfileMapFromRecord(u),
@@ -207,8 +207,13 @@ func (h *Handler) Login(c *gin.Context) {
 }
 
 func (h *Handler) Logout(c *gin.Context) {
-	c.SetCookie("access_token", "", -1, "/", "", false, true)
+	h.setAuthCookie(c, "", -1)
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
+}
+
+func (h *Handler) setAuthCookie(c *gin.Context, value string, maxAge int) {
+	c.SetSameSite(h.cfg.CookieSameSite)
+	c.SetCookie("access_token", value, maxAge, "/", "", h.cfg.CookieSecure, true)
 }
 
 func (h *Handler) GetProfile(c *gin.Context) {

@@ -16,6 +16,9 @@ func main() {
 	_ = godotenv.Load()
 
 	cfg := config.Load()
+	for _, warning := range cfg.SecurityWarnings {
+		log.Printf("[security] %s", warning)
+	}
 
 	database, err := db.Open(cfg.DatabasePath)
 	if err != nil {

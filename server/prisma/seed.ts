@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
+import { appendFileSync } from 'fs';
 
 const prisma = new PrismaClient();
 
@@ -7,13 +9,16 @@ async function main() {
   console.log('Seeding database...');
 
   // 创建管理员用户
-  const adminPassword = await bcrypt.hash('admin123', 10);
+  const adminUsername = process.env.SPARKLAB_BOOTSTRAP_ADMIN_USERNAME || 'admin';
+  const existingAdmin = await prisma.user.findUnique({ where: { username: adminUsername } });
+  const adminPasswordRaw = process.env.SPARKLAB_BOOTSTRAP_ADMIN_PASSWORD || randomPassword();
+  const adminPassword = await bcrypt.hash(adminPasswordRaw, 10);
   const admin = await prisma.user.upsert({
-    where: { username: 'admin' },
+    where: { username: adminUsername },
     update: {},
     create: {
-      username: 'admin',
-      displayName: '管理员',
+      username: adminUsername,
+      displayName: process.env.SPARKLAB_BOOTSTRAP_ADMIN_DISPLAY_NAME || '管理员',
       email: 'admin@sparklab.com',
       password: adminPassword,
       role: 'ADMIN',
@@ -21,9 +26,20 @@ async function main() {
     },
   });
   console.log('Admin user created:', admin.username);
+  if (!existingAdmin && !process.env.SPARKLAB_BOOTSTRAP_ADMIN_PASSWORD) {
+    writeGeneratedCredential('admin', adminUsername, adminPasswordRaw);
+  }
+
+  if (!envBool('SEED_DEMO_DATA')) {
+    console.log('Demo data seeding disabled. Set SEED_DEMO_DATA=true to install sample courses and users.');
+    console.log('Seeding completed!');
+    return;
+  }
 
   // 创建测试学生
-  const studentPassword = await bcrypt.hash('student123', 10);
+  const existingStudent = await prisma.user.findUnique({ where: { username: 'student' } });
+  const studentPasswordRaw = process.env.SPARKLAB_DEMO_STUDENT_PASSWORD || randomPassword();
+  const studentPassword = await bcrypt.hash(studentPasswordRaw, 10);
   const student = await prisma.user.upsert({
     where: { username: 'student' },
     update: {},
@@ -37,6 +53,9 @@ async function main() {
     },
   });
   console.log('Student user created:', student.username);
+  if (!existingStudent && !process.env.SPARKLAB_DEMO_STUDENT_PASSWORD) {
+    writeGeneratedCredential('demo student', 'student', studentPasswordRaw);
+  }
 
   // 创建课程
   const course1 = await prisma.course.upsert({
@@ -185,6 +204,20 @@ cat hello.txt
   console.log('Lab created:', lab2.title);
 
   console.log('Seeding completed!');
+}
+
+function randomPassword() {
+  return randomBytes(16).toString('hex');
+}
+
+function writeGeneratedCredential(kind: string, username: string, password: string) {
+  const path = process.env.SPARKLAB_BOOTSTRAP_CREDENTIALS_FILE || '/app/data/bootstrap-admin.txt';
+  appendFileSync(path, `${kind} username: ${username}\n${kind} password: ${password}\n\n`, { mode: 0o600 });
+  console.log(`Generated ${kind} credentials and wrote them to ${path}`);
+}
+
+function envBool(key: string) {
+  return ['1', 'true', 'yes', 'on'].includes(String(process.env[key] || '').trim().toLowerCase());
 }
 
 main()

@@ -1,17 +1,29 @@
 {
   "appId": "sparklab",
-  "version": "0.4.13",
+  "version": "0.4.14",
   "channel": "main",
-  "releasedAt": "2026-06-09T08:38:30+08:00",
-  "title": "重排系统更新状态栏",
+  "releasedAt": "2026-06-09T09:01:09+08:00",
+  "title": "加固商用部署安全默认值",
   "mandatory": false,
   "announcement": {
     "enabled": true,
     "level": "info",
-    "title": "系统更新区域已重新布局",
-    "message": "本次把管理后台系统更新区域进一步收敛为低高度状态栏，减少版本、进度和说明占用的页面空间。"
+    "title": "商用部署安全默认值已加固",
+    "message": "本次移除固定 JWT 密钥和默认弱口令路径，新部署会生成随机首管理员密码，并为认证 Cookie 增加 Secure/SameSite 策略。"
   },
   "changelog": [
+    {
+      "version": "0.4.14",
+      "date": "2026-06-09",
+      "title": "加固商用部署安全默认值",
+      "items": [
+        "后端不再使用空 JWT_SECRET 或常见占位密钥签发令牌，发现不安全配置时会生成运行期随机密钥并写入启动警告。",
+        "首次启动不再创建固定 admin/admin123 或 student/student123，首管理员密码未配置时会随机生成并写入 data/server/bootstrap-admin.txt。",
+        "演示课程和演示学生改为显式 SEED_DEMO_DATA=true 才写入，避免生产环境默认混入测试数据。",
+        "登录与退出 Cookie 改为统一设置 SameSite，HTTPS 部署会自动启用 Secure Cookie，也可通过 COOKIE_SECURE 与 COOKIE_SAMESITE 调整。",
+        ".env.example、Docker Compose 与 README 已同步新的商用部署引导变量。"
+      ]
+    },
     {
       "version": "0.4.13",
       "date": "2026-06-09",
