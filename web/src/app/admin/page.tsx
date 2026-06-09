@@ -419,9 +419,9 @@ export default function AdminPage() {
       ? `刷新中 ${autoReloadIn} 秒`
       : ''
     : updateMessage;
-  const compactStatusDetail = showUpdateProgress
-    ? updateProgress?.message || updateMessage
-    : inlineUpdateMessage || versionSummary;
+  const updateCompactText = showUpdateProgress
+    ? updateProgress?.message || updateMessage || updateHeadline
+    : inlineUpdateMessage || (updateInfo ? versionSummary : '等待检查 GitHub');
   const showUpdateDetails = Boolean(updateInfo || showReleaseNotes || releaseDetailItems.length > 0);
   const showFailureDetails = Boolean(
     updateState === 'failed' &&
@@ -446,7 +446,7 @@ export default function AdminPage() {
 
       <main className="flex-1 lg:ml-64 min-h-screen flex flex-col pt-16 lg:pt-0">
         <div className="flex-1 w-full max-w-[1600px] mx-auto p-6 sm:p-8 lg:p-10">
-          <div className="mb-7 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="mb-7 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] xl:items-start">
             <div className="min-w-0">
               <h2 className="mb-2 text-3xl font-semibold tracking-normal text-page-title sm:text-4xl">
                 统计概览
@@ -458,30 +458,27 @@ export default function AdminPage() {
 
             <section
               aria-label="系统更新"
-              className="relative z-20 w-full min-w-0 xl:w-[500px]"
+              className="relative z-20 w-full min-w-0 xl:justify-self-end"
             >
-              <div className="relative overflow-hidden rounded-md border border-outline-variant/50 bg-surface-lowest/90 shadow-[var(--shadow-ring)] backdrop-blur">
-                <div className="grid min-h-10 min-w-0 gap-2 px-2.5 py-1.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <h3 className="shrink-0 text-xs font-semibold leading-5 text-on-surface">系统更新</h3>
-                    <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[11px] font-medium leading-4 ${updateStatusClass}`}>
+              <div className="relative overflow-hidden rounded-md bg-surface-lowest/95 shadow-[var(--shadow-ring)] backdrop-blur">
+                <div className="grid min-h-9 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5 px-2 py-1.5">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <h3 className="shrink-0 text-[11px] font-semibold leading-4 text-on-surface">系统更新</h3>
+                    <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-4 ${updateStatusClass}`}>
                       {updateStatusLabel}
                     </span>
                     {updateInfo?.dirty ? (
-                      <span className="shrink-0 text-[11px] font-medium leading-4 text-status-warning-text">本地改动</span>
+                      <span className="shrink-0 text-[10px] font-medium leading-4 text-status-warning-text">本地改动</span>
                     ) : null}
                     {updateInfo?.mandatory ? (
-                      <span className="shrink-0 text-[11px] font-medium leading-4 text-status-error-text">重要</span>
+                      <span className="shrink-0 text-[10px] font-medium leading-4 text-status-error-text">重要</span>
                     ) : null}
-                    <p className="min-w-0 flex-1 truncate text-xs leading-5 text-on-surface-variant">
-                      <span className="font-medium text-on-surface">{updateHeadline}</span>
-                      {compactStatusDetail && compactStatusDetail !== updateHeadline ? (
-                        <span className="hidden md:inline"> · {compactStatusDetail}</span>
-                      ) : null}
+                    <p className="min-w-0 flex-1 truncate text-[11px] leading-4 text-on-surface-variant">
+                      {updateCompactText}
                     </p>
                   </div>
 
-                  <div className="flex min-w-0 items-center justify-end gap-1">
+                  <div className="flex min-w-0 items-center justify-end gap-0.5">
                     {showUpdateDetails ? (
                       <button
                         type="button"
@@ -490,9 +487,9 @@ export default function AdminPage() {
                           setShowFailureLog(false);
                         }}
                         aria-expanded={showReleaseDetails}
-                        className="min-h-7 rounded-md px-2 py-1 text-xs font-medium leading-none text-primary transition-colors hover:bg-surface-container hover:text-primary-dim"
+                        className="min-h-7 rounded-md px-2 py-1 text-[11px] font-medium leading-none text-primary transition-colors hover:bg-surface-container hover:text-primary-dim"
                       >
-                        {showReleaseDetails ? '收起' : '详情'}
+                        {showReleaseDetails ? '收起' : '版本'}
                       </button>
                     ) : null}
                     {showFailureDetails ? (
@@ -503,7 +500,7 @@ export default function AdminPage() {
                           setShowReleaseDetails(false);
                         }}
                         aria-expanded={showFailureLog}
-                        className="min-h-7 rounded-md px-2 py-1 text-xs font-medium leading-none text-status-error-text transition-colors hover:bg-status-error-bg"
+                        className="min-h-7 rounded-md px-2 py-1 text-[11px] font-medium leading-none text-status-error-text transition-colors hover:bg-status-error-bg"
                       >
                         {showFailureLog ? '收起' : '日志'}
                       </button>
@@ -512,7 +509,7 @@ export default function AdminPage() {
                       type="button"
                       onClick={checkUpdates}
                       disabled={isCheckingUpdate || isApplyingUpdate}
-                      className="min-h-7 rounded-md bg-surface-low px-2.5 py-1.5 text-xs font-medium leading-none text-on-surface shadow-[var(--shadow-ring)] transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
+                      className="min-h-7 rounded-md bg-surface-low px-2 py-1.5 text-[11px] font-medium leading-none text-on-surface shadow-[var(--shadow-ring)] transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isCheckingUpdate ? '检查中' : '检查'}
                     </button>
@@ -520,7 +517,7 @@ export default function AdminPage() {
                       type="button"
                       onClick={applyUpdate}
                       disabled={!canApplyUpdate || isCheckingUpdate || isApplyingUpdate}
-                      className="min-h-7 rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium leading-none text-on-primary shadow-[var(--shadow-ring)] transition-colors hover:bg-primary-dim disabled:cursor-not-allowed disabled:opacity-60"
+                      className="min-h-7 rounded-md bg-primary px-2 py-1.5 text-[11px] font-medium leading-none text-on-primary shadow-[var(--shadow-ring)] transition-colors hover:bg-primary-dim disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isApplyingUpdate ? '更新中' : '更新'}
                     </button>
@@ -540,14 +537,14 @@ export default function AdminPage() {
               </div>
 
               {showReleaseDetails || showFailureLog ? (
-                <div className="absolute right-0 top-[calc(100%+0.375rem)] z-30 w-full max-w-[500px] rounded-md border border-outline-variant/60 bg-surface-lowest p-2.5 shadow-[0_18px_45px_rgba(0,0,0,0.18)] dark:shadow-[0_22px_60px_rgba(0,0,0,0.45)]">
+                <div className="absolute right-0 top-[calc(100%+0.375rem)] z-30 w-full max-w-[calc(100vw-3rem)] rounded-md bg-surface-lowest p-2.5 shadow-[var(--shadow-card)] sm:w-[420px]">
                   {showReleaseDetails ? (
-                    <div>
-                      <div className="grid gap-x-3 gap-y-2 text-[11px] leading-4 text-on-surface-variant sm:grid-cols-3">
+                    <div className="space-y-2.5">
+                      <div className="grid gap-1.5 text-[11px] leading-4 text-on-surface-variant">
                         {versionItems.map((item) => (
-                          <div key={item.label} className="min-w-0">
+                          <div key={item.label} className="grid min-w-0 grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-2">
                             <div>{item.label}</div>
-                            <div className="mt-0.5 truncate font-medium text-on-surface">
+                            <div className="truncate font-medium text-on-surface">
                               {item.version}
                               {item.commit ? <span className="ml-1 font-mono text-on-surface-variant">({item.commit})</span> : null}
                             </div>
@@ -555,7 +552,7 @@ export default function AdminPage() {
                         ))}
                       </div>
                       {showReleaseNotes ? (
-                        <div className="mt-2.5 border-t border-outline-variant/40 pt-2.5">
+                        <div className="border-t border-outline-variant/40 pt-2.5">
                           <div className="truncate text-[11px] font-medium leading-4 text-on-surface">
                             {latestReleaseNote?.title || `版本 ${updateInfo?.latestVersion || ''}`}
                           </div>
