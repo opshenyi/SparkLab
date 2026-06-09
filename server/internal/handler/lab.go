@@ -154,6 +154,47 @@ func (h *Handler) SubmitLab(c *gin.Context) {
 		return
 	}
 
+	tx := h.db.Begin()
+	if tx.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Submit failed"})
+		return
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	var existingCount int64
+	if err := tx.Model(&model.Submission{}).
+		Where("userId = ? AND labId = ? AND status IN ?", uid, labID, []string{"pending", "passed"}).
+		Count(&existingCount).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Submit failed"})
+		return
+	}
+	if existingCount > 0 {
+		var existing model.Submission
+		if err := tx.Where("userId = ? AND labId = ? AND status IN ?", uid, labID, []string{"pending", "passed"}).
+			Order("submittedAt desc").
+			Take(&existing).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Submit failed"})
+			return
+		}
+		tx.Rollback()
+		message := "该实验已有待批改提交，请等待老师批改"
+		if existing.Status == "passed" {
+			message = "该实验已通过，不能重复提交"
+		}
+		c.JSON(http.StatusConflict, gin.H{
+			"message":      message,
+			"submissionId": existing.ID,
+			"status":       existing.Status,
+		})
+		return
+	}
+
 	s := model.Submission{
 		ID:          newID(),
 		UserID:      uid,
@@ -163,7 +204,12 @@ func (h *Handler) SubmitLab(c *gin.Context) {
 		Score:       0,
 		SubmittedAt: model.Now(),
 	}
-	if err := h.db.Create(&s).Error; err != nil {
+	if err := tx.Create(&s).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Submit failed"})
+		return
+	}
+	if err := tx.Commit().Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Submit failed"})
 		return
 	}
