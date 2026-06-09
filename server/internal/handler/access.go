@@ -116,6 +116,55 @@ func (h *Handler) teacherManagesCourse(userID, courseID string) bool {
 	return false
 }
 
+func (h *Handler) studentIsEnrolled(userID, courseID string) bool {
+	userID = strings.TrimSpace(userID)
+	courseID = strings.TrimSpace(courseID)
+	if userID == "" || courseID == "" {
+		return false
+	}
+	var count int64
+	if err := h.db.Model(&model.Enrollment{}).
+		Where("userId = ? AND courseId = ?", userID, courseID).
+		Count(&count).Error; err != nil {
+		return false
+	}
+	return count > 0
+}
+
+func (h *Handler) userCanPerformTrainingAction(course *model.Course, userID, role string, hasUser bool) bool {
+	if course == nil || !h.userCanViewCourse(course, userID, role, hasUser) {
+		return false
+	}
+	switch role {
+	case "ADMIN", "AUTHOR":
+		return true
+	case "TEACHER":
+		return h.teacherManagesCourse(userID, course.ID)
+	case "STUDENT":
+		return h.studentIsEnrolled(userID, course.ID)
+	default:
+		return false
+	}
+}
+
+func (h *Handler) abortUnlessTrainingActionAllowed(c *gin.Context, courseID, message string) bool {
+	var course model.Course
+	if err := h.db.Where("id = ?", courseID).First(&course).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Course not found"})
+		return true
+	}
+	uid, hasUser := userIDFromCtx(c)
+	role := userRoleFromCtx(c)
+	if !h.userCanPerformTrainingAction(&course, uid, role, hasUser) {
+		if strings.TrimSpace(message) == "" {
+			message = "请先报名课程后再开始训练"
+		}
+		c.JSON(http.StatusForbidden, gin.H{"message": message})
+		return true
+	}
+	return false
+}
+
 func (h *Handler) teacherCanReviewStudentSubmission(teacherUserID, studentUserID, courseID string) bool {
 	assigned := h.courseAssignedGroupIDs(courseID)
 	if len(assigned) == 0 {

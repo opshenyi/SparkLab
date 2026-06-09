@@ -81,7 +81,7 @@ func (h *Handler) CreateContainer(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Lab not found"})
 		return
 	}
-	if h.abortUnlessCourseVisible(c, lab.CourseID) {
+	if h.abortUnlessTrainingActionAllowed(c, lab.CourseID, "请先报名课程后再启动实验环境") {
 		return
 	}
 	if lab.Type != "" && lab.Type != "lab" {

@@ -114,6 +114,10 @@ func (h *Handler) CompleteCourseMaterial(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"message": "无权完成该课件"})
 		return
 	}
+	if !h.userCanPerformTrainingAction(co, uid, role, true) {
+		c.JSON(http.StatusForbidden, gin.H{"message": "请先报名课程后再完成课件"})
+		return
+	}
 
 	now := time.Now()
 	var existing model.MaterialProgress
@@ -183,6 +187,10 @@ func (h *Handler) CompleteVideo(c *gin.Context) {
 	co, err := h.courseByID(lab.CourseID)
 	if err != nil || !h.userCanViewCourse(co, uid, role, true) {
 		c.JSON(http.StatusForbidden, gin.H{"message": "无权完成该视频"})
+		return
+	}
+	if !h.userCanPerformTrainingAction(co, uid, role, true) {
+		c.JSON(http.StatusForbidden, gin.H{"message": "请先报名课程后再完成视频"})
 		return
 	}
 

@@ -187,6 +187,10 @@ func (h *Handler) SubmitExam(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"message": "无权参与该试卷"})
 		return
 	}
+	if !h.userCanPerformTrainingAction(co, uid, role, true) {
+		c.JSON(http.StatusForbidden, gin.H{"message": "请先报名课程后再提交试卷"})
+		return
+	}
 
 	var req struct {
 		Answers []struct {

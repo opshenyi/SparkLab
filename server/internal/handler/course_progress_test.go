@@ -58,7 +58,7 @@ func TestRefreshCourseProgressCountsPassedSubmissionsAndCompletedVideos(t *testi
 	}
 }
 
-func TestCompleteCourseMaterialCreatesProgressAndEnrollment(t *testing.T) {
+func TestCompleteCourseMaterialUpdatesEnrolledProgress(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	h := newCourseProgressTestHandler(t)
 	now := model.Now()
@@ -67,6 +67,7 @@ func TestCompleteCourseMaterialCreatesProgressAndEnrollment(t *testing.T) {
 	mustCreate(t, h.db.Create(&model.User{ID: "teacher-material", Username: "teacher-material", DisplayName: "Teacher", Role: "TEACHER", CreatedAt: now, UpdatedAt: now, LastActiveAt: now}).Error)
 	mustCreate(t, h.db.Create(&model.Course{ID: "course-material", Title: "Course", IsActive: true, CreatedAt: now, UpdatedAt: now}).Error)
 	mustCreate(t, h.db.Create(&model.CourseMaterial{ID: "material-complete", CourseID: "course-material", Title: "Guide", OriginalName: "guide.pdf", StoredPath: "guide.pdf", MimeType: "application/pdf", FileKind: "pdf", CreatedAt: now}).Error)
+	mustCreate(t, h.db.Create(&model.Enrollment{ID: "enroll-material", UserID: "student-material", CourseID: "course-material", StartedAt: now}).Error)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -84,7 +85,7 @@ func TestCompleteCourseMaterialCreatesProgressAndEnrollment(t *testing.T) {
 	var enrollment model.Enrollment
 	mustCreate(t, h.db.Where("userId = ? AND courseId = ?", "student-material", "course-material").Take(&enrollment).Error)
 	if enrollment.Progress != 100 || enrollment.CompletedAt == nil {
-		t.Fatalf("expected material completion to finish course, got progress=%d completedAt=%#v", enrollment.Progress, enrollment.CompletedAt)
+		t.Fatalf("expected material completion to update course progress, got progress=%d completedAt=%#v", enrollment.Progress, enrollment.CompletedAt)
 	}
 	var progress model.MaterialProgress
 	mustCreate(t, h.db.Where("userId = ? AND materialId = ?", "student-material", "material-complete").Take(&progress).Error)
@@ -105,7 +106,7 @@ func TestCompleteCourseMaterialCreatesProgressAndEnrollment(t *testing.T) {
 	}
 }
 
-func TestCompleteVideoCreatesProgressAndEnrollment(t *testing.T) {
+func TestCompleteVideoUpdatesEnrolledProgress(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	h := newCourseProgressTestHandler(t)
 	now := model.Now()
@@ -113,6 +114,7 @@ func TestCompleteVideoCreatesProgressAndEnrollment(t *testing.T) {
 	mustCreate(t, h.db.Create(&model.User{ID: "student-video", Username: "student-video", DisplayName: "Student", Role: "STUDENT", CreatedAt: now, UpdatedAt: now, LastActiveAt: now}).Error)
 	mustCreate(t, h.db.Create(&model.Course{ID: "course-video", Title: "Course", IsActive: true, CreatedAt: now, UpdatedAt: now}).Error)
 	mustCreate(t, h.db.Create(&model.Lab{ID: "video-complete", CourseID: "course-video", Type: "video", Title: "Video", Points: 10, VideoDuration: 100, CreatedAt: now, UpdatedAt: now}).Error)
+	mustCreate(t, h.db.Create(&model.Enrollment{ID: "enroll-video", UserID: "student-video", CourseID: "course-video", StartedAt: now}).Error)
 
 	body, _ := json.Marshal(gin.H{"watchedDuration": 95, "totalDuration": 100, "progress": 95})
 	w := httptest.NewRecorder()
@@ -131,7 +133,7 @@ func TestCompleteVideoCreatesProgressAndEnrollment(t *testing.T) {
 	var enrollment model.Enrollment
 	mustCreate(t, h.db.Where("userId = ? AND courseId = ?", "student-video", "course-video").Take(&enrollment).Error)
 	if enrollment.Progress != 100 || enrollment.CompletedAt == nil {
-		t.Fatalf("expected completed enrollment, got progress=%d completedAt=%#v", enrollment.Progress, enrollment.CompletedAt)
+		t.Fatalf("expected video completion to update course progress, got progress=%d completedAt=%#v", enrollment.Progress, enrollment.CompletedAt)
 	}
 	var vp model.VideoProgress
 	mustCreate(t, h.db.Where("userId = ? AND labId = ?", "student-video", "video-complete").Take(&vp).Error)

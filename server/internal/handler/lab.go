@@ -149,6 +149,10 @@ func (h *Handler) SubmitLab(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"message": "无权提交"})
 		return
 	}
+	if !h.userCanPerformTrainingAction(co, uid, role, true) {
+		c.JSON(http.StatusForbidden, gin.H{"message": "请先报名课程后再提交实验"})
+		return
+	}
 
 	s := model.Submission{
 		ID:          newID(),
