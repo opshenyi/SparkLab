@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"sparklab/server/internal/model"
 
@@ -206,6 +207,33 @@ func (h *Handler) SubmitExam(c *gin.Context) {
 		return
 	}
 
+	var questions []model.Question
+	if err := h.db.Where("labId = ?", labID).Find(&questions).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to load questions"})
+		return
+	}
+	questionsByID := make(map[string]model.Question, len(questions))
+	for _, question := range questions {
+		questionsByID[question.ID] = question
+	}
+	seenQuestionIDs := make(map[string]struct{}, len(req.Answers))
+	for _, ans := range req.Answers {
+		questionID := strings.TrimSpace(ans.QuestionID)
+		if questionID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid questionId"})
+			return
+		}
+		if _, duplicated := seenQuestionIDs[questionID]; duplicated {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "Duplicate questionId"})
+			return
+		}
+		if _, ok := questionsByID[questionID]; !ok {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "Question does not belong to this exam"})
+			return
+		}
+		seenQuestionIDs[questionID] = struct{}{}
+	}
+
 	// 创建提交记录
 	submission := model.Submission{
 		ID:          newID(),
@@ -235,10 +263,7 @@ func (h *Handler) SubmitExam(c *gin.Context) {
 
 	// 处理每个答案
 	for _, ans := range req.Answers {
-		var question model.Question
-		if err := tx.Where("id = ?", ans.QuestionID).First(&question).Error; err != nil {
-			continue
-		}
+		question := questionsByID[strings.TrimSpace(ans.QuestionID)]
 
 		// 将学生答案转为JSON
 		studentAnswerJSON, _ := json.Marshal(ans.Answer)
@@ -267,25 +292,9 @@ func (h *Handler) SubmitExam(c *gin.Context) {
 			json.Unmarshal([]byte(studentAnswerStr), &studentAns)
 			json.Unmarshal([]byte(question.Answer), &correctAns)
 
-			if len(studentAns) == len(correctAns) {
-				match := true
-				for _, sa := range studentAns {
-					found := false
-					for _, ca := range correctAns {
-						if sa == ca {
-							found = true
-							break
-						}
-					}
-					if !found {
-						match = false
-						break
-					}
-				}
-				if match {
-					isCorrect = true
-					score = question.Points
-				}
+			if sameStringSet(studentAns, correctAns) {
+				isCorrect = true
+				score = question.Points
 			}
 		case "essay":
 			// 简答题：不自动判分，需要人工批改
@@ -312,6 +321,9 @@ func (h *Handler) SubmitExam(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to save answer"})
 			return
 		}
+	}
+	if totalScore > lab.Points {
+		totalScore = lab.Points
 	}
 
 	// 更新提交记录的分数
@@ -340,6 +352,29 @@ func (h *Handler) SubmitExam(c *gin.Context) {
 		"maxScore":     lab.Points,
 		"status":       submission.Status,
 	})
+}
+
+func sameStringSet(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	counts := make(map[string]int, len(a))
+	for _, value := range a {
+		counts[strings.TrimSpace(value)]++
+	}
+	for _, value := range b {
+		key := strings.TrimSpace(value)
+		counts[key]--
+		if counts[key] < 0 {
+			return false
+		}
+	}
+	for _, count := range counts {
+		if count != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // GetExamSubmission 获取试卷提交详情

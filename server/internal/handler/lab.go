@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 
 	"sparklab/server/internal/model"
@@ -126,6 +127,10 @@ func (h *Handler) SubmitLab(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Lab not found"})
 		return
 	}
+	if lab.Type != "" && lab.Type != "lab" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Only hands-on labs can be submitted here"})
+		return
+	}
 	co, err := h.courseByID(lab.CourseID)
 	if err != nil || !h.userCanViewCourse(co, uid, role, true) {
 		c.JSON(http.StatusForbidden, gin.H{"message": "无权提交"})
@@ -153,13 +158,13 @@ func (h *Handler) SubmitLab(c *gin.Context) {
 		if strings.TrimSpace(ct.ContainerID) != "" {
 			// 如果容器正在运行，先停止
 			if ct.Status == "running" {
-				if resp, err := h.dockerRequest(nil, "POST", "/containers/"+ct.ContainerID+"/stop", nil, nil); err == nil {
+				if resp, err := h.dockerRequest(nil, "POST", "/containers/"+url.PathEscape(ct.ContainerID)+"/stop", nil, nil); err == nil {
 					resp.Body.Close()
 				}
 			}
 
 			// 调用 Docker API 删除容器
-			resp, err := h.dockerRequest(nil, "DELETE", "/containers/"+ct.ContainerID+"?force=true", nil, nil)
+			resp, err := h.dockerRequest(nil, "DELETE", "/containers/"+url.PathEscape(ct.ContainerID)+"?force=true", nil, nil)
 			if err == nil {
 				resp.Body.Close()
 			}

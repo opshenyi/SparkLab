@@ -11,24 +11,24 @@ import (
 )
 
 type courseResp struct {
-	ID                  string  `json:"id"`
-	Title               string  `json:"title"`
-	Description         string  `json:"description"`
-	Cover               *string `json:"cover,omitempty"`
-	Difficulty          string  `json:"difficulty"`
-	Duration            int     `json:"duration"`
-	IsActive            bool    `json:"isActive"` // 是否开课
+	ID                  string   `json:"id"`
+	Title               string   `json:"title"`
+	Description         string   `json:"description"`
+	Cover               *string  `json:"cover,omitempty"`
+	Difficulty          string   `json:"difficulty"`
+	Duration            int      `json:"duration"`
+	IsActive            bool     `json:"isActive"`            // 是否开课
 	ClassID             *string  `json:"classId,omitempty"`   // 兼容：多组时取排序后第一个小组 id
 	ClassIDs            []string `json:"classIds,omitempty"`  // 分配到的全部学习小组
 	ClassName           *string  `json:"className,omitempty"` // 小组名称，多个用顿号连接
 	HomeroomTeacherName *string  `json:"homeroomTeacherName,omitempty"`
-	CreatedAt           int64   `json:"createdAt"`
-	UpdatedAt           int64   `json:"updatedAt"`
-	LabCount            int     `json:"labCount"`
-	VideoCount          int     `json:"videoCount"`
-	ExamCount           int     `json:"examCount"`
-	MaterialCount       int     `json:"materialCount"`
-	IsEnrolled          bool    `json:"isEnrolled"`
+	CreatedAt           int64    `json:"createdAt"`
+	UpdatedAt           int64    `json:"updatedAt"`
+	LabCount            int      `json:"labCount"`
+	VideoCount          int      `json:"videoCount"`
+	ExamCount           int      `json:"examCount"`
+	MaterialCount       int      `json:"materialCount"`
+	IsEnrolled          bool     `json:"isEnrolled"`
 }
 
 type courseRecord struct {
@@ -91,7 +91,7 @@ func (h *Handler) GetCourses(c *gin.Context) {
 			c.JSON(http.StatusOK, []courseResp{})
 			return
 		}
-		q = q.Where("id IN ?", visible)
+		q = q.Where("id IN ? AND isActive = ?", visible, true)
 	default:
 		visible, err := h.courseIDsVisibleForGroups(nil)
 		if err != nil {
@@ -102,7 +102,7 @@ func (h *Handler) GetCourses(c *gin.Context) {
 			c.JSON(http.StatusOK, []courseResp{})
 			return
 		}
-		q = q.Where("id IN ?", visible)
+		q = q.Where("id IN ? AND isActive = ?", visible, true)
 	}
 
 	if err := q.Find(&courses).Error; err != nil {
@@ -313,6 +313,7 @@ func (h *Handler) GetCourse(c *gin.Context) {
 	var full model.Course
 	full.ID = course.ID
 	full.ClassID = course.ClassID
+	full.IsActive = course.IsActive
 	if !h.userCanViewCourse(&full, uid, role, hasUser) {
 		c.JSON(http.StatusForbidden, gin.H{"message": "无权访问该课程"})
 		return

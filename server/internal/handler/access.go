@@ -70,9 +70,6 @@ func (h *Handler) userCanViewCourse(course *model.Course, userID, role string, h
 		return true
 	}
 	assigned := h.courseAssignedGroupIDs(course.ID)
-	if len(assigned) == 0 {
-		return true
-	}
 	if role == "TEACHER" {
 		for _, g := range assigned {
 			if h.teacherIsAdvisorOfGroup(userID, g) {
@@ -80,6 +77,12 @@ func (h *Handler) userCanViewCourse(course *model.Course, userID, role string, h
 			}
 		}
 		return false
+	}
+	if !course.IsActive {
+		return false
+	}
+	if len(assigned) == 0 {
+		return true
 	}
 	if !hasUser || role == "" {
 		return false

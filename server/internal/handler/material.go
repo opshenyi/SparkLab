@@ -37,6 +37,9 @@ func (h *Handler) ensureMaterialDir() error {
 }
 
 func (h *Handler) canManageCourseMaterials(userID, role, courseID string) bool {
+	if role == "ADMIN" || role == "AUTHOR" {
+		return true
+	}
 	if role == "TEACHER" {
 		return h.teacherManagesCourse(userID, courseID)
 	}
@@ -57,14 +60,14 @@ func (h *Handler) ListCourseMaterials(c *gin.Context) {
 	out := make([]gin.H, 0, len(mats))
 	for _, m := range mats {
 		out = append(out, gin.H{
-			"id":             m.ID,
-			"courseId":       m.CourseID,
-			"title":          m.Title,
-			"originalName":   m.OriginalName,
-			"mimeType":       m.MimeType,
-			"fileKind":       m.FileKind,
-			"sortOrder":      m.SortOrder,
-			"createdAt":      m.CreatedAt,
+			"id":           m.ID,
+			"courseId":     m.CourseID,
+			"title":        m.Title,
+			"originalName": m.OriginalName,
+			"mimeType":     m.MimeType,
+			"fileKind":     m.FileKind,
+			"sortOrder":    m.SortOrder,
+			"createdAt":    m.CreatedAt,
 		})
 	}
 	c.JSON(http.StatusOK, out)
@@ -200,14 +203,14 @@ func (h *Handler) GetCourseMaterial(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"id":             mat.ID,
-		"courseId":       mat.CourseID,
-		"title":          mat.Title,
-		"originalName":   mat.OriginalName,
-		"mimeType":       mat.MimeType,
-		"fileKind":       mat.FileKind,
-		"sortOrder":      mat.SortOrder,
-		"createdAt":      mat.CreatedAt,
+		"id":           mat.ID,
+		"courseId":     mat.CourseID,
+		"title":        mat.Title,
+		"originalName": mat.OriginalName,
+		"mimeType":     mat.MimeType,
+		"fileKind":     mat.FileKind,
+		"sortOrder":    mat.SortOrder,
+		"createdAt":    mat.CreatedAt,
 	})
 }
 
