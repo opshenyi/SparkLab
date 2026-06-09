@@ -39,7 +39,7 @@ func New(cfg *config.Config, db *gorm.DB) *gin.Engine {
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	})
 
-	r.GET("/classes", h.PublicListClasses)
+	r.GET("/classes", auth.JWTAuth(cfg.JWTSecret), h.RequireAdmin(), h.PublicListClasses)
 	r.GET("/updates/check", h.PublicUpdateInfo)
 
 	authGroup := r.Group("/auth")

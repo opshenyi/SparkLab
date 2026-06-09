@@ -178,7 +178,7 @@ export const adminAPI = {
     api.post('/admin/updates/apply'),
 };
 
-export const publicClassAPI = {
+export const adminClassAPI = {
   list: () => api.get('/classes'),
 };
 

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
-import { adminAPI, publicClassAPI } from '@/lib/api';
+import { adminAPI, adminClassAPI } from '@/lib/api';
 import { roleLabel, ROLE_BADGE_LAYOUT_CLASS, roleBadgeColorsStyle } from '@/lib/roleLabels';
 import AdminSidebar from '@/components/AdminSidebar';
 import LoadingBar from '@/components/LoadingBar';
@@ -137,7 +137,7 @@ export default function AdminUsersPage() {
       console.error('Failed to load users:', error);
     }
     try {
-      const cRes = await publicClassAPI.list();
+      const cRes = await adminClassAPI.list();
       setClasses(cRes.data);
     } catch (error) {
       console.error('Failed to load study groups:', error);
