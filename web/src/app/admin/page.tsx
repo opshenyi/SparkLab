@@ -412,7 +412,7 @@ export default function AdminPage() {
                 ? '当前已是最新版本'
                 : '尚未检查 GitHub 更新';
   const versionSummary = updateInfo
-    ? `运行 ${runningVersion || '未检查'} / GitHub ${updateInfo.latestVersion || '未检查'}`
+    ? `运行 ${runningVersion || '未检查'} · GitHub ${updateInfo.latestVersion || '未检查'}`
     : '版本信息未检查';
   const inlineUpdateMessage = updateState === 'completed'
     ? autoReloadIn !== null
@@ -446,7 +446,7 @@ export default function AdminPage() {
 
       <main className="flex-1 lg:ml-64 min-h-screen flex flex-col pt-16 lg:pt-0">
         <div className="flex-1 w-full max-w-[1600px] mx-auto p-6 sm:p-8 lg:p-10">
-          <div className="mb-7 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] xl:items-start">
+          <div className="mb-7 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(360px,520px)] xl:items-start">
             <div className="min-w-0">
               <h2 className="mb-2 text-3xl font-semibold tracking-normal text-page-title sm:text-4xl">
                 统计概览
@@ -460,67 +460,91 @@ export default function AdminPage() {
               aria-label="系统更新"
               className="relative z-20 w-full min-w-0 xl:justify-self-end"
             >
-              <div className="relative overflow-hidden rounded-md bg-surface-lowest/95 shadow-[var(--shadow-ring)] backdrop-blur">
-                <div className="grid min-h-9 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5 px-2 py-1.5">
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    <h3 className="shrink-0 text-[11px] font-semibold leading-4 text-on-surface">系统更新</h3>
-                    <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-4 ${updateStatusClass}`}>
-                      {updateStatusLabel}
-                    </span>
-                    {updateInfo?.dirty ? (
-                      <span className="shrink-0 text-[10px] font-medium leading-4 text-status-warning-text">本地改动</span>
-                    ) : null}
-                    {updateInfo?.mandatory ? (
-                      <span className="shrink-0 text-[10px] font-medium leading-4 text-status-error-text">重要</span>
-                    ) : null}
-                    <p className="min-w-0 flex-1 truncate text-[11px] leading-4 text-on-surface-variant">
-                      {updateCompactText}
-                    </p>
+              <div className="relative overflow-hidden rounded-md border border-[color:var(--color-hairline)] bg-[color:color-mix(in_srgb,var(--color-surface-lowest)_94%,transparent)] shadow-[0_18px_55px_-42px_rgba(0,0,0,0.65),0_0_0_1px_rgba(255,255,255,0.035)_inset] backdrop-blur-xl">
+                <div className="p-3">
+                  <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <h3 className="text-sm font-semibold leading-5 text-on-surface">系统更新</h3>
+                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium leading-5 ${updateStatusClass}`}>
+                          {updateStatusLabel}
+                        </span>
+                        {updateInfo?.dirty ? (
+                          <span className="rounded-full bg-status-warning-bg px-2 py-0.5 text-[11px] font-medium leading-5 text-status-warning-text">
+                            本地改动
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-1 max-w-[34rem] truncate text-xs leading-5 text-on-surface-variant">
+                        {updateCompactText}
+                      </p>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      {showUpdateDetails ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowReleaseDetails((value) => !value);
+                            setShowFailureLog(false);
+                          }}
+                          aria-expanded={showReleaseDetails}
+                          className="min-h-8 rounded-full px-3 py-1.5 text-xs font-medium leading-none text-primary transition-colors hover:bg-primary/10 hover:text-primary-dim"
+                        >
+                          {showReleaseDetails ? '收起' : '版本'}
+                        </button>
+                      ) : null}
+                      {showFailureDetails ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowFailureLog((value) => !value);
+                            setShowReleaseDetails(false);
+                          }}
+                          aria-expanded={showFailureLog}
+                          className="min-h-8 rounded-full px-3 py-1.5 text-xs font-medium leading-none text-status-error-text transition-colors hover:bg-status-error-bg"
+                        >
+                          {showFailureLog ? '收起' : '日志'}
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={checkUpdates}
+                        disabled={isCheckingUpdate || isApplyingUpdate}
+                        className="min-h-8 rounded-full bg-surface-low px-3 py-1.5 text-xs font-medium leading-none text-on-surface shadow-[var(--shadow-ring)] transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isCheckingUpdate ? '检查中' : '检查'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={applyUpdate}
+                        disabled={!canApplyUpdate || isCheckingUpdate || isApplyingUpdate}
+                        className="min-h-8 rounded-full bg-primary px-3 py-1.5 text-xs font-medium leading-none text-on-primary shadow-[var(--shadow-ring)] transition-colors hover:bg-primary-dim disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isApplyingUpdate ? '更新中' : '更新'}
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="flex min-w-0 items-center justify-end gap-0.5">
-                    {showUpdateDetails ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowReleaseDetails((value) => !value);
-                          setShowFailureLog(false);
-                        }}
-                        aria-expanded={showReleaseDetails}
-                        className="min-h-7 rounded-md px-2 py-1 text-[11px] font-medium leading-none text-primary transition-colors hover:bg-surface-container hover:text-primary-dim"
+                  <div className="mt-2.5 grid grid-cols-1 gap-px overflow-hidden rounded-md bg-[color:var(--color-hairline)] sm:grid-cols-3">
+                    {versionItems.map((item) => (
+                      <div
+                        key={item.label}
+                        className="flex min-w-0 items-center justify-between gap-3 bg-[color:color-mix(in_srgb,var(--color-surface-low)_90%,transparent)] px-2.5 py-1.5 sm:block"
                       >
-                        {showReleaseDetails ? '收起' : '版本'}
-                      </button>
-                    ) : null}
-                    {showFailureDetails ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowFailureLog((value) => !value);
-                          setShowReleaseDetails(false);
-                        }}
-                        aria-expanded={showFailureLog}
-                        className="min-h-7 rounded-md px-2 py-1 text-[11px] font-medium leading-none text-status-error-text transition-colors hover:bg-status-error-bg"
-                      >
-                        {showFailureLog ? '收起' : '日志'}
-                      </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={checkUpdates}
-                      disabled={isCheckingUpdate || isApplyingUpdate}
-                      className="min-h-7 rounded-md bg-surface-low px-2 py-1.5 text-[11px] font-medium leading-none text-on-surface shadow-[var(--shadow-ring)] transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isCheckingUpdate ? '检查中' : '检查'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={applyUpdate}
-                      disabled={!canApplyUpdate || isCheckingUpdate || isApplyingUpdate}
-                      className="min-h-7 rounded-md bg-primary px-2 py-1.5 text-[11px] font-medium leading-none text-on-primary shadow-[var(--shadow-ring)] transition-colors hover:bg-primary-dim disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isApplyingUpdate ? '更新中' : '更新'}
-                    </button>
+                        <div className="shrink-0 text-[10px] font-medium leading-4 text-on-surface-variant">
+                          {item.label}
+                        </div>
+                        <div className="min-w-0 truncate text-right text-xs font-semibold leading-4 text-on-surface sm:mt-0.5 sm:text-left">
+                          {item.version}
+                          {item.commit ? (
+                            <span className="ml-1 font-mono text-[10px] font-normal text-on-surface-variant">
+                              {item.commit}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
