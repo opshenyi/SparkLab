@@ -198,6 +198,7 @@ func New(cfg *config.Config, db *gorm.DB) *gin.Engine {
 		teacherGroup.GET("/overview", h.TeacherOverview)
 		teacherGroup.GET("/students", h.TeacherListStudents)
 		teacherGroup.GET("/submissions", h.TeacherListSubmissions)
+		teacherGroup.GET("/gradebook", h.TeacherGradebook)
 		teacherGroup.GET("/courses/:courseId/labs", h.GetLabsByCourse)
 		teacherGroup.GET("/courses", h.TeacherListCourses)
 		teacherGroup.POST("/courses", h.TeacherCreateCourse)

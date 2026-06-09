@@ -15,6 +15,7 @@ const navLinkItems = [
   { label: '学情分析大屏', href: '/teacher', exact: true },
   { label: '学习小组管理', href: '/teacher/groups' },
   { label: '学生学情明细', href: '/teacher/students' },
+  { label: '班级成绩册', href: '/teacher/gradebook' },
   { label: '提交批改队列', href: '/teacher/submissions' },
   { label: '课程管理', href: '/teacher/courses' },
   { label: '星火 AI', href: '/ai-assistant' },

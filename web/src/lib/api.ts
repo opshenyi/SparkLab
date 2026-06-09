@@ -231,6 +231,8 @@ export const teacherAPI = {
   students: (groupId: string) => api.get('/teacher/students', { params: { groupId } }),
   submissions: (groupId: string, status?: string) =>
     api.get('/teacher/submissions', { params: { groupId, status } }),
+  gradebook: (groupId: string, courseId?: string) =>
+    api.get('/teacher/gradebook', { params: { groupId, courseId: courseId || undefined } }),
   /** 班主任编排实验：只读，对应后端 /teacher/servers* */
   listServers: () => api.get('/teacher/servers'),
   serverImages: (serverId: string) => api.get(`/teacher/servers/${serverId}/images`),
