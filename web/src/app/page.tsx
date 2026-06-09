@@ -21,7 +21,9 @@ export default function LandingPage() {
     if (!isLoading && isAuthenticated) {
       // 等待3秒进度条动画完成后再跳转
       const timer = setTimeout(() => {
-        if (user?.role === 'ADMIN' || user?.role === 'AUTHOR') {
+        if (user?.mustChangePassword) {
+          router.push('/force-password-change')
+        } else if (user?.role === 'ADMIN' || user?.role === 'AUTHOR') {
           router.push('/admin')
         } else {
           router.push('/dashboard')

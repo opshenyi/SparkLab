@@ -73,13 +73,14 @@ docker compose logs -f
 - 前端：`http://服务器IP:3000`
 - 后端健康检查：`http://服务器IP:3001/health`
 
-首次启动会创建一个引导管理员。默认用户名是 `admin`；如果 `.env` 没有设置 `SPARKLAB_BOOTSTRAP_ADMIN_PASSWORD`，系统会生成随机密码并写入：
+首次启动会创建一个引导管理员。默认账号为：
 
 ```text
-data/server/bootstrap-admin.txt
+用户名：admin
+密码：admin123
 ```
 
-首次登录后请立刻在管理后台创建正式管理员或修改密码。演示课程和演示学生不会默认写入，需要显式设置 `SEED_DEMO_DATA=true`。
+首次登录后系统会强制管理员修改默认密码，修改完成前不能进入管理后台。演示课程和演示学生不会默认写入，需要显式设置 `SEED_DEMO_DATA=true`。
 
 ## 数据持久化
 
@@ -197,7 +198,7 @@ LAB_CONTAINER_ALLOW_RESTART_POLICY=false
 SEED_ON_START=true
 SEED_DEMO_DATA=false
 SPARKLAB_BOOTSTRAP_ADMIN_USERNAME=admin
-SPARKLAB_BOOTSTRAP_ADMIN_PASSWORD=
+SPARKLAB_BOOTSTRAP_ADMIN_PASSWORD=admin123
 SPARKLAB_BOOTSTRAP_CREDENTIALS_FILE=/app/data/bootstrap-admin.txt
 COOKIE_SECURE=
 COOKIE_SAMESITE=lax

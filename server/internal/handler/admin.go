@@ -79,6 +79,25 @@ func (h *Handler) RequireAdmin() gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "Forbidden"})
 			return
 		}
+		uid, ok := userIDFromCtx(c)
+		if !ok || uid == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+			return
+		}
+		var row struct {
+			MustChangePassword bool `gorm:"column:mustChangePassword"`
+		}
+		if err := h.db.Model(&model.User{}).Select("mustChangePassword").Where("id = ?", uid).Take(&row).Error; err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+			return
+		}
+		if row.MustChangePassword {
+			c.AbortWithStatusJSON(http.StatusPreconditionRequired, gin.H{
+				"code":    "password_change_required",
+				"message": "请先修改默认管理员密码",
+			})
+			return
+		}
 		c.Next()
 	}
 }

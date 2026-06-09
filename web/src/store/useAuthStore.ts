@@ -13,6 +13,7 @@ interface User {
   homeroomClass?: { id: string; name: string };
   studyGroups?: { id: string; name: string }[];
   advisedGroups?: { id: string; name: string }[];
+  mustChangePassword?: boolean;
 }
 
 interface AuthState {
@@ -59,6 +60,14 @@ export const useAuthStore = create<AuthState>((set) => ({
       
       // 检查新的响应格式
       if (response.data.authenticated && response.data.user) {
+        if (
+          response.data.user.mustChangePassword &&
+          typeof window !== 'undefined' &&
+          !window.location.pathname.includes('/force-password-change') &&
+          !window.location.pathname.includes('/login')
+        ) {
+          window.location.href = '/force-password-change';
+        }
         set({ user: response.data.user, isAuthenticated: true, isLoading: false });
       } else {
         set({ user: null, isAuthenticated: false, isLoading: false });

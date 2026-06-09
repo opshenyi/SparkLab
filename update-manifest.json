@@ -1,17 +1,29 @@
 {
   "appId": "sparklab",
-  "version": "0.4.47",
+  "version": "0.4.48",
   "channel": "main",
-  "releasedAt": "2026-06-09T22:07:31+08:00",
-  "title": "收紧实验重复提交",
-  "mandatory": false,
+  "releasedAt": "2026-06-09T22:26:39+08:00",
+  "title": "恢复默认管理员并强制改密",
+  "mandatory": true,
   "announcement": {
     "enabled": true,
-    "level": "info",
-    "title": "实验提交更可信",
-    "message": "学生对同一实操实验已有待批改或已通过提交时不能重复提交，失败后仍可重试，减少重复批改和成绩统计噪声。"
+    "level": "warning",
+    "title": "默认管理员登录已调整",
+    "message": "默认管理员账号恢复为 admin/admin123。首次登录后必须立即修改密码，修改完成前不能进入管理后台。"
   },
   "changelog": [
+    {
+      "version": "0.4.48",
+      "date": "2026-06-09",
+      "title": "恢复默认管理员并强制改密",
+      "items": [
+        "首次初始化默认创建 admin/admin123 管理员账号，并标记为必须修改密码。",
+        "已有部署升级时，如果 users 表首次新增 mustChangePassword 字段，会把旧 admin 管理员重置为 admin123 并要求改密。",
+        "新增 /auth/password 接口，校验当前密码、新密码强度，并禁止继续使用默认密码 admin123。",
+        "管理员未完成改密时访问后台 API 会返回 428 password_change_required，避免绕过前端直接进入管理能力。",
+        "前端新增强制改密页面，登录、首页和 API 拦截器都会把默认密码状态引导到该页面。"
+      ]
+    },
     {
       "version": "0.4.47",
       "date": "2026-06-09",

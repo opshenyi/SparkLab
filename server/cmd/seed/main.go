@@ -259,10 +259,9 @@ func ensureBootstrapAdmin(database *gorm.DB) error {
 	username := getEnv("SPARKLAB_BOOTSTRAP_ADMIN_USERNAME", "admin")
 	displayName := getEnv("SPARKLAB_BOOTSTRAP_ADMIN_DISPLAY_NAME", "管理员")
 	passwordRaw := strings.TrimSpace(os.Getenv("SPARKLAB_BOOTSTRAP_ADMIN_PASSWORD"))
-	generated := false
+	mustChangePassword := passwordRaw == "" || passwordRaw == "admin123"
 	if passwordRaw == "" {
-		passwordRaw = randomPassword()
-		generated = true
+		passwordRaw = "admin123"
 	}
 
 	adminPassword, err := bcrypt.GenerateFromPassword([]byte(passwordRaw), 10)
@@ -272,16 +271,17 @@ func ensureBootstrapAdmin(database *gorm.DB) error {
 
 	qqAdmin := "10000"
 	admin := model.User{
-		ID:           newID(),
-		Username:     username,
-		DisplayName:  displayName,
-		Email:        "admin@sparklab.com",
-		Password:     string(adminPassword),
-		Role:         "ADMIN",
-		QQNumber:     &qqAdmin,
-		CreatedAt:    model.Now(),
-		UpdatedAt:    model.Now(),
-		LastActiveAt: model.Now(),
+		ID:                 newID(),
+		Username:           username,
+		DisplayName:        displayName,
+		Email:              "admin@sparklab.com",
+		Password:           string(adminPassword),
+		Role:               "ADMIN",
+		QQNumber:           &qqAdmin,
+		MustChangePassword: mustChangePassword,
+		CreatedAt:          model.Now(),
+		UpdatedAt:          model.Now(),
+		LastActiveAt:       model.Now(),
 	}
 
 	result := database.Where("username = ?", username).FirstOrCreate(&admin)
@@ -289,7 +289,7 @@ func ensureBootstrapAdmin(database *gorm.DB) error {
 		return result.Error
 	}
 	log.Println("Admin user created:", admin.Username)
-	if result.RowsAffected > 0 && generated {
+	if result.RowsAffected > 0 && mustChangePassword {
 		writeBootstrapCredential("admin", username, passwordRaw)
 	}
 	return nil

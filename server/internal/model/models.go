@@ -3,18 +3,19 @@ package model
 import "time"
 
 type User struct {
-	ID           string   `gorm:"column:id;primaryKey" json:"id"`
-	Username     string   `gorm:"column:username" json:"username"`
-	DisplayName  string   `gorm:"column:displayName" json:"displayName"`
-	Email        string   `gorm:"column:email" json:"email"`
-	Password     string   `gorm:"column:password" json:"-"`
-	Role         string   `gorm:"column:role" json:"role"`
-	Avatar       *string  `gorm:"column:avatar" json:"avatar,omitempty"`
-	QQNumber     *string  `gorm:"column:qqNumber" json:"qqNumber,omitempty"`
-	ClassID      *string  `gorm:"column:classId" json:"classId,omitempty"`
-	CreatedAt    UnixTime `gorm:"column:createdAt" json:"createdAt"`
-	UpdatedAt    UnixTime `gorm:"column:updatedAt" json:"-"`
-	LastActiveAt UnixTime `gorm:"column:lastActiveAt" json:"lastActiveAt"`
+	ID                 string   `gorm:"column:id;primaryKey" json:"id"`
+	Username           string   `gorm:"column:username" json:"username"`
+	DisplayName        string   `gorm:"column:displayName" json:"displayName"`
+	Email              string   `gorm:"column:email" json:"email"`
+	Password           string   `gorm:"column:password" json:"-"`
+	Role               string   `gorm:"column:role" json:"role"`
+	Avatar             *string  `gorm:"column:avatar" json:"avatar,omitempty"`
+	QQNumber           *string  `gorm:"column:qqNumber" json:"qqNumber,omitempty"`
+	ClassID            *string  `gorm:"column:classId" json:"classId,omitempty"`
+	MustChangePassword bool     `gorm:"column:mustChangePassword;default:false" json:"mustChangePassword"`
+	CreatedAt          UnixTime `gorm:"column:createdAt" json:"createdAt"`
+	UpdatedAt          UnixTime `gorm:"column:updatedAt" json:"-"`
+	LastActiveAt       UnixTime `gorm:"column:lastActiveAt" json:"lastActiveAt"`
 }
 
 func (User) TableName() string { return "users" }

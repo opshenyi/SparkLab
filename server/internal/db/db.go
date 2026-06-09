@@ -9,6 +9,7 @@ import (
 
 	"github.com/glebarez/sqlite"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -33,6 +34,9 @@ func Open(path string) (*gorm.DB, error) {
 		sqlDB.SetConnMaxLifetime(time.Hour)
 	}
 
+	hadUsersTable := db.Migrator().HasTable(&model.User{})
+	hadMustChangePassword := db.Migrator().HasColumn(&model.User{}, "mustChangePassword")
+
 	err = db.AutoMigrate(
 		&model.User{},
 		&model.Class{},
@@ -56,6 +60,12 @@ func Open(path string) (*gorm.DB, error) {
 		return nil, err
 	}
 
+	if hadUsersTable && !hadMustChangePassword {
+		if err := migrateBootstrapAdminMustChangePassword(db); err != nil {
+			return nil, err
+		}
+	}
+
 	if err := migrateLegacyStudentGroups(db); err != nil {
 		return nil, err
 	}
@@ -65,6 +75,20 @@ func Open(path string) (*gorm.DB, error) {
 	}
 
 	return db, nil
+}
+
+func migrateBootstrapAdminMustChangePassword(db *gorm.DB) error {
+	hashed, err := bcrypt.GenerateFromPassword([]byte("admin123"), 10)
+	if err != nil {
+		return err
+	}
+	return db.Model(&model.User{}).
+		Where("username = ? AND role IN ?", "admin", []string{"ADMIN", "AUTHOR"}).
+		Updates(map[string]any{
+			"password":           string(hashed),
+			"mustChangePassword": true,
+			"updatedAt":          model.Now(),
+		}).Error
 }
 
 func migrateCourseClassLinks(db *gorm.DB) error {

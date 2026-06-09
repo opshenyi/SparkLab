@@ -42,7 +42,9 @@ export default function Login() {
 
     useEffect(() => {
         if (!isLoading && isAuthenticated) {
-            if (user?.role === 'ADMIN' || user?.role === 'AUTHOR') {
+            if (user?.mustChangePassword) {
+                router.push('/force-password-change');
+            } else if (user?.role === 'ADMIN' || user?.role === 'AUTHOR') {
                 router.push('/admin');
             } else if (user?.role === 'TEACHER') {
                 router.push('/teacher');
@@ -60,7 +62,8 @@ export default function Login() {
         try {
             await login(loginData.username, loginData.password);
             const u = useAuthStore.getState().user;
-            if (u?.role === 'ADMIN' || u?.role === 'AUTHOR') router.push('/admin');
+            if (u?.mustChangePassword) router.push('/force-password-change');
+            else if (u?.role === 'ADMIN' || u?.role === 'AUTHOR') router.push('/admin');
             else if (u?.role === 'TEACHER') router.push('/teacher');
             else router.push('/dashboard');
         } catch (err: any) {

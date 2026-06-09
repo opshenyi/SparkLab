@@ -49,6 +49,7 @@ func New(cfg *config.Config, db *gorm.DB) *gin.Engine {
 		authGroup.POST("/login", h.Login)
 		authGroup.POST("/logout", h.Logout)
 		authGroup.GET("/profile", h.GetProfile)
+		authGroup.PUT("/password", auth.JWTAuth(cfg.JWTSecret), h.UpdatePassword)
 		authGroup.PUT("/profile", auth.JWTAuth(cfg.JWTSecret), h.UpdateProfile)
 		authGroup.GET("/stats", auth.JWTAuth(cfg.JWTSecret), h.GetStats)
 		authGroup.GET("/activities", auth.JWTAuth(cfg.JWTSecret), h.GetUserActivities)

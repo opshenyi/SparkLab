@@ -11,7 +11,8 @@ async function main() {
   // 创建管理员用户
   const adminUsername = process.env.SPARKLAB_BOOTSTRAP_ADMIN_USERNAME || 'admin';
   const existingAdmin = await prisma.user.findUnique({ where: { username: adminUsername } });
-  const adminPasswordRaw = process.env.SPARKLAB_BOOTSTRAP_ADMIN_PASSWORD || randomPassword();
+  const adminPasswordRaw = process.env.SPARKLAB_BOOTSTRAP_ADMIN_PASSWORD || 'admin123';
+  const adminMustChangePassword = adminPasswordRaw === 'admin123';
   const adminPassword = await bcrypt.hash(adminPasswordRaw, 10);
   const admin = await prisma.user.upsert({
     where: { username: adminUsername },
@@ -23,10 +24,11 @@ async function main() {
       password: adminPassword,
       role: 'ADMIN',
       qqNumber: '10000',
+      mustChangePassword: adminMustChangePassword,
     },
   });
   console.log('Admin user created:', admin.username);
-  if (!existingAdmin && !process.env.SPARKLAB_BOOTSTRAP_ADMIN_PASSWORD) {
+  if (!existingAdmin && adminMustChangePassword) {
     writeGeneratedCredential('admin', adminUsername, adminPasswordRaw);
   }
 

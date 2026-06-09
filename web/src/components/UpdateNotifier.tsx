@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { updateAPI } from '@/lib/api';
 
 type Announcement = {
@@ -31,6 +32,7 @@ type UpdateInfo = {
 export default function UpdateNotifier() {
   const [info, setInfo] = useState<UpdateInfo | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     let alive = true;
@@ -66,6 +68,8 @@ export default function UpdateNotifier() {
   if (!shouldShow) return null;
 
   const latestNote = info.changelog?.[0];
+  const compactAuthPage =
+    pathname === '/login' || pathname === '/register' || pathname === '/force-password-change';
 
   const dismiss = () => {
     if (storageKey) localStorage.setItem(storageKey, '1');
@@ -73,7 +77,11 @@ export default function UpdateNotifier() {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-[70] w-[calc(100vw-2rem)] max-w-md rounded-xl border border-[color:var(--color-hairline)] bg-surface-lowest/95 p-4 shadow-[0_0_0_1px_var(--color-hairline)] backdrop-blur-md">
+    <div
+      className={`fixed right-4 z-[70] w-[calc(100vw-2rem)] rounded-xl border border-[color:var(--color-hairline)] bg-surface-lowest/95 shadow-[0_0_0_1px_var(--color-hairline)] backdrop-blur-md ${
+        compactAuthPage ? 'top-4 max-w-sm p-3' : 'bottom-4 max-w-md p-4'
+      }`}
+    >
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
@@ -97,7 +105,7 @@ export default function UpdateNotifier() {
             )}
           </div>
 
-          {latestNote?.items?.length ? (
+          {!compactAuthPage && latestNote?.items?.length ? (
             <ul className="mt-3 space-y-1 text-xs text-on-surface-variant">
               {latestNote.items.slice(0, 3).map((item) => (
                 <li key={item}>
@@ -107,7 +115,7 @@ export default function UpdateNotifier() {
             </ul>
           ) : null}
 
-          <div className="mt-3 flex items-center justify-between gap-3 text-xs text-on-surface-variant">
+          <div className={`${compactAuthPage ? 'mt-2' : 'mt-3'} flex items-center justify-between gap-3 text-xs text-on-surface-variant`}>
             <span>
               当前 {info.currentVersion || '-'} · 最新 {info.latestVersion || '-'}
             </span>

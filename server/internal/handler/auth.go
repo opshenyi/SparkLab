@@ -17,15 +17,16 @@ import (
 )
 
 type authUserRecord struct {
-	ID          string  `gorm:"column:id"`
-	Username    string  `gorm:"column:username"`
-	DisplayName string  `gorm:"column:displayName"`
-	Email       string  `gorm:"column:email"`
-	Password    string  `gorm:"column:password"`
-	Role        string  `gorm:"column:role"`
-	Avatar      *string `gorm:"column:avatar"`
-	QQNumber    *string `gorm:"column:qqNumber"`
-	ClassID     *string `gorm:"column:classId"`
+	ID                 string  `gorm:"column:id"`
+	Username           string  `gorm:"column:username"`
+	DisplayName        string  `gorm:"column:displayName"`
+	Email              string  `gorm:"column:email"`
+	Password           string  `gorm:"column:password"`
+	Role               string  `gorm:"column:role"`
+	Avatar             *string `gorm:"column:avatar"`
+	QQNumber           *string `gorm:"column:qqNumber"`
+	ClassID            *string `gorm:"column:classId"`
+	MustChangePassword bool    `gorm:"column:mustChangePassword"`
 }
 
 type registerReq struct {
@@ -47,6 +48,11 @@ type updateProfileReq struct {
 	Username    *string `json:"username"`
 	DisplayName *string `json:"displayName"`
 	QQNumber    *string `json:"qqNumber"`
+}
+
+type updatePasswordReq struct {
+	CurrentPassword string `json:"currentPassword"`
+	NewPassword     string `json:"newPassword"`
 }
 
 func (h *Handler) Register(c *gin.Context) {
@@ -163,7 +169,7 @@ func (h *Handler) Login(c *gin.Context) {
 
 	var u authUserRecord
 	err := h.db.Table("users").
-		Select("id, username, displayName, email, password, role, avatar, qqNumber, classId").
+		Select("id, username, displayName, email, password, role, avatar, qqNumber, classId, mustChangePassword").
 		Where("username = ? OR qqNumber = ?", req.Username, req.Username).
 		Take(&u).Error
 	if err != nil {
@@ -220,7 +226,7 @@ func (h *Handler) GetProfile(c *gin.Context) {
 
 	var u authUserRecord
 	if err := h.db.Table("users").
-		Select("id, username, displayName, email, password, role, avatar, qqNumber, classId").
+		Select("id, username, displayName, email, password, role, avatar, qqNumber, classId, mustChangePassword").
 		Where("id = ?", claims.Subject).
 		Take(&u).Error; err != nil {
 		c.JSON(http.StatusOK, gin.H{"authenticated": false, "user": nil})
@@ -234,13 +240,70 @@ func (h *Handler) CheckAuth(c *gin.Context) {
 	uid, _ := userIDFromCtx(c)
 	var u authUserRecord
 	if err := h.db.Table("users").
-		Select("id, username, displayName, email, password, role, avatar, qqNumber, classId").
+		Select("id, username, displayName, email, password, role, avatar, qqNumber, classId, mustChangePassword").
 		Where("id = ?", uid).
 		Take(&u).Error; err != nil {
 		util.Unauthorized(c, "Unauthorized")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"authenticated": true, "user": h.userProfileMapFromRecord(u)})
+}
+
+func (h *Handler) UpdatePassword(c *gin.Context) {
+	uid, _ := userIDFromCtx(c)
+
+	var req updatePasswordReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		util.BadRequest(c, "Invalid payload")
+		return
+	}
+	if req.CurrentPassword == "" || req.NewPassword == "" {
+		util.BadRequest(c, "currentPassword and newPassword are required")
+		return
+	}
+	if message := validatePassword(req.NewPassword); message != "" {
+		util.BadRequest(c, message)
+		return
+	}
+	if strings.TrimSpace(req.NewPassword) == "admin123" {
+		util.BadRequest(c, "新密码不能继续使用默认密码 admin123")
+		return
+	}
+
+	var u authUserRecord
+	if err := h.db.Table("users").
+		Select("id, username, displayName, email, password, role, avatar, qqNumber, classId, mustChangePassword").
+		Where("id = ?", uid).
+		Take(&u).Error; err != nil {
+		util.Unauthorized(c, "Unauthorized")
+		return
+	}
+	if bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(req.CurrentPassword)) != nil {
+		util.Unauthorized(c, "当前密码不正确")
+		return
+	}
+	if bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(req.NewPassword)) == nil {
+		util.BadRequest(c, "新密码不能与当前密码相同")
+		return
+	}
+
+	hashed, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), 10)
+	if err != nil {
+		util.Error(c, http.StatusInternalServerError, "Hash password failed")
+		return
+	}
+	if err := h.db.Model(&model.User{}).Where("id = ?", uid).Updates(map[string]any{
+		"password":           string(hashed),
+		"mustChangePassword": false,
+		"updatedAt":          model.Now(),
+	}).Error; err != nil {
+		util.Error(c, http.StatusInternalServerError, "Update password failed")
+		return
+	}
+
+	u.Password = string(hashed)
+	u.MustChangePassword = false
+	c.JSON(http.StatusOK, gin.H{"message": "Password updated", "user": h.userProfileMapFromRecord(u)})
 }
 
 func (h *Handler) UpdateProfile(c *gin.Context) {
@@ -290,7 +353,7 @@ func (h *Handler) UpdateProfile(c *gin.Context) {
 
 	var u authUserRecord
 	h.db.Table("users").
-		Select("id, username, displayName, email, password, role, avatar, qqNumber, classId").
+		Select("id, username, displayName, email, password, role, avatar, qqNumber, classId, mustChangePassword").
 		Where("id = ?", uid).
 		Take(&u)
 	c.JSON(http.StatusOK, h.userProfileMapFromRecord(u))
@@ -326,6 +389,7 @@ func (h *Handler) userProfileMapFromRecord(u authUserRecord) gin.H {
 	m := gin.H{
 		"id": u.ID, "username": u.Username, "displayName": u.DisplayName, "email": u.Email,
 		"role": u.Role, "avatar": u.Avatar, "qqNumber": u.QQNumber, "classId": u.ClassID,
+		"mustChangePassword": u.MustChangePassword,
 	}
 	if u.ClassID != nil && *u.ClassID != "" {
 		var cl model.Class
@@ -384,6 +448,7 @@ func (h *Handler) userProfileMapFromModel(u model.User) gin.H {
 	rec := authUserRecord{
 		ID: u.ID, Username: u.Username, DisplayName: u.DisplayName, Email: u.Email,
 		Role: u.Role, Avatar: u.Avatar, QQNumber: u.QQNumber, ClassID: u.ClassID,
+		MustChangePassword: u.MustChangePassword,
 	}
 	return h.userProfileMapFromRecord(rec)
 }

@@ -16,6 +16,11 @@ const AUTH_CHECK_TIMEOUT_MS = 8_000;
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response?.status === 428 && error.response?.data?.code === 'password_change_required') {
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/force-password-change')) {
+        window.location.href = '/force-password-change';
+      }
+    }
     // 处理401错误
     if (error.response?.status === 401) {
       // 未授权，跳转到登录页（排除登录、注册和首页）
@@ -50,6 +55,9 @@ export const authAPI = {
   
   login: (data: { username: string; password: string }) =>
     api.post('/auth/login', data),
+
+  updatePassword: (data: { currentPassword: string; newPassword: string }) =>
+    api.put('/auth/password', data),
   
   logout: () =>
     api.post('/auth/logout'),
