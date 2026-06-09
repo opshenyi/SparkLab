@@ -302,6 +302,47 @@ export default function AdminPage() {
     return `http://q1.qlogo.cn/g?b=qq&nk=${qqNumber}&s=640`;
   };
 
+  const auditActionLabel = (action?: string) => {
+    switch (action) {
+      case 'admin_create_user':
+        return '创建用户';
+      case 'admin_update_user':
+        return '更新用户';
+      case 'admin_delete_user':
+        return '删除用户';
+      case 'admin_create_course':
+        return '创建课程';
+      case 'admin_update_course':
+        return '更新课程';
+      case 'admin_activate_course':
+        return '开课';
+      case 'admin_deactivate_course':
+        return '停课';
+      case 'admin_create_lab':
+        return '创建内容';
+      case 'admin_update_lab':
+        return '更新内容';
+      case 'admin_force_stop_container':
+        return '强停容器';
+      case 'grade_submission':
+        return '保存评分';
+      default:
+        return '管理操作';
+    }
+  };
+
+  const formatAuditTime = (value?: string) => {
+    if (!value) return '刚刚';
+    const ms = new Date(value).getTime();
+    if (!Number.isFinite(ms)) return '刚刚';
+    return new Date(ms).toLocaleString('zh-CN', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   const updateState = updateProgress?.state || 'idle';
   const isUpdateActive = activeUpdateStates.has(updateState);
   const showUpdateProgress = Boolean(
@@ -603,7 +644,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
                 <div className="app-card p-6 sm:p-8">
                   <div className="mb-5 flex items-center justify-between gap-4">
                     <h3 className="font-display text-page-title text-xl font-bold tracking-tight">最近活跃学生</h3>
@@ -691,6 +732,39 @@ export default function AdminPage() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                <div className="app-card p-6 sm:p-8">
+                  <div className="mb-5">
+                    <h3 className="font-display text-page-title text-xl font-bold tracking-tight">最近管理审计</h3>
+                    <p className="mt-1 text-xs leading-5 text-on-surface-variant">
+                      关键后台操作会保留操作者和目标
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    {stats.recentAuditLogs?.length ? (
+                      stats.recentAuditLogs.map((log: any) => {
+                        const actor = log.actor?.displayName || log.actor?.username || '未知账号';
+                        const target = log.targetName || log.targetId || '未命名目标';
+                        return (
+                          <div
+                            key={log.id}
+                            className="rounded-xl bg-surface-low p-3 transition-colors hover:bg-surface-container dark:hover:bg-surface-container/90"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="text-sm font-semibold text-on-surface">{auditActionLabel(log.action)}</span>
+                              <span className="shrink-0 text-xs text-on-surface-variant">{formatAuditTime(log.createdAt)}</span>
+                            </div>
+                            <div className="mt-1 min-w-0 truncate text-xs text-on-surface-variant">
+                              {actor} · {target}
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="py-6 text-center text-sm text-on-surface-variant">暂无管理审计记录</p>
+                    )}
                   </div>
                 </div>
               </div>

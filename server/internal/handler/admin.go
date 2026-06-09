@@ -238,6 +238,10 @@ func (h *Handler) AdminCreateUser(c *gin.Context) {
 		_ = h.db.Create(&gm).Error
 	}
 
+	if actorID, ok := userIDFromCtx(c); ok && actorID != "" {
+		_ = h.LogActivity(actorID, "admin_create_user", "user", u.ID, u.DisplayName)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"id":          u.ID,
 		"username":    u.Username,
@@ -379,6 +383,10 @@ func (h *Handler) AdminUpdateUser(c *gin.Context) {
 		}
 	}
 
+	if actorID, ok := userIDFromCtx(c); ok && actorID != "" {
+		_ = h.LogActivity(actorID, "admin_update_user", "user", u.ID, u.DisplayName)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"id":          u.ID,
 		"username":    u.Username,
@@ -415,6 +423,9 @@ func (h *Handler) AdminDeleteUser(c *gin.Context) {
 	if err := h.db.Delete(&model.User{}, "id = ?", id).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Delete user failed"})
 		return
+	}
+	if actorID != "" {
+		_ = h.LogActivity(actorID, "admin_delete_user", "user", u.ID, u.DisplayName)
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
 }
@@ -479,6 +490,9 @@ func (h *Handler) AdminCreateCourse(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "关联学习小组失败"})
 			return
 		}
+	}
+	if actorID, ok := userIDFromCtx(c); ok && actorID != "" {
+		_ = h.LogActivity(actorID, "admin_create_course", "course", course.ID, course.Title)
 	}
 	c.JSON(http.StatusOK, course)
 }
@@ -561,6 +575,9 @@ func (h *Handler) AdminUpdateCourse(c *gin.Context) {
 
 	var course model.Course
 	h.db.Where("id = ?", id).First(&course)
+	if actorID, ok := userIDFromCtx(c); ok && actorID != "" {
+		_ = h.LogActivity(actorID, "admin_update_course", "course", course.ID, course.Title)
+	}
 	c.JSON(http.StatusOK, course)
 }
 
@@ -592,6 +609,14 @@ func (h *Handler) AdminToggleCourseActive(c *gin.Context) {
 	statusText := "stopped"
 	if newStatus {
 		statusText = "activated"
+	}
+
+	if actorID, ok := userIDFromCtx(c); ok && actorID != "" {
+		action := "admin_deactivate_course"
+		if newStatus {
+			action = "admin_activate_course"
+		}
+		_ = h.LogActivity(actorID, action, "course", course.ID, course.Title)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -709,6 +734,9 @@ func (h *Handler) AdminCreateLab(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Create lab failed"})
 		return
 	}
+	if actorID, ok := userIDFromCtx(c); ok && actorID != "" {
+		_ = h.LogActivity(actorID, "admin_create_lab", "lab", lab.ID, lab.Title)
+	}
 	c.JSON(http.StatusOK, lab)
 }
 
@@ -800,6 +828,9 @@ func (h *Handler) AdminUpdateLab(c *gin.Context) {
 
 	var lab model.Lab
 	h.db.Where("id = ?", id).First(&lab)
+	if actorID, ok := userIDFromCtx(c); ok && actorID != "" {
+		_ = h.LogActivity(actorID, "admin_update_lab", "lab", lab.ID, lab.Title)
+	}
 	c.JSON(http.StatusOK, lab)
 }
 
@@ -925,6 +956,13 @@ func (h *Handler) AdminForceStopContainer(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Force stop failed"})
 		return
 	}
+	if actorID, ok := userIDFromCtx(c); ok && actorID != "" {
+		targetName := ct.ContainerID
+		if strings.TrimSpace(targetName) == "" {
+			targetName = ct.ID
+		}
+		_ = h.LogActivity(actorID, "admin_force_stop_container", "container", ct.ID, targetName)
+	}
 	c.JSON(http.StatusOK, gin.H{"message": "Container force stopped"})
 }
 
@@ -1045,6 +1083,55 @@ func (h *Handler) AdminStats(c *gin.Context) {
 		})
 	}
 
+	type auditRow struct {
+		ID               string    `gorm:"column:id"`
+		Action           string    `gorm:"column:action"`
+		TargetType       *string   `gorm:"column:targetType"`
+		TargetID         *string   `gorm:"column:targetId"`
+		TargetName       *string   `gorm:"column:targetName"`
+		CreatedAt        time.Time `gorm:"column:createdAt"`
+		ActorID          string    `gorm:"column:actorId"`
+		ActorUsername    *string   `gorm:"column:actorUsername"`
+		ActorDisplayName *string   `gorm:"column:actorDisplayName"`
+	}
+	var auditRows []auditRow
+	auditActions := []string{
+		"admin_create_user",
+		"admin_update_user",
+		"admin_delete_user",
+		"admin_create_course",
+		"admin_update_course",
+		"admin_activate_course",
+		"admin_deactivate_course",
+		"admin_create_lab",
+		"admin_update_lab",
+		"admin_force_stop_container",
+		"grade_submission",
+	}
+	_ = h.db.Table("activity_logs al").
+		Select("al.id, al.action, al.targetType, al.targetId, al.targetName, al.createdAt, al.userId as actorId, u.username as actorUsername, u.displayName as actorDisplayName").
+		Joins("LEFT JOIN users u ON u.id = al.userId").
+		Where("al.action IN ?", auditActions).
+		Order("al.createdAt desc").
+		Limit(8).
+		Find(&auditRows).Error
+	auditResp := make([]gin.H, 0, len(auditRows))
+	for _, row := range auditRows {
+		auditResp = append(auditResp, gin.H{
+			"id":         row.ID,
+			"action":     row.Action,
+			"targetType": row.TargetType,
+			"targetId":   row.TargetID,
+			"targetName": row.TargetName,
+			"createdAt":  row.CreatedAt,
+			"actor": gin.H{
+				"id":          row.ActorID,
+				"username":    row.ActorUsername,
+				"displayName": row.ActorDisplayName,
+			},
+		})
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"totalUsers":         totalUsers,
 		"totalCourses":       totalCourses,
@@ -1055,6 +1142,7 @@ func (h *Handler) AdminStats(c *gin.Context) {
 		"recentUsers":        usersResp,
 		"recentContainers":   containersResp,
 		"courseStats":        courseResp,
+		"recentAuditLogs":    auditResp,
 		"containersByStatus": statusRows,
 	})
 }
