@@ -1,17 +1,28 @@
 {
   "appId": "sparklab",
-  "version": "0.4.25",
+  "version": "0.4.26",
   "channel": "main",
-  "releasedAt": "2026-06-09T11:21:24+08:00",
-  "title": "重排系统更新紧凑界面",
+  "releasedAt": "2026-06-09T11:38:02+08:00",
+  "title": "加固管理端容器终端权限",
   "mandatory": false,
   "announcement": {
     "enabled": true,
-    "level": "info",
-    "title": "系统更新区域已重新压缩",
-    "message": "管理首页的系统更新模块改为标题右侧的紧凑状态面板，默认只保留必要版本、状态和操作。"
+    "level": "warning",
+    "title": "管理端容器终端已加固",
+    "message": "后台终端连接现在会先校验容器必须属于 SparkLab 记录、匹配节点并处于运行中，避免误连宿主机其他 Docker 容器。"
   },
   "changelog": [
+    {
+      "version": "0.4.26",
+      "date": "2026-06-09",
+      "title": "加固管理端容器终端权限",
+      "items": [
+        "管理端容器终端在 WebSocket 升级前会先按 Docker 容器 ID 查询 SparkLab 容器记录，未知容器不再进入 Docker exec 流程。",
+        "终端访问会校验容器所属服务器节点，跨节点或未绑定节点的旧记录会被拒绝。",
+        "只有状态为 running 的容器允许打开终端，已停止、错误或创建中的容器会直接返回冲突状态。",
+        "终端错误提示去除符号化文案，统一为纯文字反馈，并新增后端测试覆盖合法、未知、跨节点、停止和未绑定容器。"
+      ]
+    },
     {
       "version": "0.4.25",
       "date": "2026-06-09",
