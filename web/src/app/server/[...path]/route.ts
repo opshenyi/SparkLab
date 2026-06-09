@@ -87,6 +87,9 @@ async function proxyRequest(
         headers[key] = value;
       }
     });
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && !headers.Origin && !headers.origin) {
+      headers.Origin = request.nextUrl.origin;
+    }
 
     // Make request to server
     const response = await fetch(serverUrl, {

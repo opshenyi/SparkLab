@@ -77,6 +77,9 @@ async function proxyRequest(
     } else if (['POST', 'PUT', 'PATCH'].includes(method)) {
       headers['Content-Type'] = 'application/json';
     }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+      headers['Origin'] = url.origin;
+    }
 
     // Forward cookies (important for authentication)
     const cookie = request.headers.get('cookie');

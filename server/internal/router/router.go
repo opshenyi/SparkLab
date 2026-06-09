@@ -33,6 +33,7 @@ func New(cfg *config.Config, db *gorm.DB) *gin.Engine {
 	}))
 
 	h := handler.New(db, cfg)
+	r.Use(h.RequireSameOriginForUnsafeMethods())
 	h.StartContainerJanitor()
 
 	r.GET("/health", func(c *gin.Context) {

@@ -1,17 +1,29 @@
 {
   "appId": "sparklab",
-  "version": "0.4.42",
+  "version": "0.4.43",
   "channel": "main",
-  "releasedAt": "2026-06-09T18:18:03+08:00",
-  "title": "收紧实验容器重复创建",
+  "releasedAt": "2026-06-09T18:23:33+08:00",
+  "title": "加固写请求同源保护",
   "mandatory": false,
   "announcement": {
     "enabled": true,
     "level": "info",
-    "title": "实验容器创建更稳",
-    "message": "学生重复启动同一实验时会复用已有运行或创建中的容器，不再额外占用 Docker 资源。"
+    "title": "后台写操作更安全",
+    "message": "后端新增写请求同源校验，跨站页面不能借助登录 Cookie 触发后台、训练或资料修改动作。"
   },
   "changelog": [
+    {
+      "version": "0.4.43",
+      "date": "2026-06-09",
+      "title": "加固写请求同源保护",
+      "items": [
+        "后端新增全局写请求同源保护，POST、PUT、PATCH、DELETE 需要来自可信 Origin 或 Referer。",
+        "纯 Bearer Token API 调用仍可无 Origin 访问，避免影响服务端脚本和自动化集成。",
+        "Next.js API 代理会为写请求补充当前站点 Origin，兼容前端通过内部后端地址转发的部署方式。",
+        "旧 /server 代理同步补充 Origin，避免 legacy 调用路径被误判为跨站请求。",
+        "新增后端测试覆盖可信来源放行、外站来源拒绝、Cookie 无来源拒绝、Referer 放行和 Bearer-only 放行。"
+      ]
+    },
     {
       "version": "0.4.42",
       "date": "2026-06-09",
