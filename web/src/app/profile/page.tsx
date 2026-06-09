@@ -191,6 +191,10 @@ export default function ProfilePage() {
                             type="text"
                             value={editForm.username}
                             onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                            minLength={3}
+                            maxLength={32}
+                            pattern="[a-zA-Z0-9_-]+"
+                            title="只能包含字母、数字、下划线和短横线"
                             className={inputClass}
                           />
                         </div>
@@ -202,6 +206,8 @@ export default function ProfilePage() {
                             type="text"
                             value={editForm.displayName}
                             onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })}
+                            minLength={2}
+                            maxLength={40}
                             className={inputClass}
                           />
                         </div>
@@ -214,6 +220,9 @@ export default function ProfilePage() {
                             value={editForm.qqNumber}
                             onChange={(e) => setEditForm({ ...editForm, qqNumber: e.target.value })}
                             placeholder="选填"
+                            maxLength={15}
+                            pattern="[0-9]*"
+                            title="只能包含数字"
                             className={inputClass}
                           />
                         </div>

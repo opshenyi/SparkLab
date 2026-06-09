@@ -147,17 +147,30 @@ func (h *Handler) AdminCreateUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid payload"})
 		return
 	}
-
-	hashed, err := bcrypt.GenerateFromPassword([]byte(*req.Password), 10)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Hash password failed"})
+	username, message := normalizeUsername(req.Username)
+	if message != "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": message})
+		return
+	}
+	displayName, message := normalizeDisplayName(req.DisplayName)
+	if message != "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": message})
+		return
+	}
+	if message := validatePassword(*req.Password); message != "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": message})
+		return
+	}
+	qqNumber, message := normalizeOptionalQQ(req.QQNumber)
+	if message != "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": message})
 		return
 	}
 
 	actor := userRoleFromCtx(c)
 	role := "STUDENT"
 	if req.Role != nil && strings.TrimSpace(*req.Role) != "" {
-		role = strings.TrimSpace(*req.Role)
+		role = strings.ToUpper(strings.TrimSpace(*req.Role))
 		if !validAdminAssignableRole(role) {
 			c.JSON(http.StatusBadRequest, gin.H{"message": "无效的角色"})
 			return
@@ -166,7 +179,7 @@ func (h *Handler) AdminCreateUser(c *gin.Context) {
 			c.JSON(http.StatusForbidden, gin.H{"message": "仅超管可分配管理员或超管角色"})
 			return
 		}
-		if role == "AUTHOR" && req.DisplayName != "肖瑞杰" {
+		if role == "AUTHOR" && displayName != "肖瑞杰" {
 			c.JSON(http.StatusForbidden, gin.H{"message": "超管仅能分配给显示名为「肖瑞杰」的用户"})
 			return
 		}
@@ -191,14 +204,20 @@ func (h *Handler) AdminCreateUser(c *gin.Context) {
 		}
 	}
 
+	hashed, err := bcrypt.GenerateFromPassword([]byte(*req.Password), 10)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Hash password failed"})
+		return
+	}
+
 	u := model.User{
 		ID:           newID(),
-		Username:     req.Username,
-		DisplayName:  req.DisplayName,
-		Email:        req.Username + "@sparklab.local",
+		Username:     username,
+		DisplayName:  displayName,
+		Email:        username + "@sparklab.local",
 		Password:     string(hashed),
 		Role:         role,
-		QQNumber:     req.QQNumber,
+		QQNumber:     qqNumber,
 		ClassID:      classIDPtr,
 		CreatedAt:    model.Now(),
 		UpdatedAt:    model.Now(),
@@ -246,12 +265,17 @@ func (h *Handler) AdminUpdateUser(c *gin.Context) {
 
 	effectiveDisplay := existing.DisplayName
 	if req.DisplayName != "" {
-		effectiveDisplay = req.DisplayName
+		displayName, message := normalizeDisplayName(req.DisplayName)
+		if message != "" {
+			c.JSON(http.StatusBadRequest, gin.H{"message": message})
+			return
+		}
+		effectiveDisplay = displayName
 	}
 	actor := userRoleFromCtx(c)
 	effectiveRole := existing.Role
 	if req.Role != nil && strings.TrimSpace(*req.Role) != "" {
-		r := strings.TrimSpace(*req.Role)
+		r := strings.ToUpper(strings.TrimSpace(*req.Role))
 		if !validAdminAssignableRole(r) {
 			c.JSON(http.StatusBadRequest, gin.H{"message": "无效的角色"})
 			return
@@ -269,17 +293,27 @@ func (h *Handler) AdminUpdateUser(c *gin.Context) {
 
 	updates := map[string]any{"updatedAt": model.Now()}
 	if req.Username != "" {
-		updates["username"] = req.Username
-		updates["email"] = req.Username + "@sparklab.local"
+		username, message := normalizeUsername(req.Username)
+		if message != "" {
+			c.JSON(http.StatusBadRequest, gin.H{"message": message})
+			return
+		}
+		updates["username"] = username
+		updates["email"] = username + "@sparklab.local"
 	}
 	if req.DisplayName != "" {
-		updates["displayName"] = req.DisplayName
+		updates["displayName"] = effectiveDisplay
 	}
 	if req.Role != nil && *req.Role != "" {
-		updates["role"] = *req.Role
+		updates["role"] = effectiveRole
 	}
 	if req.QQNumber != nil {
-		updates["qqNumber"] = req.QQNumber
+		qqNumber, message := normalizeOptionalQQ(req.QQNumber)
+		if message != "" {
+			c.JSON(http.StatusBadRequest, gin.H{"message": message})
+			return
+		}
+		updates["qqNumber"] = qqNumber
 	}
 	if effectiveRole != "STUDENT" {
 		if effectiveRole == "TEACHER" && req.ClassID != nil && strings.TrimSpace(*req.ClassID) != "" {
@@ -308,6 +342,10 @@ func (h *Handler) AdminUpdateUser(c *gin.Context) {
 		}
 	}
 	if req.Password != nil && *req.Password != "" {
+		if message := validatePassword(*req.Password); message != "" {
+			c.JSON(http.StatusBadRequest, gin.H{"message": message})
+			return
+		}
 		hashed, err := bcrypt.GenerateFromPassword([]byte(*req.Password), 10)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Hash password failed"})

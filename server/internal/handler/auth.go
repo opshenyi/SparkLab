@@ -56,15 +56,30 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	if req.Username == "" || req.DisplayName == "" || req.Password == "" {
-		util.BadRequest(c, "username, displayName and password are required")
+	username, message := normalizeUsername(req.Username)
+	if message != "" {
+		util.BadRequest(c, message)
+		return
+	}
+	displayName, message := normalizeDisplayName(req.DisplayName)
+	if message != "" {
+		util.BadRequest(c, message)
+		return
+	}
+	if message := validatePassword(req.Password); message != "" {
+		util.BadRequest(c, message)
+		return
+	}
+	qqNumber, message := normalizeOptionalQQ(req.QQNumber)
+	if message != "" {
+		util.BadRequest(c, message)
 		return
 	}
 
 	var existing struct {
 		ID string `gorm:"column:id"`
 	}
-	err := h.db.Table("users").Select("id").Where("username = ?", req.Username).Take(&existing).Error
+	err := h.db.Table("users").Select("id").Where("username = ?", username).Take(&existing).Error
 	if err == nil {
 		c.JSON(http.StatusConflict, gin.H{"message": "Username or QQ number already exists"})
 		return
@@ -74,8 +89,8 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	if req.QQNumber != nil && *req.QQNumber != "" {
-		err = h.db.Table("users").Select("id").Where("qqNumber = ?", *req.QQNumber).Take(&existing).Error
+	if qqNumber != nil {
+		err = h.db.Table("users").Select("id").Where("qqNumber = ?", *qqNumber).Take(&existing).Error
 		if err == nil {
 			c.JSON(http.StatusConflict, gin.H{"message": "Username or QQ number already exists"})
 			return
@@ -141,12 +156,12 @@ func (h *Handler) Register(c *gin.Context) {
 
 	u := model.User{
 		ID:           newID(),
-		Username:     req.Username,
-		DisplayName:  req.DisplayName,
-		Email:        req.Username + "@sparklab.local",
+		Username:     username,
+		DisplayName:  displayName,
+		Email:        username + "@sparklab.local",
 		Password:     string(hashed),
 		Role:         role,
-		QQNumber:     req.QQNumber,
+		QQNumber:     qqNumber,
 		ClassID:      classIDPtr,
 		CreatedAt:    model.Now(),
 		UpdatedAt:    model.Now(),
@@ -284,13 +299,29 @@ func (h *Handler) UpdateProfile(c *gin.Context) {
 
 	updates := map[string]any{"updatedAt": model.Now()}
 	if req.Username != nil {
-		updates["username"] = *req.Username
+		username, message := normalizeUsername(*req.Username)
+		if message != "" {
+			util.BadRequest(c, message)
+			return
+		}
+		updates["username"] = username
+		updates["email"] = username + "@sparklab.local"
 	}
 	if req.DisplayName != nil {
-		updates["displayName"] = *req.DisplayName
+		displayName, message := normalizeDisplayName(*req.DisplayName)
+		if message != "" {
+			util.BadRequest(c, message)
+			return
+		}
+		updates["displayName"] = displayName
 	}
 	if req.QQNumber != nil {
-		updates["qqNumber"] = *req.QQNumber
+		qqNumber, message := normalizeOptionalQQ(req.QQNumber)
+		if message != "" {
+			util.BadRequest(c, message)
+			return
+		}
+		updates["qqNumber"] = qqNumber
 	}
 
 	if err := h.db.Model(&model.User{}).Where("id = ?", uid).Updates(updates).Error; err != nil {

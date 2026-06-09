@@ -445,6 +445,10 @@ export default function AdminUsersPage() {
                   defaultValue={editingItem?.username}
                   required
                   placeholder="用于登录"
+                  minLength={3}
+                  maxLength={32}
+                  pattern="[a-zA-Z0-9_-]+"
+                  title="只能包含字母、数字、下划线和短横线"
                   className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
@@ -457,6 +461,8 @@ export default function AdminUsersPage() {
                   onChange={(e) => setCurrentDisplayName(e.target.value)}
                   required
                   placeholder="真实姓名"
+                  minLength={2}
+                  maxLength={40}
                   className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
@@ -470,6 +476,8 @@ export default function AdminUsersPage() {
                   type="password"
                   required={!editingItem}
                   placeholder={editingItem ? '留空则不修改密码' : ''}
+                  minLength={editingItem ? undefined : 6}
+                  maxLength={72}
                   className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
@@ -481,6 +489,9 @@ export default function AdminUsersPage() {
                   type="text"
                   defaultValue={editingItem?.qqNumber}
                   placeholder="用于获取QQ头像"
+                  maxLength={15}
+                  pattern="[0-9]*"
+                  title="只能包含数字"
                   className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>

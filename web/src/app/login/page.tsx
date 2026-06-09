@@ -199,7 +199,7 @@ export default function Login() {
                                         placeholder="至少3个字符"
                                         required
                                         minLength={3}
-                                        maxLength={20}
+                                        maxLength={32}
                                         className="w-full h-12 px-4 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                     />
                                 </div>
@@ -218,7 +218,7 @@ export default function Login() {
                                         placeholder="至少6个字符"
                                         required
                                         minLength={6}
-                                        maxLength={32}
+                                        maxLength={72}
                                         className="w-full h-12 pl-4 pr-20 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                     />
                                     <button
@@ -268,9 +268,9 @@ export default function Login() {
                                         placeholder="至少3个字符"
                                         required
                                         minLength={3}
-                                        maxLength={20}
-                                        pattern="[a-zA-Z0-9_]+"
-                                        title="只能包含字母、数字和下划线"
+                                        maxLength={32}
+                                        pattern="[a-zA-Z0-9_-]+"
+                                        title="只能包含字母、数字、下划线和短横线"
                                         className="w-full h-12 px-4 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                     />
                                 </div>
@@ -286,7 +286,7 @@ export default function Login() {
                                         placeholder="至少2个字符"
                                         required
                                         minLength={2}
-                                        maxLength={20}
+                                        maxLength={40}
                                         className="w-full h-12 px-4 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                     />
                                 </div>
@@ -319,7 +319,7 @@ export default function Login() {
                                         value={registerData.qqNumber}
                                         onChange={(e) => setRegisterData({ ...registerData, qqNumber: e.target.value })}
                                         placeholder="用于头像，可留空"
-                                        maxLength={11}
+                                        maxLength={15}
                                         pattern="[0-9]*"
                                         title="只能包含数字"
                                         className="w-full h-12 px-4 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
@@ -340,7 +340,7 @@ export default function Login() {
                                         placeholder="至少6个字符"
                                         required
                                         minLength={6}
-                                        maxLength={32}
+                                        maxLength={72}
                                         className="w-full h-12 pl-4 pr-20 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                     />
                                     <button
@@ -363,7 +363,7 @@ export default function Login() {
                                         placeholder="再次输入密码"
                                         required
                                         minLength={6}
-                                        maxLength={32}
+                                        maxLength={72}
                                         className="w-full h-12 px-4 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                     />
                                 </div>
