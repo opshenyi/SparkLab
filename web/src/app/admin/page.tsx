@@ -313,43 +313,75 @@ export default function AdminPage() {
   );
   const latestReleaseNote = updateInfo?.changelog?.[0];
   const releasePreviewText = latestReleaseNote?.items?.[0] || '';
-  const releaseDetailItems = latestReleaseNote?.items?.slice(0, 3) || [];
+  const releaseDetailItems = latestReleaseNote?.items?.slice(0, 4) || [];
   const showReleaseNotes = Boolean(
     (latestReleaseNote?.title || releasePreviewText) && updateAvailable && !showUpdateProgress
   );
-  const hasReleaseDetails = releaseDetailItems.length > 0;
   const canApplyUpdate = Boolean(updateAvailable && updateInfo?.canApply);
   const runningVersion = updateInfo?.runningVersion || updateInfo?.currentVersion;
   const runningCommit = updateInfo?.runningCommit || updateInfo?.currentCommit;
   const shortCommit = (commit?: string) => (commit ? commit.slice(0, 7) : '');
-  const updateStatusLabel = updateInfo?.needsRedeploy
-    ? '需重部署'
-    : updateInfo?.hasUpdate
-      ? '发现更新'
-      : updateInfo?.codeChangedWithoutVersion
-        ? '代码已更新'
-        : updateInfo
-          ? '已是最新'
-          : '未检查';
-  const updateStatusClass = updateInfo?.needsRedeploy || updateInfo?.codeChangedWithoutVersion
-    ? 'bg-status-warning-bg text-status-warning-text'
-    : updateInfo?.hasUpdate
+  const updateStatusLabel = updateState === 'failed'
+    ? '失败'
+    : isUpdateActive
+      ? '更新中'
+      : updateState === 'completed' && autoReloadIn !== null
+        ? '完成'
+        : updateInfo?.needsRedeploy
+          ? '需重部署'
+          : updateInfo?.hasUpdate
+            ? '发现更新'
+            : updateInfo?.codeChangedWithoutVersion
+              ? '代码已更新'
+              : updateInfo
+                ? '已是最新'
+                : '未检查';
+  const updateStatusClass = updateState === 'failed'
+    ? 'bg-status-error-bg text-status-error-text'
+    : isUpdateActive
       ? 'bg-primary/10 text-primary'
-      : updateInfo
+      : updateState === 'completed' && autoReloadIn !== null
         ? 'bg-status-success-bg text-status-success-text'
-        : 'bg-surface-container text-on-surface-variant';
+        : updateInfo?.needsRedeploy || updateInfo?.codeChangedWithoutVersion
+          ? 'bg-status-warning-bg text-status-warning-text'
+          : updateInfo?.hasUpdate
+            ? 'bg-primary/10 text-primary'
+            : updateInfo
+              ? 'bg-status-success-bg text-status-success-text'
+              : 'bg-surface-container text-on-surface-variant';
   const versionItems = [
-    { label: '运行', version: runningVersion || '未检查', commit: shortCommit(runningCommit) },
+    { label: '运行中', version: runningVersion || '未检查', commit: shortCommit(runningCommit) },
     { label: '仓库', version: updateInfo?.repoVersion || '未检查', commit: shortCommit(updateInfo?.repoCommit) },
     { label: 'GitHub', version: updateInfo?.latestVersion || '未检查', commit: shortCommit(updateInfo?.latestCommit) },
   ];
+  const updateProgressLabel = updateState === 'failed' ? '失败' : '更新中';
+  const updateHeadline = updateState === 'failed'
+    ? '更新失败'
+    : isUpdateActive
+      ? updateProgressLabel
+      : updateState === 'completed' && autoReloadIn !== null
+        ? '更新完成，准备刷新'
+        : updateInfo?.needsRedeploy
+          ? '代码已拉取，等待重部署'
+          : updateInfo?.hasUpdate
+            ? `可更新至 ${updateInfo.latestVersion || '最新版本'}`
+            : updateInfo?.codeChangedWithoutVersion
+              ? '代码已更新，版本未变化'
+              : updateInfo
+                ? '当前已是最新版本'
+                : '尚未检查 GitHub 更新';
+  const versionSummary = updateInfo
+    ? `运行 ${runningVersion || '未检查'} / GitHub ${updateInfo.latestVersion || '未检查'}`
+    : '版本信息未检查';
   const inlineUpdateMessage = updateState === 'completed'
     ? autoReloadIn !== null
       ? `刷新中 ${autoReloadIn} 秒`
       : ''
     : updateMessage;
-  const showInlineUpdateMessage = Boolean(inlineUpdateMessage && !showUpdateProgress);
-  const updateProgressLabel = updateState === 'failed' ? '失败' : '更新中';
+  const compactStatusDetail = showUpdateProgress
+    ? updateProgress?.message || updateMessage
+    : inlineUpdateMessage || (showReleaseNotes ? releasePreviewText : '') || versionSummary;
+  const showUpdateDetails = Boolean(updateInfo || showReleaseNotes || releaseDetailItems.length > 0);
 
   if (isLoading) {
     return <LoadingBar />;
@@ -381,108 +413,116 @@ export default function AdminPage() {
 
             <section
               aria-label="系统更新"
-              className="w-full min-w-0 overflow-hidden rounded-md bg-surface-lowest shadow-[var(--shadow-ring)] xl:w-[740px]"
+              className="w-full min-w-0 overflow-hidden rounded-md bg-surface-lowest shadow-[var(--shadow-ring)] xl:w-[620px]"
             >
-              <div className="flex min-w-0 flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] leading-4 text-on-surface-variant">
-                  <h3 className="shrink-0 text-xs font-semibold leading-4 text-page-title">系统更新</h3>
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium leading-4 ${updateStatusClass}`}>
+              <div className="px-3 py-2.5 sm:px-3.5">
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <h3 className="shrink-0 text-xs font-semibold leading-4 text-page-title">系统更新</h3>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium leading-4 ${updateStatusClass}`}>
                       {updateStatusLabel}
-                  </span>
-                  <span className="hidden h-3 w-px shrink-0 bg-outline-variant/70 sm:inline-block" />
-                  {versionItems.map((item) => (
-                    <span key={item.label} className="inline-flex shrink-0 items-baseline gap-1 whitespace-nowrap">
-                      <span className="shrink-0">{item.label}</span>
-                      <span className="min-w-0 truncate font-medium text-on-surface">{item.version}</span>
-                      {item.commit ? <span className="hidden shrink-0 font-mono text-[11px] sm:inline">({item.commit})</span> : null}
-                    </span>
-                  ))}
-                  {updateInfo?.dirty ? (
-                    <span className="shrink-0 font-medium text-status-warning-text">存在本地改动</span>
-                  ) : null}
-                  {updateInfo?.mandatory ? (
-                    <span className="shrink-0 font-medium text-status-error-text">重要更新</span>
-                  ) : null}
-                  {showInlineUpdateMessage ? (
-                    <span className="min-w-0 max-w-full truncate">{inlineUpdateMessage}</span>
-                  ) : null}
-                  {showReleaseNotes ? (
-                    <span className="min-w-[10rem] flex-1 truncate text-on-surface-variant">
-                      <span className="font-medium text-on-surface">
-                        {latestReleaseNote?.title || `版本 ${updateInfo?.latestVersion || ''}`}
                       </span>
-                      {releasePreviewText ? <span className="hidden 2xl:inline">：{releasePreviewText}</span> : null}
-                    </span>
-                  ) : null}
-                </div>
+                      {updateInfo?.dirty ? (
+                        <span className="shrink-0 text-[11px] font-medium leading-4 text-status-warning-text">本地改动</span>
+                      ) : null}
+                      {updateInfo?.mandatory ? (
+                        <span className="shrink-0 text-[11px] font-medium leading-4 text-status-error-text">重要更新</span>
+                      ) : null}
+                      {showUpdateProgress ? (
+                        <span className="shrink-0 font-mono text-[11px] leading-4 text-on-surface-variant">
+                          {updateProgressPercent}%
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-1 min-w-0 truncate text-[11px] leading-4 text-on-surface-variant">
+                      <span className="font-medium text-on-surface">{updateHeadline}</span>
+                      {compactStatusDetail && compactStatusDetail !== updateHeadline ? (
+                        <span> · {compactStatusDetail}</span>
+                      ) : (
+                        <span> · {versionSummary}</span>
+                      )}
+                    </p>
+                  </div>
 
-                <div className="flex shrink-0 items-center gap-1.5">
-                  {showReleaseNotes && hasReleaseDetails ? (
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {showUpdateDetails ? (
                     <button
                       type="button"
                       onClick={() => setShowReleaseDetails((value) => !value)}
+                      aria-expanded={showReleaseDetails}
                       className="min-h-7 rounded-md px-2 py-1 text-xs font-medium leading-none text-primary transition-colors hover:bg-surface-container hover:text-primary-dim"
                     >
                       {showReleaseDetails ? '收起' : '详情'}
                     </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={checkUpdates}
-                    disabled={isCheckingUpdate || isApplyingUpdate}
-                    className="min-h-7 rounded-md bg-surface-low px-2.5 py-1.5 text-xs font-medium leading-none text-on-surface shadow-[var(--shadow-ring)] transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isCheckingUpdate ? '检查中' : '检查'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={applyUpdate}
-                    disabled={!canApplyUpdate || isCheckingUpdate || isApplyingUpdate}
-                    className="min-h-7 rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium leading-none text-on-primary shadow-[var(--shadow-ring)] transition-colors hover:bg-primary-dim disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isApplyingUpdate ? '更新中' : '更新'}
-                  </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={checkUpdates}
+                      disabled={isCheckingUpdate || isApplyingUpdate}
+                      className="min-h-7 rounded-md bg-surface-low px-2.5 py-1.5 text-xs font-medium leading-none text-on-surface shadow-[var(--shadow-ring)] transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isCheckingUpdate ? '检查中' : '检查'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={applyUpdate}
+                      disabled={!canApplyUpdate || isCheckingUpdate || isApplyingUpdate}
+                      className="min-h-7 rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium leading-none text-on-primary shadow-[var(--shadow-ring)] transition-colors hover:bg-primary-dim disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isApplyingUpdate ? '更新中' : '更新'}
+                    </button>
+                  </div>
                 </div>
+
+                {showUpdateProgress ? (
+                  <div className="mt-2">
+                    <div className="h-0.5 overflow-hidden rounded-full bg-surface-container">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          updateState === 'failed' ? 'bg-status-error' : 'bg-primary'
+                        }`}
+                        style={{ width: `${updateProgressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
-              {showUpdateProgress ? (
-                <div className="border-t border-outline-variant/40 px-3 py-1.5">
-                  <div className="mb-1.5 flex min-w-0 items-center gap-2 text-[11px] leading-4">
-                    <span
-                      className={`shrink-0 font-medium ${
-                        updateState === 'failed' ? 'text-status-error-text' : 'text-primary'
-                      }`}
-                    >
-                      {updateProgressLabel}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-on-surface-variant">{updateProgress?.message}</span>
-                    <span className="shrink-0 tabular-nums text-on-surface-variant">{updateProgressPercent}%</span>
-                  </div>
-                  <div className="h-0.5 overflow-hidden rounded-full bg-surface-container">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        updateState === 'failed' ? 'bg-status-error' : 'bg-primary'
-                      }`}
-                      style={{ width: `${updateProgressPercent}%` }}
-                    />
-                  </div>
-                </div>
-              ) : null}
-
-              {showReleaseNotes && showReleaseDetails ? (
-                <div className="border-t border-outline-variant/40 bg-surface-low/50 px-3 py-2">
-                  <div className="grid gap-1.5 text-[11px] leading-5 text-on-surface-variant sm:grid-cols-3">
-                    {releaseDetailItems.map((item) => (
-                      <p key={item} className="line-clamp-2">
-                        {item}
-                      </p>
+              {showReleaseDetails ? (
+                <div className="border-t border-outline-variant/40 px-3 py-2.5 sm:px-3.5">
+                  <div className="grid gap-x-4 gap-y-1.5 text-[11px] leading-4 text-on-surface-variant sm:grid-cols-3">
+                    {versionItems.map((item) => (
+                      <div key={item.label} className="min-w-0">
+                        <div className="text-on-surface-variant">{item.label}</div>
+                        <div className="mt-0.5 truncate font-medium text-on-surface">
+                          {item.version}
+                          {item.commit ? <span className="ml-1 font-mono text-on-surface-variant">({item.commit})</span> : null}
+                        </div>
+                      </div>
                     ))}
                   </div>
+                  {showReleaseNotes ? (
+                    <div className="mt-2 border-t border-outline-variant/40 pt-2">
+                      <div className="truncate text-[11px] font-medium leading-4 text-on-surface">
+                        {latestReleaseNote?.title || `版本 ${updateInfo?.latestVersion || ''}`}
+                      </div>
+                      {releaseDetailItems.length > 0 ? (
+                        <div className="mt-1 grid gap-1 text-[11px] leading-4 text-on-surface-variant sm:grid-cols-2">
+                          {releaseDetailItems.map((item) => (
+                            <p key={item} className="line-clamp-2">
+                              {item}
+                            </p>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 
               {updateState === 'failed' && (updateProgress?.outputTail || updateProgress?.logPath || updateProgress?.containerLogPath) ? (
-                <div className="border-t border-outline-variant/40 px-3 py-2 text-xs text-on-surface-variant">
+                <div className="border-t border-outline-variant/40 px-3 py-2.5 text-xs text-on-surface-variant sm:px-3.5">
                   <button
                     type="button"
                     onClick={() => setShowFailureLog((value) => !value)}
