@@ -1,17 +1,27 @@
 {
   "appId": "sparklab",
-  "version": "0.4.49",
+  "version": "0.4.50",
   "channel": "main",
-  "releasedAt": "2026-06-10T00:20:42+08:00",
-  "title": "修复前端代理登录 403",
+  "releasedAt": "2026-06-10T00:33:00+08:00",
+  "title": "移除全局更新公告弹窗",
   "mandatory": true,
   "announcement": {
-    "enabled": true,
-    "level": "warning",
-    "title": "前端登录代理已修复",
-    "message": "修复生产环境前端 /api/proxy/auth/login 写请求空 403。默认管理员仍为 admin/admin123，首次登录后会进入强制改密。"
+    "enabled": false,
+    "level": "info",
+    "title": "",
+    "message": ""
   },
   "changelog": [
+    {
+      "version": "0.4.50",
+      "date": "2026-06-10",
+      "title": "移除全局更新公告弹窗",
+      "items": [
+        "移除所有页面右下角的全局更新公告弹窗，不再展示版本修复说明浮层。",
+        "更新信息继续保留在管理后台系统更新区域，普通使用页面不再被更新说明打断。",
+        "关闭 manifest announcement，避免已是最新版本时继续弹出公告卡片。"
+      ]
+    },
     {
       "version": "0.4.49",
       "date": "2026-06-10",
