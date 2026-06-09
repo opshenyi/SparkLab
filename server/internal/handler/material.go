@@ -52,10 +52,24 @@ func (h *Handler) ListCourseMaterials(c *gin.Context) {
 	if h.abortUnlessCourseVisible(c, courseID) {
 		return
 	}
+	uid, hasUser := userIDFromCtx(c)
+	role := userRoleFromCtx(c)
 	var mats []model.CourseMaterial
 	if err := h.db.Where("courseId = ?", courseID).Order("sortOrder asc, createdAt asc").Find(&mats).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "加载课件失败"})
 		return
+	}
+	completed := map[string]bool{}
+	if hasUser && role == "STUDENT" && len(mats) > 0 {
+		ids := make([]string, 0, len(mats))
+		for _, m := range mats {
+			ids = append(ids, m.ID)
+		}
+		var progressRows []model.MaterialProgress
+		_ = h.db.Where("userId = ? AND materialId IN ? AND completed = ?", uid, ids, true).Find(&progressRows).Error
+		for _, row := range progressRows {
+			completed[row.MaterialID] = true
+		}
 	}
 	out := make([]gin.H, 0, len(mats))
 	for _, m := range mats {
@@ -68,6 +82,7 @@ func (h *Handler) ListCourseMaterials(c *gin.Context) {
 			"fileKind":     m.FileKind,
 			"sortOrder":    m.SortOrder,
 			"createdAt":    m.CreatedAt,
+			"completed":    completed[m.ID],
 		})
 	}
 	c.JSON(http.StatusOK, out)
@@ -202,15 +217,27 @@ func (h *Handler) GetCourseMaterial(c *gin.Context) {
 		return
 	}
 
+	var materialProgress *gin.H
+	if role == "STUDENT" {
+		var progress model.MaterialProgress
+		if err := h.db.Where("userId = ? AND materialId = ?", uid, mat.ID).Limit(1).Find(&progress).Error; err == nil && progress.ID != "" {
+			materialProgress = &gin.H{
+				"completed":   progress.Completed,
+				"completedAt": progress.CompletedAt,
+			}
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"id":           mat.ID,
-		"courseId":     mat.CourseID,
-		"title":        mat.Title,
-		"originalName": mat.OriginalName,
-		"mimeType":     mat.MimeType,
-		"fileKind":     mat.FileKind,
-		"sortOrder":    mat.SortOrder,
-		"createdAt":    mat.CreatedAt,
+		"id":               mat.ID,
+		"courseId":         mat.CourseID,
+		"title":            mat.Title,
+		"originalName":     mat.OriginalName,
+		"mimeType":         mat.MimeType,
+		"fileKind":         mat.FileKind,
+		"sortOrder":        mat.SortOrder,
+		"createdAt":        mat.CreatedAt,
+		"materialProgress": materialProgress,
 	})
 }
 

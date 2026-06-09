@@ -3,18 +3,18 @@ package model
 import "time"
 
 type User struct {
-	ID           string    `gorm:"column:id;primaryKey" json:"id"`
-	Username     string    `gorm:"column:username" json:"username"`
-	DisplayName  string    `gorm:"column:displayName" json:"displayName"`
-	Email        string    `gorm:"column:email" json:"email"`
-	Password     string    `gorm:"column:password" json:"-"`
-	Role         string    `gorm:"column:role" json:"role"`
-	Avatar       *string   `gorm:"column:avatar" json:"avatar,omitempty"`
-	QQNumber     *string   `gorm:"column:qqNumber" json:"qqNumber,omitempty"`
-	ClassID      *string   `gorm:"column:classId" json:"classId,omitempty"`
-	CreatedAt    UnixTime  `gorm:"column:createdAt" json:"createdAt"`
-	UpdatedAt    UnixTime  `gorm:"column:updatedAt" json:"-"`
-	LastActiveAt UnixTime  `gorm:"column:lastActiveAt" json:"lastActiveAt"`
+	ID           string   `gorm:"column:id;primaryKey" json:"id"`
+	Username     string   `gorm:"column:username" json:"username"`
+	DisplayName  string   `gorm:"column:displayName" json:"displayName"`
+	Email        string   `gorm:"column:email" json:"email"`
+	Password     string   `gorm:"column:password" json:"-"`
+	Role         string   `gorm:"column:role" json:"role"`
+	Avatar       *string  `gorm:"column:avatar" json:"avatar,omitempty"`
+	QQNumber     *string  `gorm:"column:qqNumber" json:"qqNumber,omitempty"`
+	ClassID      *string  `gorm:"column:classId" json:"classId,omitempty"`
+	CreatedAt    UnixTime `gorm:"column:createdAt" json:"createdAt"`
+	UpdatedAt    UnixTime `gorm:"column:updatedAt" json:"-"`
+	LastActiveAt UnixTime `gorm:"column:lastActiveAt" json:"lastActiveAt"`
 }
 
 func (User) TableName() string { return "users" }
@@ -47,12 +47,12 @@ func (CourseClassLink) TableName() string { return "course_class_links" }
 
 // Class 学习小组（表名仍为 classes）；小组老师 homeroomTeacherId；创建者老师 creatorTeacherId
 type Class struct {
-	ID                  string   `gorm:"column:id;primaryKey" json:"id"`
-	Name                string   `gorm:"column:name" json:"name"`
-	HomeroomTeacherID   *string  `gorm:"column:homeroomTeacherId" json:"homeroomTeacherId,omitempty"`
-	CreatorTeacherID    *string  `gorm:"column:creatorTeacherId" json:"creatorTeacherId,omitempty"`
-	CreatedAt           UnixTime `gorm:"column:createdAt" json:"createdAt"`
-	UpdatedAt           UnixTime `gorm:"column:updatedAt" json:"updatedAt"`
+	ID                string   `gorm:"column:id;primaryKey" json:"id"`
+	Name              string   `gorm:"column:name" json:"name"`
+	HomeroomTeacherID *string  `gorm:"column:homeroomTeacherId" json:"homeroomTeacherId,omitempty"`
+	CreatorTeacherID  *string  `gorm:"column:creatorTeacherId" json:"creatorTeacherId,omitempty"`
+	CreatedAt         UnixTime `gorm:"column:createdAt" json:"createdAt"`
+	UpdatedAt         UnixTime `gorm:"column:updatedAt" json:"updatedAt"`
 }
 
 func (Class) TableName() string { return "classes" }
@@ -69,18 +69,30 @@ func (GroupMembership) TableName() string { return "group_memberships" }
 
 // CourseMaterial 课件（Word/PDF/PPT 等），文件存磁盘，元数据在此表
 type CourseMaterial struct {
-	ID             string   `gorm:"column:id;primaryKey" json:"id"`
-	CourseID       string   `gorm:"column:courseId" json:"courseId"`
-	Title          string   `gorm:"column:title" json:"title"`
-	OriginalName   string   `gorm:"column:originalName" json:"originalName"`
-	StoredPath     string   `gorm:"column:storedPath" json:"-"`
-	MimeType       string   `gorm:"column:mimeType" json:"mimeType"`
-	FileKind       string   `gorm:"column:fileKind" json:"fileKind"`
-	SortOrder      int      `gorm:"column:sortOrder" json:"sortOrder"`
-	CreatedAt      UnixTime `gorm:"column:createdAt" json:"createdAt"`
+	ID           string   `gorm:"column:id;primaryKey" json:"id"`
+	CourseID     string   `gorm:"column:courseId" json:"courseId"`
+	Title        string   `gorm:"column:title" json:"title"`
+	OriginalName string   `gorm:"column:originalName" json:"originalName"`
+	StoredPath   string   `gorm:"column:storedPath" json:"-"`
+	MimeType     string   `gorm:"column:mimeType" json:"mimeType"`
+	FileKind     string   `gorm:"column:fileKind" json:"fileKind"`
+	SortOrder    int      `gorm:"column:sortOrder" json:"sortOrder"`
+	CreatedAt    UnixTime `gorm:"column:createdAt" json:"createdAt"`
 }
 
 func (CourseMaterial) TableName() string { return "course_materials" }
+
+type MaterialProgress struct {
+	ID          string    `gorm:"column:id;primaryKey" json:"id"`
+	UserID      string    `gorm:"column:userId" json:"userId"`
+	MaterialID  string    `gorm:"column:materialId" json:"materialId"`
+	Completed   bool      `gorm:"column:completed" json:"completed"`
+	CompletedAt time.Time `gorm:"column:completedAt" json:"completedAt"`
+	CreatedAt   time.Time `gorm:"column:createdAt" json:"createdAt"`
+	UpdatedAt   time.Time `gorm:"column:updatedAt" json:"updatedAt"`
+}
+
+func (MaterialProgress) TableName() string { return "material_progress" }
 
 type Lab struct {
 	ID              string   `gorm:"column:id;primaryKey" json:"id"`
@@ -113,8 +125,8 @@ type Lab struct {
 func (Lab) TableName() string { return "labs" }
 
 type Step struct {
-	ID      string  `gorm:"column:id;primaryKey" json:"id"`
-    // ... rest unchanged
+	ID string `gorm:"column:id;primaryKey" json:"id"`
+	// ... rest unchanged
 	LabID   string  `gorm:"column:labId" json:"labId"`
 	Title   string  `gorm:"column:title" json:"title"`
 	Content string  `gorm:"column:content" json:"content"`

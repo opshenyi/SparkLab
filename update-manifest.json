@@ -1,17 +1,29 @@
 {
   "appId": "sparklab",
-  "version": "0.4.23",
+  "version": "0.4.24",
   "channel": "main",
-  "releasedAt": "2026-06-09T11:03:44+08:00",
-  "title": "新增教师班级成绩册",
+  "releasedAt": "2026-06-09T11:13:25+08:00",
+  "title": "补齐课件阅读进度",
   "mandatory": false,
   "announcement": {
     "enabled": true,
     "level": "info",
-    "title": "教师班级成绩册已上线",
-    "message": "教师现在可以按学习小组和课程查看学生进度、通过情况、待批改数量与得分率，并导出当前成绩册。"
+    "title": "课件阅读已纳入课程进度",
+    "message": "学生现在可以在课件页标记完成阅读，课程进度会按实验、视频、试卷和课件统一计算。"
   },
   "changelog": [
+    {
+      "version": "0.4.24",
+      "date": "2026-06-09",
+      "title": "补齐课件阅读进度",
+      "items": [
+        "新增 material_progress 学习记录，学生可在课件阅读页标记完成，教师和管理员预览不会污染学生进度。",
+        "课程进度统计从只计算实验/视频/试卷，扩展为实验、视频、试卷和课件统一口径，和课程页内容数量保持一致。",
+        "课件列表和课件详情会返回完成状态，课程页可直接显示课件是否已完成。",
+        "新增课件完成接口，完成后会刷新 enrollment.progress 和 completedAt，并写入 complete_material 活动日志。",
+        "同步补齐 Prisma schema 与兼容迁移，新增后端测试覆盖课件完成、进度回写和教师完成拒绝。"
+      ]
+    },
     {
       "version": "0.4.23",
       "date": "2026-06-09",

@@ -24,23 +24,33 @@ func (h *Handler) refreshCourseProgressForUser(userID, courseID string) (int, er
 	if err := h.db.Model(&model.Lab{}).Where("courseId = ?", courseID).Count(&total).Error; err != nil {
 		return 0, err
 	}
+	var materialTotal int64
+	if err := h.db.Model(&model.CourseMaterial{}).Where("courseId = ?", courseID).Count(&materialTotal).Error; err != nil {
+		return 0, err
+	}
+	total += materialTotal
 
 	progress := 0
 	if total > 0 {
 		var completed int64
 		if err := h.db.Raw(`
 SELECT COUNT(*) FROM (
-  SELECT DISTINCT l.id
+  SELECT DISTINCT ('lab:' || l.id)
   FROM labs l
   INNER JOIN submissions s ON s.labId = l.id
   WHERE l.courseId = ? AND s.userId = ? AND s.status = 'passed'
   UNION
-  SELECT DISTINCT l.id
+  SELECT DISTINCT ('lab:' || l.id)
   FROM labs l
   INNER JOIN video_progress vp ON vp.labId = l.id
   WHERE l.courseId = ? AND vp.userId = ? AND vp.completed = true
+  UNION
+  SELECT DISTINCT ('material:' || cm.id)
+  FROM course_materials cm
+  INNER JOIN material_progress mp ON mp.materialId = cm.id
+  WHERE cm.courseId = ? AND mp.userId = ? AND mp.completed = true
 ) AS done
-`, courseID, userID, courseID, userID).Scan(&completed).Error; err != nil {
+`, courseID, userID, courseID, userID, courseID, userID).Scan(&completed).Error; err != nil {
 			return 0, err
 		}
 		progress = int(math.Round(float64(completed) / float64(total) * 100))
@@ -83,6 +93,71 @@ SELECT COUNT(*) FROM (
 		return progress, err
 	}
 	return progress, nil
+}
+
+func (h *Handler) CompleteCourseMaterial(c *gin.Context) {
+	materialID := c.Param("id")
+	uid, _ := userIDFromCtx(c)
+	role := userRoleFromCtx(c)
+	if role != "STUDENT" {
+		c.JSON(http.StatusForbidden, gin.H{"message": "仅学生可完成课件学习"})
+		return
+	}
+
+	var material model.CourseMaterial
+	if err := h.db.Where("id = ?", materialID).First(&material).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "课件不存在"})
+		return
+	}
+	co, err := h.courseByID(material.CourseID)
+	if err != nil || !h.userCanViewCourse(co, uid, role, true) {
+		c.JSON(http.StatusForbidden, gin.H{"message": "无权完成该课件"})
+		return
+	}
+
+	now := time.Now()
+	var existing model.MaterialProgress
+	err = h.db.Where("userId = ? AND materialId = ?", uid, materialID).Take(&existing).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		existing = model.MaterialProgress{
+			ID:          newID(),
+			UserID:      uid,
+			MaterialID:  materialID,
+			Completed:   true,
+			CompletedAt: now,
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		}
+		if err := h.db.Create(&existing).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "保存课件进度失败"})
+			return
+		}
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "保存课件进度失败"})
+		return
+	} else {
+		if err := h.db.Model(&model.MaterialProgress{}).Where("id = ?", existing.ID).Updates(map[string]any{
+			"completed":   true,
+			"completedAt": now,
+			"updatedAt":   now,
+		}).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "保存课件进度失败"})
+			return
+		}
+	}
+
+	courseProgress, err := h.refreshCourseProgressForUser(uid, material.CourseID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "刷新课程进度失败"})
+		return
+	}
+	_ = h.LogActivity(uid, "complete_material", "course_material", material.ID, material.Title)
+
+	c.JSON(http.StatusOK, gin.H{
+		"completed":      true,
+		"courseId":       material.CourseID,
+		"courseProgress": courseProgress,
+	})
 }
 
 func (h *Handler) CompleteVideo(c *gin.Context) {

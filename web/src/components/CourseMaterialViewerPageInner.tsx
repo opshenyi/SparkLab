@@ -21,10 +21,12 @@ type Props = { materialId: string };
 
 export default function CourseMaterialViewerPageInner({ materialId }: Props) {
   const router = useRouter();
-  const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
+  const { user, isAuthenticated, isLoading, checkAuth } = useAuthStore();
   const [meta, setMeta] = useState<{ title: string; fileKind: string; originalName: string } | null>(null);
   const [courseId, setCourseId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   const filePath = useMemo(() => courseMaterialAPI.fileUrl(materialId), [materialId]);
 
@@ -53,13 +55,16 @@ export default function CourseMaterialViewerPageInner({ materialId }: Props) {
           title: string;
           fileKind: string;
           originalName: string;
+          materialProgress?: { completed?: boolean };
         };
         setCourseId(d.courseId);
         setMeta({ title: d.title, fileKind: d.fileKind, originalName: d.originalName });
+        setIsCompleted(Boolean(d.materialProgress?.completed));
       })
       .catch(() => {
         setMeta(null);
         setCourseId(null);
+        setIsCompleted(false);
         setLoadError(true);
       });
   }, [isAuthenticated, materialId]);
@@ -120,6 +125,21 @@ export default function CourseMaterialViewerPageInner({ materialId }: Props) {
   const isOfficeKind = kind === 'word' || kind === 'ppt';
 
   const backHref = courseId ? `/courses/${courseId}` : '/explore';
+  const canComplete = user?.role === 'STUDENT' && Boolean(meta);
+
+  const completeMaterial = async () => {
+    if (!canComplete || isCompleted || isCompleting) return;
+    setIsCompleting(true);
+    try {
+      await courseMaterialAPI.complete(materialId);
+      setIsCompleted(true);
+    } catch (error) {
+      console.error('Failed to complete material:', error);
+      alert('课件进度保存失败，请稍后重试');
+    } finally {
+      setIsCompleting(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-background text-on-surface">
@@ -143,6 +163,16 @@ export default function CourseMaterialViewerPageInner({ materialId }: Props) {
           >
             下载
           </a>
+          {canComplete ? (
+            <button
+              type="button"
+              onClick={completeMaterial}
+              disabled={isCompleted || isCompleting}
+              className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-on-primary disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              {isCompleted ? '已完成阅读' : isCompleting ? '保存中' : '标记完成'}
+            </button>
+          ) : null}
         </div>
 
         <div className="flex-1 min-h-[70vh] rounded-xl overflow-hidden bg-surface-container/30 shadow-soft">
@@ -183,6 +213,9 @@ export default function CourseMaterialViewerPageInner({ materialId }: Props) {
               <a
                 href={filePath}
                 download={meta?.originalName}
+                onClick={() => {
+                  if (canComplete && !isCompleted) void completeMaterial();
+                }}
                 className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary hover:opacity-95"
               >
                 下载 {meta?.originalName ?? '课件'}

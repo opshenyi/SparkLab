@@ -40,6 +40,7 @@ func Open(path string) (*gorm.DB, error) {
 		&model.Course{},
 		&model.CourseClassLink{},
 		&model.CourseMaterial{},
+		&model.MaterialProgress{},
 		&model.Lab{},
 		&model.Step{},
 		&model.Enrollment{},

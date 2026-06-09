@@ -30,6 +30,7 @@ model User {
   enrollments   Enrollment[]
   answers       Answer[]
   videoProgress VideoProgress[]
+  materialProgress MaterialProgress[]
   activityLogs  ActivityLog[]
   
   @@map("users")
@@ -51,6 +52,7 @@ model Course {
   // 关联
   labs        Lab[]
   enrollments Enrollment[]
+  courseMaterials CourseMaterial[]
   
   @@map("courses")
 }
@@ -68,6 +70,39 @@ model Enrollment {
   
   @@unique([userId, courseId])
   @@map("enrollments")
+}
+
+model CourseMaterial {
+  id           String   @id @default(uuid())
+  courseId     String
+  title        String
+  originalName String
+  storedPath   String
+  mimeType     String
+  fileKind     String
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress     MaterialProgress[]
+
+  @@map("course_materials")
+}
+
+model MaterialProgress {
+  id          String   @id @default(uuid())
+  userId      String
+  materialId  String
+  completed   Boolean  @default(false)
+  completedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  material    CourseMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, materialId])
+  @@map("material_progress")
 }
 
 // ==================== 实验系统 ====================

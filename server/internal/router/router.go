@@ -77,6 +77,7 @@ func New(cfg *config.Config, db *gorm.DB) *gin.Engine {
 	{
 		courseMatFile.GET("/:id/file", h.DownloadCourseMaterial)
 		courseMatFile.GET("/:id", h.GetCourseMaterial)
+		courseMatFile.POST("/:id/complete", h.CompleteCourseMaterial)
 		courseMatFile.DELETE("/:id", h.DeleteCourseMaterial)
 	}
 

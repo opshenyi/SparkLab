@@ -210,6 +210,7 @@ export const courseMaterialAPI = {
     return { data };
   },
   fileUrl: (materialId: string) => `/api/proxy/course-materials/${materialId}/file`,
+  complete: (materialId: string) => api.post(`/course-materials/${materialId}/complete`),
   remove: (materialId: string) => api.delete(`/course-materials/${materialId}`),
 };
 

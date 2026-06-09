@@ -216,6 +216,9 @@ export default function CoursePage() {
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
                       <h3 className="text-page-title text-xl font-bold">{m.title}</h3>
                       <span className="text-xs px-2 py-1 rounded-full bg-primary/15 text-primary">课件</span>
+                      {m.completed ? (
+                        <span className="text-xs px-2 py-1 rounded-full bg-status-success-bg text-status-success-text">已完成</span>
+                      ) : null}
                       <span className="text-xs px-2 py-1 rounded-full bg-surface-container text-on-surface-variant">
                         {m.fileKind === 'pdf'
                           ? 'PDF'
