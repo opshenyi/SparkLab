@@ -144,6 +144,50 @@ EOF
   mv "$tmp" "$status_file"
 }
 
+schedule_redeploy_with_helper() {
+  if [[ -z "${HOST_PROJECT_DIR:-}" ]]; then
+    return 1
+  fi
+  if [[ ! -f /.dockerenv ]]; then
+    return 1
+  fi
+  case "${SPARKLAB_REDEPLOY_HELPER:-true}" in
+    0|false|FALSE|no|NO|off|OFF)
+      return 1
+      ;;
+  esac
+
+  local helper_suffix helper_name
+  helper_suffix="${SPARKLAB_UPDATE_ID:-$(date +%s)}"
+  helper_suffix="$(printf '%s' "$helper_suffix" | tr -c 'A-Za-z0-9_.-' '-')"
+  helper_name="sparklab-redeploy-${helper_suffix:0:48}"
+
+  docker rm -f "$helper_name" >/dev/null 2>&1 || true
+
+  docker run -d --rm \
+    --name "$helper_name" \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v "$HOST_PROJECT_DIR:/app/repo" \
+    -v "$HOST_PROJECT_DIR/data/server:/app/data" \
+    -w /app/repo \
+    -e "APP_REPO_DIR=/app/repo" \
+    -e "SPARKLAB_REDEPLOY_ROOT_DIR=/app/repo" \
+    -e "HOST_PROJECT_DIR=$HOST_PROJECT_DIR" \
+    -e "COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME" \
+    -e "SPARKLAB_REDEPLOY_DELAY_SECONDS=$delay" \
+    -e "SPARKLAB_UPDATE_STATUS_FILE=$status_file" \
+    -e "SPARKLAB_UPDATE_LOG=$log_file" \
+    -e "SPARKLAB_UPDATE_ID=${SPARKLAB_UPDATE_ID:-}" \
+    -e "SPARKLAB_FROM_VERSION=${SPARKLAB_FROM_VERSION:-}" \
+    -e "SPARKLAB_TO_VERSION=$target_version" \
+    -e "SPARKLAB_TARGET_COMMIT=$target_commit" \
+    -e "GITHUB_REPO=${GITHUB_REPO:-}" \
+    -e "GITHUB_BRANCH=${GITHUB_BRANCH:-main}" \
+    --entrypoint /bin/bash \
+    sparklab-backend:local \
+    -lc 'sleep "${SPARKLAB_REDEPLOY_DELAY_SECONDS:-2}"; bash scripts/redeploy-compose.sh >"${SPARKLAB_UPDATE_LOG:-/tmp/sparklab-compose-update.log}" 2>&1'
+}
+
 echo "[SparkLab] Building Docker images"
 build_args=(build)
 case "${SPARKLAB_BUILD_PULL:-false}" in
@@ -159,16 +203,15 @@ delay="${SPARKLAB_REDEPLOY_DELAY_SECONDS:-2}"
 
 echo "[SparkLab] Scheduling Docker Compose redeploy in ${delay}s"
 mkdir -p "$(dirname "$log_file")"
-(
-  sleep "$delay"
-  cd "$ROOT_DIR"
-  if ! "${COMPOSE[@]}" up -d --remove-orphans --no-build; then
-    echo "[SparkLab] Docker Compose redeploy failed"
-    write_failed_status
-    exit 1
-  fi
-  "${COMPOSE[@]}" ps
-) >"$log_file" 2>&1 &
+if schedule_redeploy_with_helper; then
+  echo "[SparkLab] Redeploy helper container scheduled"
+else
+  (
+    sleep "$delay"
+    cd "$ROOT_DIR"
+    bash scripts/redeploy-compose.sh
+  ) >"$log_file" 2>&1 &
+fi
 
 echo "[SparkLab] Redeploy scheduled. Follow progress with: docker compose logs -f"
 echo "[SparkLab] Background redeploy log: $log_file"

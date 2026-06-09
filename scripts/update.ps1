@@ -188,8 +188,15 @@ Set-Location -LiteralPath '$escapedRoot'
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent '$escapedLog') | Out-Null
 $composeCommand up -d --remove-orphans --no-build *> '$escapedLog'
 if (`$LASTEXITCODE -ne 0) {
-  $statusCommand
-  exit `$LASTEXITCODE
+  "First Docker Compose redeploy attempt failed" *>> '$escapedLog'
+  $composeCommand ps -a *>> '$escapedLog'
+  $composeCommand rm -sf backend web *>> '$escapedLog'
+  "Retrying Docker Compose redeploy after stale-container cleanup" *>> '$escapedLog'
+  $composeCommand up -d --remove-orphans --no-build --force-recreate *>> '$escapedLog'
+  if (`$LASTEXITCODE -ne 0) {
+    $statusCommand
+    exit `$LASTEXITCODE
+  }
 }
 $composeCommand ps *>> '$escapedLog'
 "@
