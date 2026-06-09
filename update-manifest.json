@@ -1,17 +1,29 @@
 {
   "appId": "sparklab",
-  "version": "0.4.28",
+  "version": "0.4.29",
   "channel": "main",
-  "releasedAt": "2026-06-09T11:58:34+08:00",
-  "title": "收紧后台 Docker 操作边界",
+  "releasedAt": "2026-06-09T12:11:30+08:00",
+  "title": "加固课程文件上传入口",
   "mandatory": false,
   "announcement": {
     "enabled": true,
     "level": "warning",
-    "title": "后台 Docker 操作已收紧",
-    "message": "容器管理页的系统 Docker 容器改为只读展示，后台 start/stop/delete 接口只允许操作 SparkLab 受管实验容器，避免误停或误删平台自身容器。"
+    "title": "课程上传入口已加固",
+    "message": "本地视频上传现在要求教师或管理员登录，并限制大小、扩展名、MIME 与文件头；课件上传也会校验真实文件头并改为流式下载。"
   },
   "changelog": [
+    {
+      "version": "0.4.29",
+      "date": "2026-06-09",
+      "title": "加固课程文件上传入口",
+      "items": [
+        "本地视频上传接口新增登录与角色校验，仅教师、管理员和作者账号可上传。",
+        "视频上传新增大小上限、扩展名白名单、MIME 匹配和文件头校验，并使用随机文件名保存。",
+        "课件上传新增请求体上限、真实文件头校验和保存阶段硬性限流，拒绝伪装成 PDF、Word 或 PowerPoint 的文件。",
+        "课件下载改为流式响应，不再把整个文件一次性读入内存，降低大课件访问时的内存压力。",
+        "新增后端测试覆盖合法 PDF 上传和伪装 PDF 拒绝路径，并补充 VIDEO_UPLOAD_MAX_BYTES 部署配置说明。"
+      ]
+    },
     {
       "version": "0.4.28",
       "date": "2026-06-09",

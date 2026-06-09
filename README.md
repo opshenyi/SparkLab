@@ -201,6 +201,7 @@ SPARKLAB_BOOTSTRAP_ADMIN_PASSWORD=
 SPARKLAB_BOOTSTRAP_CREDENTIALS_FILE=/app/data/bootstrap-admin.txt
 COOKIE_SECURE=
 COOKIE_SAMESITE=lax
+VIDEO_UPLOAD_MAX_BYTES=536870912
 SPARKLAB_ENABLE_DEBUG_PAGES=false
 ```
 
@@ -208,6 +209,7 @@ SPARKLAB_ENABLE_DEBUG_PAGES=false
 远程学生需要访问容器 Web 端口时，建议把 `NEXT_PUBLIC_LAB_HOST` 设置为服务器域名或公网 IP；为空时前端会使用当前页面的 hostname。
 
 登录接口默认启用失败节流：同一账号及账号来源组合在 `AUTH_ATTEMPT_WINDOW_MINUTES` 分钟内失败达到 `AUTH_MAX_FAILED_ATTEMPTS` 次后，会按 `AUTH_LOCKOUT_MINUTES` 分钟返回 429，降低撞库和暴力尝试风险。
+本地视频上传仅允许教师、管理员和作者账号使用，默认限制为 `VIDEO_UPLOAD_MAX_BYTES=536870912` 字节，并会校验视频扩展名、MIME 类型和文件头。
 `/ai-test`、`/theme-test`、`/exam-debug/*` 属于调试页面，生产环境默认 404；只有临时排障时才建议设置 `SPARKLAB_ENABLE_DEBUG_PAGES=true`。
 
 ## 实验容器安全

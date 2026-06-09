@@ -2,6 +2,7 @@ package handler
 
 import (
 	"io"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 )
 
 const maxMaterialUpload = 40 << 20 // 40MB
+const materialUploadOverhead = 1 << 20
 
 func materialUploadDir() string {
 	return filepath.Join("uploads", "course_materials")
@@ -28,6 +30,42 @@ func extToKind(ext string) string {
 		return "ppt"
 	default:
 		return "other"
+	}
+}
+
+func materialMimeForExt(ext string) string {
+	switch strings.ToLower(ext) {
+	case ".pdf":
+		return "application/pdf"
+	case ".doc":
+		return "application/msword"
+	case ".docx":
+		return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+	case ".ppt":
+		return "application/vnd.ms-powerpoint"
+	case ".pptx":
+		return "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+	default:
+		return "application/octet-stream"
+	}
+}
+
+func validateMaterialHeader(ext string, head []byte) bool {
+	ext = strings.ToLower(ext)
+	if len(head) == 0 {
+		return false
+	}
+	switch ext {
+	case ".pdf":
+		return len(head) >= 5 && string(head[:5]) == "%PDF-"
+	case ".docx", ".pptx":
+		return len(head) >= 4 && head[0] == 0x50 && head[1] == 0x4b && head[2] == 0x03 && head[3] == 0x04
+	case ".doc", ".ppt":
+		return len(head) >= 8 &&
+			head[0] == 0xd0 && head[1] == 0xcf && head[2] == 0x11 && head[3] == 0xe0 &&
+			head[4] == 0xa1 && head[5] == 0xb1 && head[6] == 0x1a && head[7] == 0xe1
+	default:
+		return false
 	}
 }
 
@@ -103,13 +141,18 @@ func (h *Handler) UploadCourseMaterial(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "请填写课件标题"})
 		return
 	}
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxMaterialUpload+materialUploadOverhead)
 	fh, err := c.FormFile("file")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "请选择文件"})
 		return
 	}
+	if fh.Size <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "文件为空"})
+		return
+	}
 	if fh.Size > maxMaterialUpload {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "文件过大"})
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"message": "文件过大"})
 		return
 	}
 	ext := strings.ToLower(filepath.Ext(fh.Filename))
@@ -129,6 +172,20 @@ func (h *Handler) UploadCourseMaterial(c *gin.Context) {
 		return
 	}
 	defer src.Close()
+	head := make([]byte, 512)
+	n, readErr := io.ReadFull(src, head)
+	if readErr != nil && readErr != io.ErrUnexpectedEOF {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "读取文件头失败"})
+		return
+	}
+	if !validateMaterialHeader(ext, head[:n]) {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "文件内容与扩展名不匹配"})
+		return
+	}
+	if _, err := src.Seek(0, io.SeekStart); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "读取文件失败"})
+		return
+	}
 
 	if err := h.ensureMaterialDir(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "创建目录失败"})
@@ -142,27 +199,19 @@ func (h *Handler) UploadCourseMaterial(c *gin.Context) {
 		return
 	}
 	defer dst.Close()
-	if _, err := io.Copy(dst, src); err != nil {
+	limited := &io.LimitedReader{R: src, N: maxMaterialUpload + 1}
+	written, err := io.Copy(dst, limited)
+	if err != nil {
 		_ = os.Remove(destPath)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "保存文件失败"})
 		return
 	}
-
-	mimeType := fh.Header.Get("Content-Type")
-	if mimeType == "" || mimeType == "application/octet-stream" {
-		switch kind {
-		case "pdf":
-			mimeType = "application/pdf"
-		case "word":
-			mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-		case "ppt":
-			mimeType = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-		default:
-			if mimeType == "" {
-				mimeType = "application/octet-stream"
-			}
-		}
+	if written > maxMaterialUpload {
+		_ = os.Remove(destPath)
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"message": "文件过大"})
+		return
 	}
+	mimeType := materialMimeForExt(ext)
 
 	var maxOrder int
 	_ = h.db.Raw("SELECT COALESCE(MAX(sortOrder), 0) FROM course_materials WHERE courseId = ?", courseID).Scan(&maxOrder)
@@ -262,15 +311,21 @@ func (h *Handler) DownloadCourseMaterial(c *gin.Context) {
 		return
 	}
 
-	data, err := os.ReadFile(mat.StoredPath)
+	f, err := os.Open(mat.StoredPath)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"message": "文件已丢失"})
 		return
 	}
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil || info.IsDir() {
+		c.JSON(http.StatusNotFound, gin.H{"message": "文件已丢失"})
+		return
+	}
 	c.Header("Content-Type", mat.MimeType)
-	safeName := strings.ReplaceAll(mat.OriginalName, `"`, `'`)
-	c.Header("Content-Disposition", "inline; filename=\""+safeName+"\"")
-	c.Data(http.StatusOK, mat.MimeType, data)
+	safeName := filepath.Base(strings.ReplaceAll(mat.OriginalName, `"`, `'`))
+	c.Header("Content-Disposition", mime.FormatMediaType("inline", map[string]string{"filename": safeName}))
+	http.ServeContent(c.Writer, c.Request, safeName, info.ModTime(), f)
 }
 
 func (h *Handler) DeleteCourseMaterial(c *gin.Context) {

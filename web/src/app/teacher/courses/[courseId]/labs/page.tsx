@@ -298,9 +298,10 @@ export default function TeacherCourseLabsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 检查文件类型
-    if (!file.type.startsWith('video/')) {
-      alert('请选择视频文件');
+    const allowedVideoExts = ['.mp4', '.m4v', '.mov', '.webm', '.ogv'];
+    const lowerName = file.name.toLowerCase();
+    if (!allowedVideoExts.some((ext) => lowerName.endsWith(ext))) {
+      alert('请选择 mp4、m4v、mov、webm 或 ogv 视频文件');
       return;
     }
 
@@ -317,7 +318,8 @@ export default function TeacherCourseLabsPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Upload failed');
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `上传失败 (${response.status})`);
       }
 
       const result = await response.json();
@@ -338,7 +340,7 @@ export default function TeacherCourseLabsPage() {
       alert('视频上传成功！');
     } catch (error) {
       console.error('Failed to upload video:', error);
-      alert('视频上传失败，请重试');
+      alert(error instanceof Error ? error.message : '视频上传失败，请重试');
     } finally {
       setUploadingVideo(false);
     }
@@ -969,7 +971,7 @@ export default function TeacherCourseLabsPage() {
                         <label className="block text-sm text-on-surface-variant mb-2">或上传本地视频</label>
                         <input
                           type="file"
-                          accept="video/*"
+                          accept=".mp4,.m4v,.mov,.webm,.ogv,video/mp4,video/quicktime,video/webm,video/ogg"
                           onChange={handleVideoFileUpload}
                           disabled={uploadingVideo}
                           className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-on-primary file:cursor-pointer hover:file:opacity-90"
