@@ -1,17 +1,29 @@
 {
   "appId": "sparklab",
-  "version": "0.4.17",
+  "version": "0.4.18",
   "channel": "main",
-  "releasedAt": "2026-06-09T09:44:35+08:00",
-  "title": "重做系统更新卡片布局",
+  "releasedAt": "2026-06-09T10:03:31+08:00",
+  "title": "加固登录与调试页面暴露",
   "mandatory": false,
   "announcement": {
     "enabled": true,
     "level": "info",
-    "title": "系统更新卡片布局已重做",
-    "message": "管理后台的系统更新区域已改为标题右侧的紧凑状态面板，完成态、更新说明和失败日志都会更克制地展示。"
+    "title": "登录防爆破与调试页暴露已加固",
+    "message": "本次新增登录失败节流，生产环境默认关闭公开调试页面，并补齐相关部署配置说明。"
   },
   "changelog": [
+    {
+      "version": "0.4.18",
+      "date": "2026-06-09",
+      "title": "加固登录与调试页面暴露",
+      "items": [
+        "后端登录接口新增账号及账号来源组合的失败节流，连续失败超过阈值会临时返回 429，降低撞库和暴力尝试风险。",
+        "登录失败仍统一返回通用凭证错误，不区分账号不存在或密码错误，避免用户枚举。",
+        "新增 AUTH_MAX_FAILED_ATTEMPTS、AUTH_ATTEMPT_WINDOW_MINUTES、AUTH_LOCKOUT_MINUTES 配置，默认 10 分钟窗口内 8 次失败后锁定 10 分钟。",
+        "生产环境默认 404 隐藏 /ai-test、/theme-test、/exam-debug/* 调试页面，只能通过 SPARKLAB_ENABLE_DEBUG_PAGES=true 临时开启。",
+        ".env.example、Docker Compose 和 README 同步新增登录节流与调试页开关说明。"
+      ]
+    },
     {
       "version": "0.4.17",
       "date": "2026-06-09",

@@ -20,6 +20,8 @@ type Handler struct {
 	db  *gorm.DB
 	cfg *config.Config
 
+	authLimiter *authAttemptLimiter
+
 	// dockerHTTP 带总超时，用于 Docker Engine REST（创建容器、镜像列表等）
 	dockerHTTP *http.Client
 	// dockerAPIBaseURL 是 Docker Engine HTTP API 的请求基址。Unix socket 使用 http://docker 作为哑主机。
@@ -31,6 +33,7 @@ func New(db *gorm.DB, cfg *config.Config) *Handler {
 	return &Handler{
 		db:               db,
 		cfg:              cfg,
+		authLimiter:      newAuthAttemptLimiterFromEnv(),
 		dockerHTTP:       api,
 		dockerAPIBaseURL: baseURL,
 	}

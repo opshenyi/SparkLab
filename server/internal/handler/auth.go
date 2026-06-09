@@ -3,7 +3,9 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"sparklab/server/internal/auth"
 	"sparklab/server/internal/model"
@@ -176,20 +178,37 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
+	req.Username = strings.TrimSpace(req.Username)
+	if req.Username == "" || req.Password == "" {
+		util.BadRequest(c, "username and password are required")
+		return
+	}
+
+	limitKeys := loginRateLimitKeys(c, req.Username)
+	if retryAfter, ok := h.authLimiter.allow(limitKeys); !ok {
+		c.Header("Retry-After", strconv.Itoa(int(retryAfter.Round(time.Second).Seconds())))
+		c.JSON(http.StatusTooManyRequests, gin.H{"message": "登录尝试过多，请稍后再试"})
+		return
+	}
+
 	var u authUserRecord
 	err := h.db.Table("users").
 		Select("id, username, displayName, email, password, role, avatar, qqNumber, classId").
 		Where("username = ? OR qqNumber = ?", req.Username, req.Username).
 		Take(&u).Error
 	if err != nil {
+		h.authLimiter.recordFailure(limitKeys)
 		util.Unauthorized(c, "Invalid credentials")
 		return
 	}
 
 	if bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(req.Password)) != nil {
+		h.authLimiter.recordFailure(limitKeys)
 		util.Unauthorized(c, "Invalid credentials")
 		return
 	}
+
+	h.authLimiter.reset(limitKeys)
 
 	token, err := auth.SignToken(h.cfg.JWTSecret, u.ID, u.Username, u.Role, h.cfg.JWTExpires)
 	if err != nil {
