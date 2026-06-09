@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -80,6 +81,13 @@ func (h *Handler) CreateContainer(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Lab not found"})
 		return
 	}
+	if h.abortUnlessCourseVisible(c, lab.CourseID) {
+		return
+	}
+	if lab.Type != "" && lab.Type != "lab" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Only hands-on labs can create containers"})
+		return
+	}
 
 	server, err := h.ensureLocalDockerServer()
 	if err != nil {
@@ -99,8 +107,8 @@ func (h *Handler) CreateContainer(c *gin.Context) {
 		ContainerID:  "", // 将在创建后填充
 		Status:       "creating",
 		PortMappings: lab.PortMappings,
-		CPULimit:     lab.CPULimit,
-		MemoryLimit:  lab.MemoryLimit,
+		CPULimit:     normalizedLabCPU(lab.CPULimit),
+		MemoryLimit:  normalizedLabMemoryMB(lab.MemoryLimit),
 		CreatedAt:    now,
 		LastActiveAt: now,
 		AutoStopAt:   &autoStopAt,
@@ -299,7 +307,7 @@ func (h *Handler) StartContainer(c *gin.Context) {
 	}
 
 	// 调用 Docker API 启动容器
-	resp, err := h.dockerRequest(nil, "POST", "/containers/"+container.ContainerID+"/start", nil, nil)
+	resp, err := h.dockerRequest(nil, "POST", "/containers/"+url.PathEscape(container.ContainerID)+"/start", nil, nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to start container: " + err.Error()})
 		return
@@ -353,7 +361,7 @@ func (h *Handler) StopContainer(c *gin.Context) {
 
 	// 调用 Docker API 停止容器
 	// Use t=5 for faster stop (5 second grace period before force kill)
-	resp, err := h.dockerRequest(nil, "POST", "/containers/"+container.ContainerID+"/stop?t=5", nil, nil)
+	resp, err := h.dockerRequest(nil, "POST", "/containers/"+url.PathEscape(container.ContainerID)+"/stop?t=5", nil, nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to stop container: " + err.Error()})
 		return
@@ -369,8 +377,9 @@ func (h *Handler) StopContainer(c *gin.Context) {
 	// 更新数据库
 	now := time.Now()
 	updates := map[string]any{
-		"status":    "stopped",
-		"stoppedAt": now,
+		"status":     "stopped",
+		"stoppedAt":  now,
+		"autoStopAt": nil,
 	}
 	if err := h.db.Table("containers").Where("id = ?", container.ID).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Stop container failed"})
@@ -396,13 +405,13 @@ func (h *Handler) RemoveContainer(c *gin.Context) {
 	if strings.TrimSpace(container.ContainerID) != "" {
 		// 如果容器正在运行，先停止
 		if container.Status == "running" {
-			if resp, err := h.dockerRequest(nil, "POST", "/containers/"+container.ContainerID+"/stop", nil, nil); err == nil {
+			if resp, err := h.dockerRequest(nil, "POST", "/containers/"+url.PathEscape(container.ContainerID)+"/stop", nil, nil); err == nil {
 				resp.Body.Close()
 			}
 		}
 
 		// 调用 Docker API 删除容器
-		resp, err := h.dockerRequest(nil, "DELETE", "/containers/"+container.ContainerID+"?force=true", nil, nil)
+		resp, err := h.dockerRequest(nil, "DELETE", "/containers/"+url.PathEscape(container.ContainerID)+"?force=true", nil, nil)
 		if err == nil {
 			resp.Body.Close()
 		}
@@ -519,17 +528,18 @@ func (h *Handler) createDockerContainer(containerID string, container *model.Con
 	log("Generated container name: %s", containerName)
 
 	// 构建容器创建请求
+	hostConfig := buildLabHostConfig(lab)
 	createReq := map[string]any{
 		"Image":     lab.DockerImage,
 		"Tty":       true,
 		"OpenStdin": true,
-		"HostConfig": map[string]any{
-			"Memory":   lab.MemoryLimit * 1024 * 1024, // MB to bytes
-			"NanoCpus": int64(lab.CPULimit * 1e9),     // CPU cores to nanocpus
-			"RestartPolicy": map[string]any{
-				"Name": lab.RestartPolicy,
-			},
+		"Labels": map[string]string{
+			"sparklab.managed":      "true",
+			"sparklab.container_id": container.ID,
+			"sparklab.user_id":      container.UserID,
+			"sparklab.lab_id":       lab.ID,
 		},
+		"HostConfig": hostConfig,
 	}
 	var actualPortMappings *string
 
@@ -541,11 +551,15 @@ func (h *Handler) createDockerContainer(containerID string, container *model.Con
 			portBindings := make(map[string]any)
 
 			for _, pm := range portMappings {
-				containerPort := fmt.Sprintf("%v/%s", pm["containerPort"], pm["protocol"])
+				containerPort, ok := labContainerPortSpec(pm)
+				if !ok {
+					log("Skipped invalid lab port mapping: %v", pm)
+					continue
+				}
 				exposedPorts[containerPort] = struct{}{}
 
 				hostPort := ""
-				if pm["random"] == true {
+				if pm["random"] == true || !labStaticHostPortsAllowed() {
 					// 获取随机可用端口
 					availPort, err := h.getAvailablePort(server)
 					if err != nil {
@@ -554,12 +568,21 @@ func (h *Handler) createDockerContainer(containerID string, container *model.Con
 					}
 					hostPort = fmt.Sprintf("%d", availPort)
 					pm["hostPort"] = availPort
+				} else if parsedHostPort, ok := parseHostPort(pm["hostPort"]); ok && hostPortInLabRange(parsedHostPort) {
+					hostPort = fmt.Sprintf("%d", parsedHostPort)
 				} else {
-					hostPort = fmt.Sprintf("%v", pm["hostPort"])
+					availPort, err := h.getAvailablePort(server)
+					if err != nil {
+						log("Failed to get available port: %v", err)
+						continue
+					}
+					hostPort = fmt.Sprintf("%d", availPort)
+					pm["hostPort"] = availPort
+					pm["random"] = true
 				}
 
 				portBindings[containerPort] = []map[string]string{
-					{"HostPort": hostPort},
+					{"HostIP": labHostBindIP(), "HostPort": hostPort},
 				}
 			}
 			if actual, err := json.Marshal(portMappings); err == nil {
@@ -590,13 +613,19 @@ func (h *Handler) createDockerContainer(containerID string, container *model.Con
 		if err := json.Unmarshal([]byte(*lab.VolumeMounts), &volumeMounts); err == nil {
 			binds := make([]string, 0, len(volumeMounts))
 			for _, vm := range volumeMounts {
+				if !labHostBindAllowed(vm["hostPath"]) {
+					log("Skipped unsafe lab host bind: %s", vm["hostPath"])
+					continue
+				}
 				bind := fmt.Sprintf("%s:%s", vm["hostPath"], vm["containerPath"])
 				if mode, ok := vm["mode"]; ok && mode != "" {
 					bind += ":" + mode
 				}
 				binds = append(binds, bind)
 			}
-			createReq["HostConfig"].(map[string]any)["Binds"] = binds
+			if len(binds) > 0 {
+				createReq["HostConfig"].(map[string]any)["Binds"] = binds
+			}
 		}
 	}
 
@@ -640,7 +669,7 @@ func (h *Handler) createDockerContainer(containerID string, container *model.Con
 	log("Container created with Docker ID: %s", createResp.ID)
 
 	// 启动容器
-	startResp, err := h.dockerRequest(server, "POST", "/containers/"+createResp.ID+"/start", nil, nil)
+	startResp, err := h.dockerRequest(server, "POST", "/containers/"+url.PathEscape(createResp.ID)+"/start", nil, nil)
 	if err != nil {
 		log("Failed to start container: %v", err)
 		h.db.Model(&model.Container{}).Where("id = ?", containerID).Updates(map[string]any{
@@ -728,8 +757,12 @@ func generateContainerName(username string) string {
 	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
 	random := make([]byte, 6)
 	for i := range random {
-		random[i] = charset[time.Now().UnixNano()%int64(len(charset))]
-		time.Sleep(time.Nanosecond) // 确保每次生成不同的随机数
+		var b [1]byte
+		if _, err := rand.Read(b[:]); err != nil {
+			random[i] = charset[time.Now().UnixNano()%int64(len(charset))]
+			continue
+		}
+		random[i] = charset[int(b[0])%len(charset)]
 	}
 	return fmt.Sprintf("%s-%s", username, string(random))
 }

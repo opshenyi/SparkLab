@@ -12,6 +12,14 @@ import type { FitAddon as FitAddonType } from '@xterm/addon-fit';
 import TextSelectionAI from '@/components/TextSelectionAI';
 import { backendWsHost } from '@/lib/backendWs';
 
+const buildContainerWebUrl = (hostPort: string | number) => {
+  const configuredHost = process.env.NEXT_PUBLIC_LAB_HOST?.trim();
+  const configuredProtocol = process.env.NEXT_PUBLIC_LAB_PROTOCOL?.replace(':', '').trim();
+  const host = configuredHost || (typeof window !== 'undefined' ? window.location.hostname : 'localhost');
+  const protocol = configuredProtocol || 'http';
+  return `${protocol}://${host}:${hostPort}`;
+};
+
 export default function LabPage() {
   const router = useRouter();
   const params = useParams();
@@ -76,7 +84,7 @@ export default function LabPage() {
       } catch (e) {
         console.error('Failed to parse port mappings:', e);
       }
-      setWebUrl(`http://localhost:${defaultPort}`);
+      setWebUrl(buildContainerWebUrl(defaultPort));
       setWebLoadError(false);
     } else {
       setWebUrl('');

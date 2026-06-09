@@ -840,6 +840,7 @@ func (h *Handler) StartServerContainer(c *gin.Context) {
 		"status":       "running",
 		"startedAt":    now,
 		"lastActiveAt": now,
+		"autoStopAt":   now.Add(autoStopTimeout()),
 		"stoppedAt":    nil,
 	})
 
@@ -872,8 +873,9 @@ func (h *Handler) StopServerContainer(c *gin.Context) {
 	// Update database if this container exists in DB
 	now := time.Now()
 	h.db.Model(&model.Container{}).Where("serverId = ? AND containerId = ?", serverID, containerID).Updates(map[string]any{
-		"status":    "stopped",
-		"stoppedAt": now,
+		"status":     "stopped",
+		"stoppedAt":  now,
+		"autoStopAt": nil,
 	})
 
 	c.JSON(http.StatusOK, gin.H{"message": "Container stopped successfully"})

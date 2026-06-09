@@ -33,6 +33,7 @@ func New(cfg *config.Config, db *gorm.DB) *gin.Engine {
 	}))
 
 	h := handler.New(db, cfg)
+	h.StartContainerJanitor()
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"ok": true})

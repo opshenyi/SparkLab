@@ -1,17 +1,30 @@
 {
   "appId": "sparklab",
-  "version": "0.4.14",
+  "version": "0.4.15",
   "channel": "main",
-  "releasedAt": "2026-06-09T09:01:09+08:00",
-  "title": "加固商用部署安全默认值",
+  "releasedAt": "2026-06-09T09:24:15+08:00",
+  "title": "加固学生实验容器隔离",
   "mandatory": false,
   "announcement": {
     "enabled": true,
     "level": "info",
-    "title": "商用部署安全默认值已加固",
-    "message": "本次移除固定 JWT 密钥和默认弱口令路径，新部署会生成随机首管理员密码，并为认证 Cookie 增加 Secure/SameSite 策略。"
+    "title": "学生实验容器隔离已加固",
+    "message": "本次为学生实验容器增加访问控制、资源封顶、安全 HostConfig、受控端口和自动清理任务，减少真实训练环境的资源与宿主机风险。"
   },
   "changelog": [
+    {
+      "version": "0.4.15",
+      "date": "2026-06-09",
+      "title": "加固学生实验容器隔离",
+      "items": [
+        "创建实验容器前会校验学生是否有权访问该课程，并阻止视频、试卷等非实操内容创建容器。",
+        "实验容器统一启用资源封顶、PIDs 限制、no-new-privileges、禁用 privileged、默认丢弃 Linux capabilities，并禁用实验配置里的自动重启策略。",
+        "宿主机路径挂载默认关闭，如确需挂载训练数据，必须显式打开并限定 LAB_CONTAINER_HOST_BIND_ROOT。",
+        "实验端口默认走 30000-49999 随机端口，并支持通过 LAB_CONTAINER_HOST_BIND_IP 控制绑定地址，避免课程配置占用低位端口。",
+        "实验页 Web 访问地址不再写死 localhost，会使用当前页面 hostname，也可通过 NEXT_PUBLIC_LAB_HOST / NEXT_PUBLIC_LAB_PROTOCOL 覆盖。",
+        "新增容器 janitor，自动停止超过 autoStopAt 的运行容器，并清理长时间卡在 creating 的记录。"
+      ]
+    },
     {
       "version": "0.4.14",
       "date": "2026-06-09",
