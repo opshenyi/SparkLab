@@ -257,6 +257,32 @@ func (h *Handler) SubmitExam(c *gin.Context) {
 		}
 	}()
 
+	var existingCount int64
+	if err := tx.Model(&model.Submission{}).
+		Where("userId = ? AND labId = ? AND status IN ?", uid, labID, []string{"pending", "passed"}).
+		Count(&existingCount).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to check existing submission"})
+		return
+	}
+	if existingCount > 0 {
+		var existing model.Submission
+		_ = tx.Where("userId = ? AND labId = ? AND status IN ?", uid, labID, []string{"pending", "passed"}).
+			Order("submittedAt desc").
+			Take(&existing).Error
+		tx.Rollback()
+		message := "该试卷已有待批改提交，请等待老师批改"
+		if existing.Status == "passed" {
+			message = "该试卷已通过，不能重复提交"
+		}
+		c.JSON(http.StatusConflict, gin.H{
+			"message":      message,
+			"submissionId": existing.ID,
+			"status":       existing.Status,
+		})
+		return
+	}
+
 	if err := tx.Create(&submission).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create submission"})
