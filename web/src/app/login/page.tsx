@@ -4,7 +4,7 @@ import LoadingBar from '@/components/LoadingBar';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
-import { authAPI, publicClassAPI } from '@/lib/api';
+import { authAPI } from '@/lib/api';
 
 export default function Login() {
     const router = useRouter();
@@ -27,9 +27,7 @@ export default function Login() {
         password: '',
         confirmPassword: '',
         qqNumber: '',
-        classId: '',
     });
-    const [publicClasses, setPublicClasses] = useState<{ id: string; name: string }[]>([]);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -41,12 +39,6 @@ export default function Login() {
     useEffect(() => {
         checkAuth();
     }, [checkAuth]);
-
-    useEffect(() => {
-        if (isRegisterMode) {
-            publicClassAPI.list().then((r) => setPublicClasses(r.data)).catch(() => setPublicClasses([]));
-        }
-    }, [isRegisterMode]);
 
     useEffect(() => {
         if (!isLoading && isAuthenticated) {
@@ -95,7 +87,6 @@ export default function Login() {
                 displayName: registerData.displayName,
                 password: registerData.password,
                 qqNumber: registerData.qqNumber || undefined,
-                classId: registerData.classId || undefined,
             });
             setSuccess('注册成功！请登录您的账号');
             setIsRegisterMode(false);
@@ -105,7 +96,6 @@ export default function Login() {
                 password: '',
                 confirmPassword: '',
                 qqNumber: '',
-                classId: '',
             });
         } catch (err: any) {
             setError(err.response?.data?.message || '注册失败，用户名或QQ号可能已被使用');
@@ -292,24 +282,9 @@ export default function Login() {
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-on-surface mb-1.5">学习小组（可选）</label>
-                                <p className="mb-2 text-xs text-on-surface-variant">
-                                    公开注册仅创建学生账号。教师账号请联系管理员创建。
-                                </p>
-                                <select
-                                    value={registerData.classId}
-                                    onChange={(e) => setRegisterData({ ...registerData, classId: e.target.value })}
-                                    className="w-full h-12 px-4 bg-surface-container-high border border-outline-variant rounded-xl text-sm"
-                                >
-                                    <option value="">暂不加入小组</option>
-                                    {publicClasses.map((cl) => (
-                                        <option key={cl.id} value={cl.id}>
-                                            {cl.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                            <p className="rounded-md bg-surface-container px-4 py-3 text-xs leading-5 text-on-surface-variant">
+                                公开注册仅创建学生账号。学习小组由老师或管理员分配。
+                            </p>
 
                             <div>
                                 <label className="block text-sm font-medium text-on-surface mb-1.5">QQ号（可选）</label>

@@ -34,8 +34,8 @@ type registerReq struct {
 	Password    string   `json:"password"`
 	QQNumber    *string  `json:"qqNumber"`
 	Role        string   `json:"role"`     // 公开注册仅允许 STUDENT；教师由管理员创建
-	ClassID     *string  `json:"classId"`  // 学生可选，加入单个学习小组
-	ClassIDs    []string `json:"classIds"` // 学生可选，加入多个
+	ClassID     *string  `json:"classId"`  // 公开注册不允许自行选择学习小组
+	ClassIDs    []string `json:"classIds"` // 公开注册不允许自行选择学习小组
 }
 
 type loginReq struct {
@@ -115,43 +115,9 @@ func (h *Handler) Register(c *gin.Context) {
 		util.BadRequest(c, "公开注册仅支持学生账号，教师账号请联系管理员创建")
 		return
 	}
-
-	seen := make(map[string]struct{})
-	var groupIDs []string
-	addGroup := func(raw string) bool {
-		s := strings.TrimSpace(raw)
-		if s == "" {
-			return true
-		}
-		if _, dup := seen[s]; dup {
-			return true
-		}
-		var cnt int64
-		h.db.Model(&model.Class{}).Where("id = ?", s).Count(&cnt)
-		if cnt == 0 {
-			util.BadRequest(c, "学习小组不存在")
-			return false
-		}
-		seen[s] = struct{}{}
-		groupIDs = append(groupIDs, s)
-		return true
-	}
-	if role == "STUDENT" {
-		if req.ClassID != nil {
-			if !addGroup(*req.ClassID) {
-				return
-			}
-		}
-		for _, x := range req.ClassIDs {
-			if !addGroup(x) {
-				return
-			}
-		}
-	}
-
-	var classIDPtr *string
-	if role == "STUDENT" && len(groupIDs) > 0 {
-		classIDPtr = &groupIDs[0]
+	if (req.ClassID != nil && strings.TrimSpace(*req.ClassID) != "") || len(req.ClassIDs) > 0 {
+		util.BadRequest(c, "学习小组由老师或管理员分配，公开注册不能自行选择小组")
+		return
 	}
 
 	u := model.User{
@@ -162,7 +128,6 @@ func (h *Handler) Register(c *gin.Context) {
 		Password:     string(hashed),
 		Role:         role,
 		QQNumber:     qqNumber,
-		ClassID:      classIDPtr,
 		CreatedAt:    model.Now(),
 		UpdatedAt:    model.Now(),
 		LastActiveAt: model.Now(),
@@ -171,16 +136,6 @@ func (h *Handler) Register(c *gin.Context) {
 	if err := h.db.Create(&u).Error; err != nil {
 		util.Error(c, http.StatusInternalServerError, "Create user failed")
 		return
-	}
-
-	for _, gid := range groupIDs {
-		gm := model.GroupMembership{
-			ID:        newID(),
-			UserID:    u.ID,
-			ClassID:   gid,
-			CreatedAt: model.Now(),
-		}
-		_ = h.db.Create(&gm).Error
 	}
 
 	c.JSON(http.StatusCreated, h.userProfileMapFromModel(u))
@@ -433,13 +388,9 @@ func (h *Handler) userProfileMapFromModel(u model.User) gin.H {
 	return h.userProfileMapFromRecord(rec)
 }
 
-type studyGroupIDBody struct {
-	ClassID string `json:"classId"`
-}
-
 // StudentJoinGroup POST /auth/groups/join
 func (h *Handler) StudentJoinGroup(c *gin.Context) {
-	uid, ok := userIDFromCtx(c)
+	_, ok := userIDFromCtx(c)
 	if !ok {
 		util.Unauthorized(c, "Unauthorized")
 		return
@@ -448,44 +399,12 @@ func (h *Handler) StudentJoinGroup(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"message": "仅学生可加入学习小组"})
 		return
 	}
-	var req studyGroupIDBody
-	if err := c.ShouldBindJSON(&req); err != nil || strings.TrimSpace(req.ClassID) == "" {
-		util.BadRequest(c, "请提供 classId")
-		return
-	}
-	gid := strings.TrimSpace(req.ClassID)
-	var cnt int64
-	h.db.Model(&model.Class{}).Where("id = ?", gid).Count(&cnt)
-	if cnt == 0 {
-		util.BadRequest(c, "学习小组不存在")
-		return
-	}
-	var n int64
-	h.db.Model(&model.GroupMembership{}).Where("userId = ? AND classId = ?", uid, gid).Count(&n)
-	if n > 0 {
-		c.JSON(http.StatusOK, gin.H{"message": "已在该小组"})
-		return
-	}
-	gm := model.GroupMembership{
-		ID:        newID(),
-		UserID:    uid,
-		ClassID:   gid,
-		CreatedAt: model.Now(),
-	}
-	if err := h.db.Create(&gm).Error; err != nil {
-		util.Error(c, http.StatusInternalServerError, "加入失败")
-		return
-	}
-	var u model.User
-	if err := h.db.Select("classId").Where("id = ?", uid).Take(&u).Error; err == nil && (u.ClassID == nil || strings.TrimSpace(*u.ClassID) == "") {
-		_ = h.db.Model(&model.User{}).Where("id = ?", uid).Updates(map[string]any{"classId": gid, "updatedAt": model.Now()}).Error
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "ok"})
+	c.JSON(http.StatusForbidden, gin.H{"message": "学习小组由老师或管理员分配"})
 }
 
 // StudentLeaveGroup POST /auth/groups/leave
 func (h *Handler) StudentLeaveGroup(c *gin.Context) {
-	uid, ok := userIDFromCtx(c)
+	_, ok := userIDFromCtx(c)
 	if !ok {
 		util.Unauthorized(c, "Unauthorized")
 		return
@@ -494,31 +413,5 @@ func (h *Handler) StudentLeaveGroup(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"message": "仅学生可退出学习小组"})
 		return
 	}
-	var req studyGroupIDBody
-	if err := c.ShouldBindJSON(&req); err != nil || strings.TrimSpace(req.ClassID) == "" {
-		util.BadRequest(c, "请提供 classId")
-		return
-	}
-	gid := strings.TrimSpace(req.ClassID)
-	_ = h.db.Where("userId = ? AND classId = ?", uid, gid).Delete(&model.GroupMembership{}).Error
-
-	var u model.User
-	if err := h.db.Select("classId").Where("id = ?", uid).Take(&u).Error; err != nil {
-		c.JSON(http.StatusOK, gin.H{"message": "ok"})
-		return
-	}
-	if u.ClassID == nil || strings.TrimSpace(*u.ClassID) != gid {
-		c.JSON(http.StatusOK, gin.H{"message": "ok"})
-		return
-	}
-	var nextIDs []string
-	_ = h.db.Model(&model.GroupMembership{}).Where("userId = ?", uid).Limit(1).Pluck("classId", &nextIDs)
-	updates := map[string]any{"updatedAt": model.Now()}
-	if len(nextIDs) == 0 || strings.TrimSpace(nextIDs[0]) == "" {
-		updates["classId"] = nil
-	} else {
-		updates["classId"] = strings.TrimSpace(nextIDs[0])
-	}
-	_ = h.db.Model(&model.User{}).Where("id = ?", uid).Updates(updates).Error
-	c.JSON(http.StatusOK, gin.H{"message": "ok"})
+	c.JSON(http.StatusForbidden, gin.H{"message": "学习小组由老师或管理员维护"})
 }

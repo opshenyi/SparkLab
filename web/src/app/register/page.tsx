@@ -4,7 +4,7 @@ import LoadingBar from '@/components/LoadingBar';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
-import { authAPI, publicClassAPI } from '@/lib/api';
+import { authAPI } from '@/lib/api';
 
 export default function Register() {
     const router = useRouter();
@@ -20,17 +20,11 @@ export default function Register() {
         password: '',
         confirmPassword: '',
         qqNumber: '',
-        classIds: [] as string[],
     });
-    const [publicClasses, setPublicClasses] = useState<{ id: string; name: string }[]>([]);
 
     useEffect(() => {
         checkAuth();
     }, [checkAuth]);
-
-    useEffect(() => {
-        publicClassAPI.list().then((r) => setPublicClasses(r.data)).catch(() => setPublicClasses([]));
-    }, []);
 
     useEffect(() => {
         if (!isLoading && isAuthenticated) {
@@ -52,14 +46,11 @@ export default function Register() {
         }
 
         try {
-            const classIds = formData.classIds;
             await authAPI.register({
                 username: formData.username,
                 displayName: formData.displayName,
                 password: formData.password,
                 qqNumber: formData.qqNumber || undefined,
-                ...(classIds && classIds.length === 1 ? { classId: classIds[0] } : {}),
-                ...(classIds && classIds.length > 1 ? { classIds } : {}),
             });
             router.push('/login?registered=true');
         } catch (err: any) {
@@ -111,6 +102,9 @@ export default function Register() {
                                     placeholder="用于登录，至少3个字符"
                                     required
                                     minLength={3}
+                                    maxLength={32}
+                                    pattern="[a-zA-Z0-9_-]+"
+                                    title="只能包含字母、数字、下划线和短横线"
                                     className="w-full h-12 px-4 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                 />
                             </div>
@@ -126,49 +120,15 @@ export default function Register() {
                                     placeholder="真实姓名，用于显示"
                                     required
                                     minLength={2}
+                                    maxLength={40}
                                     className="w-full h-12 px-4 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                 />
                             </div>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-on-surface mb-1.5">
-                                学习小组（可选，可多选）
-                            </label>
-                            <p className="text-xs text-on-surface-variant mb-2">
-                                公开注册仅创建学生账号。教师账号请联系管理员创建。
-                            </p>
-                            <div className="max-h-40 overflow-y-auto rounded-xl border border-outline-variant bg-surface-container-high p-3 space-y-2">
-                                {publicClasses.length === 0 ? (
-                                    <p className="text-sm text-on-surface-variant">暂无小组，可直接注册后在资料页加入。</p>
-                                ) : (
-                                    publicClasses.map((cl) => {
-                                        const checked = formData.classIds.includes(cl.id);
-                                        return (
-                                            <label
-                                                key={cl.id}
-                                                className="flex items-center gap-2 text-sm cursor-pointer"
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={checked}
-                                                    onChange={() => {
-                                                        setFormData((prev) => ({
-                                                            ...prev,
-                                                            classIds: checked
-                                                                ? prev.classIds.filter((x) => x !== cl.id)
-                                                                : [...prev.classIds, cl.id],
-                                                        }));
-                                                    }}
-                                                    className="rounded border-outline-variant"
-                                                />
-                                                <span>{cl.name}</span>
-                                            </label>
-                                        );
-                                    })
-                                )}
-                            </div>
-                        </div>
+                        <p className="rounded-md bg-surface-container px-4 py-3 text-xs leading-5 text-on-surface-variant">
+                            公开注册仅创建学生账号。学习小组由老师或管理员分配。
+                        </p>
 
                         <div>
                             <label className="block text-sm font-medium text-on-surface mb-1.5">QQ号（可选）</label>
@@ -178,6 +138,9 @@ export default function Register() {
                                     value={formData.qqNumber}
                                     onChange={(e) => setFormData({ ...formData, qqNumber: e.target.value })}
                                     placeholder="用于显示QQ头像"
+                                    maxLength={15}
+                                    pattern="[0-9]*"
+                                    title="只能包含数字"
                                     className="w-full h-12 px-4 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                 />
                             </div>
@@ -196,6 +159,7 @@ export default function Register() {
                                     placeholder="至少6个字符"
                                     required
                                     minLength={6}
+                                    maxLength={72}
                                     className="w-full h-12 pl-4 pr-20 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                 />
                                 <button
@@ -218,6 +182,7 @@ export default function Register() {
                                     placeholder="再次输入密码"
                                     required
                                     minLength={6}
+                                    maxLength={72}
                                     className="w-full h-12 px-4 bg-surface-lowest rounded-md text-sm text-on-surface placeholder-on-surface-variant transition-all outline-none"
                                 />
                             </div>

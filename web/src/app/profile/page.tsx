@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import Sidebar from '@/components/Sidebar';
 import TeacherSidebar from '@/components/TeacherSidebar';
 import LoadingBar from '@/components/LoadingBar';
-import api, { authAPI, publicClassAPI } from '@/lib/api';
+import api from '@/lib/api';
 import { roleLabel, ROLE_PROFILE_PILL_LAYOUT_CLASS, roleBadgeColorsStyle } from '@/lib/roleLabels';
 import { profilePageCardClass, profilePageFontClass, profilePageMainInnerClass } from '@/lib/profileShell';
 
@@ -34,8 +34,6 @@ export default function ProfilePage() {
     qqNumber: '',
   });
   const [isSaving, setIsSaving] = useState(false);
-  const [publicGroups, setPublicGroups] = useState<{ id: string; name: string }[]>([]);
-  const [groupBusy, setGroupBusy] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -57,12 +55,6 @@ export default function ProfilePage() {
       loadActivities();
     }
   }, [user]);
-
-  useEffect(() => {
-    if (user?.role === 'STUDENT') {
-      publicClassAPI.list().then((r) => setPublicGroups(r.data)).catch(() => setPublicGroups([]));
-    }
-  }, [user?.role]);
 
   const loadActivities = async () => {
     try {
@@ -301,65 +293,17 @@ export default function ProfilePage() {
                           {user.studyGroups!.map((g) => (
                             <li
                               key={g.id}
-                              className="inline-flex items-center gap-2 rounded-full bg-surface-container px-3 py-1.5 text-sm"
+                              className="inline-flex items-center rounded-full bg-surface-container px-3 py-1.5 text-sm"
                             >
                               <span className="font-medium text-on-surface">{g.name}</span>
-                              <button
-                                type="button"
-                                disabled={groupBusy === g.id}
-                                onClick={async () => {
-                                  setGroupBusy(g.id);
-                                  try {
-                                    await authAPI.leaveStudyGroup(g.id);
-                                    await checkAuth();
-                                  } catch (e: unknown) {
-                                    alert((e as { response?: { data?: { message?: string } } })?.response?.data?.message || '退出失败');
-                                  } finally {
-                                    setGroupBusy(null);
-                                  }
-                                }}
-                                className="text-xs font-semibold text-error hover:underline disabled:opacity-50"
-                              >
-                                退出
-                              </button>
                             </li>
                           ))}
                         </ul>
                       )}
                     </div>
-                    <div>
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
-                        加入其他小组
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {publicGroups
-                          .filter((g) => !(user.studyGroups || []).some((x) => x.id === g.id))
-                          .map((g) => (
-                            <button
-                              key={g.id}
-                              type="button"
-                              disabled={groupBusy === g.id}
-                              onClick={async () => {
-                                setGroupBusy(g.id);
-                                try {
-                                  await authAPI.joinStudyGroup(g.id);
-                                  await checkAuth();
-                                } catch (e: unknown) {
-                                  alert((e as { response?: { data?: { message?: string } } })?.response?.data?.message || '加入失败');
-                                } finally {
-                                  setGroupBusy(null);
-                                }
-                              }}
-                              className="rounded-full border border-outline-variant bg-surface-lowest/80 px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-primary/10 disabled:opacity-50 dark:bg-surface-container/50"
-                            >
-                              + {g.name}
-                            </button>
-                          ))}
-                      </div>
-                      {publicGroups.length === 0 ? (
-                        <p className="mt-2 text-xs text-on-surface-variant">暂无可选小组，请待老师创建。</p>
-                      ) : null}
-                    </div>
+                    <p className="text-xs leading-5 text-on-surface-variant">
+                      学习小组由老师或管理员维护。如需调整，请联系你的课程老师。
+                    </p>
                   </div>
                 </MsCard>
               </section>
