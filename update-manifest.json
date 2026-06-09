@@ -1,17 +1,29 @@
 {
   "appId": "sparklab",
-  "version": "0.4.27",
+  "version": "0.4.28",
   "channel": "main",
-  "releasedAt": "2026-06-09T11:48:00+08:00",
-  "title": "收紧系统更新状态条",
+  "releasedAt": "2026-06-09T11:58:34+08:00",
+  "title": "收紧后台 Docker 操作边界",
   "mandatory": false,
   "announcement": {
     "enabled": true,
-    "level": "info",
-    "title": "系统更新界面更紧凑",
-    "message": "管理首页系统更新区域改为一行状态条布局，版本、状态、摘要和操作收进同一层级，减少刷新后占用的首屏空间。"
+    "level": "warning",
+    "title": "后台 Docker 操作已收紧",
+    "message": "容器管理页的系统 Docker 容器改为只读展示，后台 start/stop/delete 接口只允许操作 SparkLab 受管实验容器，避免误停或误删平台自身容器。"
   },
   "changelog": [
+    {
+      "version": "0.4.28",
+      "date": "2026-06-09",
+      "title": "收紧后台 Docker 操作边界",
+      "items": [
+        "后台按 Docker ID 启动、停止、删除容器前，会先确认该 Docker 容器存在于 SparkLab 容器记录中。",
+        "未知宿主机容器会直接返回 404，跨节点或未绑定旧记录会返回 403，不再进入 Docker Engine 操作流程。",
+        "本机 Docker 容器列表中的系统容器改为只读展示，前端不再显示终端、启动、停止或删除按钮。",
+        "本机 Docker 服务路由只接受 local-docker 节点，避免任意 serverId 路径误落到本机 Docker。",
+        "新增后端测试覆盖未知容器、跨节点容器以及受管容器 start/stop/remove 成功路径。"
+      ]
+    },
     {
       "version": "0.4.27",
       "date": "2026-06-09",

@@ -522,6 +522,9 @@ func (h *Handler) listContainerCounts(server *model.Server) (running int, total 
 }
 
 func (h *Handler) findServerForAdmin(id string) (*model.Server, bool) {
+	if strings.TrimSpace(id) != "" && strings.TrimSpace(id) != localDockerServerID {
+		return nil, false
+	}
 	s, err := h.ensureLocalDockerServer()
 	if err != nil {
 		return nil, false
@@ -535,6 +538,28 @@ func (h *Handler) findContainerByServer(serverID, containerID string) (*model.Co
 		return nil, false
 	}
 	return &ct, true
+}
+
+func (h *Handler) validateManagedServerContainer(serverID, containerID string) (*model.Container, int, string) {
+	serverID = strings.TrimSpace(serverID)
+	containerID = strings.TrimSpace(containerID)
+	if serverID == "" || containerID == "" {
+		return nil, http.StatusBadRequest, "Server and container are required"
+	}
+
+	var ct model.Container
+	if err := h.db.Where("containerId = ?", containerID).First(&ct).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, http.StatusNotFound, "Container is not managed by SparkLab"
+		}
+		return nil, http.StatusInternalServerError, "Load container failed"
+	}
+
+	if ct.ServerID == nil || strings.TrimSpace(*ct.ServerID) != serverID {
+		return nil, http.StatusForbidden, "Container does not belong to this server"
+	}
+
+	return &ct, http.StatusOK, ""
 }
 
 type createServerReq struct {
@@ -820,9 +845,12 @@ func (h *Handler) StartServerContainer(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Server not found"})
 		return
 	}
+	ct, status, message := h.validateManagedServerContainer(serverID, containerID)
+	if status != http.StatusOK {
+		c.JSON(status, gin.H{"message": message})
+		return
+	}
 
-	// Try to start the container directly via Docker API
-	// No need to check database - this works for both DB containers and system containers
 	resp, err := h.dockerRequest(s, http.MethodPost, "/containers/"+url.PathEscape(containerID)+"/start", nil, nil)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed to start container: " + err.Error()})
@@ -834,15 +862,17 @@ func (h *Handler) StartServerContainer(c *gin.Context) {
 		return
 	}
 
-	// Update database if this container exists in DB
 	now := time.Now()
-	h.db.Model(&model.Container{}).Where("serverId = ? AND containerId = ?", serverID, containerID).Updates(map[string]any{
+	if err := h.db.Model(&model.Container{}).Where("id = ?", ct.ID).Updates(map[string]any{
 		"status":       "running",
 		"startedAt":    now,
 		"lastActiveAt": now,
 		"autoStopAt":   now.Add(autoStopTimeout()),
 		"stoppedAt":    nil,
-	})
+	}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Start container failed"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Container started successfully"})
 }
@@ -855,9 +885,12 @@ func (h *Handler) StopServerContainer(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Server not found"})
 		return
 	}
+	ct, status, message := h.validateManagedServerContainer(serverID, containerID)
+	if status != http.StatusOK {
+		c.JSON(status, gin.H{"message": message})
+		return
+	}
 
-	// Try to stop the container directly via Docker API
-	// No need to check database - this works for both DB containers and system containers
 	// Use t=5 for faster stop (5 second grace period before force kill)
 	resp, err := h.dockerRequest(s, http.MethodPost, "/containers/"+url.PathEscape(containerID)+"/stop?t=5", nil, nil)
 	if err != nil {
@@ -870,13 +903,15 @@ func (h *Handler) StopServerContainer(c *gin.Context) {
 		return
 	}
 
-	// Update database if this container exists in DB
 	now := time.Now()
-	h.db.Model(&model.Container{}).Where("serverId = ? AND containerId = ?", serverID, containerID).Updates(map[string]any{
+	if err := h.db.Model(&model.Container{}).Where("id = ?", ct.ID).Updates(map[string]any{
 		"status":     "stopped",
 		"stoppedAt":  now,
 		"autoStopAt": nil,
-	})
+	}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Stop container failed"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Container stopped successfully"})
 }
@@ -889,9 +924,12 @@ func (h *Handler) RemoveServerContainer(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Server not found"})
 		return
 	}
+	ct, status, message := h.validateManagedServerContainer(serverID, containerID)
+	if status != http.StatusOK {
+		c.JSON(status, gin.H{"message": message})
+		return
+	}
 
-	// Try to remove the container directly via Docker API
-	// No need to check database - this works for both DB containers and system containers
 	resp, err := h.dockerRequest(s, http.MethodDelete, "/containers/"+url.PathEscape(containerID)+"?force=1", nil, nil)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed to remove container: " + err.Error()})
@@ -903,8 +941,10 @@ func (h *Handler) RemoveServerContainer(c *gin.Context) {
 		return
 	}
 
-	// Remove from database if this container exists in DB
-	h.db.Delete(&model.Container{}, "serverId = ? AND containerId = ?", serverID, containerID)
+	if err := h.db.Delete(&model.Container{}, "id = ?", ct.ID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Remove container failed"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Container removed successfully"})
 }

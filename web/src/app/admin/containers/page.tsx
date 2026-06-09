@@ -180,32 +180,20 @@ export default function AdminContainersPage() {
   };
 
   const startContainer = async (c: DisplayContainer) => {
-    if (c.type === 'lab') {
-      await operate(c.id, () => api.post(`/containers/${c.id}/start`));
-      return;
-    }
-    if (!node) return;
-    await operate(c.id, () => api.post(`/servers/${node.id}/containers/${c.dockerId}/start`));
+    if (c.type !== 'lab') return;
+    await operate(c.id, () => api.post(`/containers/${c.id}/start`));
   };
 
   const stopContainer = async (c: DisplayContainer) => {
+    if (c.type !== 'lab') return;
     if (!window.confirm('确定要停止此容器吗？')) return;
-    if (c.type === 'lab') {
-      await operate(c.id, () => api.post(`/containers/${c.id}/stop`));
-      return;
-    }
-    if (!node) return;
-    await operate(c.id, () => api.post(`/servers/${node.id}/containers/${c.dockerId}/stop`));
+    await operate(c.id, () => api.post(`/containers/${c.id}/stop`));
   };
 
   const removeContainer = async (c: DisplayContainer) => {
+    if (c.type !== 'lab') return;
     if (!window.confirm('确定要删除此容器吗？此操作不可恢复。')) return;
-    if (c.type === 'lab') {
-      await operate(c.id, () => api.delete(`/containers/${c.id}`));
-      return;
-    }
-    if (!node) return;
-    await operate(c.id, () => api.delete(`/servers/${node.id}/containers/${c.dockerId}`));
+    await operate(c.id, () => api.delete(`/containers/${c.id}`));
   };
 
   const formatTime = (value?: number | string) => {
@@ -332,6 +320,10 @@ export default function AdminContainersPage() {
                                 <div className="flex flex-wrap items-center gap-2">
                                   {isBusy ? (
                                     <span className="text-sm text-on-surface-variant">处理中</span>
+                                  ) : c.type !== 'lab' ? (
+                                    <span className="rounded-full bg-surface-container px-3 py-1.5 text-xs font-medium text-on-surface-variant">
+                                      只读
+                                    </span>
                                   ) : (
                                     <>
                                       {c.status === 'running' && c.dockerId ? (
