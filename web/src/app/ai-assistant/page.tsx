@@ -265,9 +265,10 @@ function AIAssistantPageInner({ embed }: { embed: boolean }) {
     return '我理解你的问题了。作为星火 AI，我会尽力帮助你。\n\n你可以问我关于：\n1. 课程内容和学习路径\n2. 实验操作和技术问题\n3. 编程语言和代码调试\n4. 学习方法和建议\n\n请告诉我更多细节，我会给你更具体的帮助！';
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim() || isTyping || !activeSessionId) return;
 
+    const priorMessages = messages;
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -285,11 +286,28 @@ function AIAssistantPageInner({ embed }: { embed: boolean }) {
 
     const sessionAtSend = activeSessionIdRef.current;
 
-    setTimeout(() => {
+    try {
+      const response = await fetch('/api/ai/ask', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question: userMessage.content,
+          history: priorMessages.slice(-10).map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.error || `AI 请求失败 (${response.status})`);
+      }
       if (activeSessionIdRef.current !== sessionAtSend) return;
 
       setIsThinking(false);
-      const fullResponse = generateAIResponse(userMessage.content);
+      const fullResponse = data?.answer || '抱歉，我暂时无法回答这个问题。';
 
       let currentIndex = 0;
       streamIntervalRef.current = setInterval(() => {
@@ -322,7 +340,23 @@ function AIAssistantPageInner({ embed }: { embed: boolean }) {
           setIsTyping(false);
         }
       }, 20);
-    }, 800 + Math.random() * 400);
+    } catch (error) {
+      if (activeSessionIdRef.current !== sessionAtSend) return;
+      const message = error instanceof Error ? error.message : 'AI 服务暂时不可用，请稍后再试。';
+      const aiResponse: Message = {
+        id: `${Date.now() + 1}`,
+        role: 'assistant',
+        content: message,
+        timestamp: new Date().toISOString(),
+      };
+      patchActiveSession((s) => ({
+        ...s,
+        messages: [...s.messages, aiResponse],
+      }));
+      setStreamingContent('');
+      setIsThinking(false);
+      setIsTyping(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

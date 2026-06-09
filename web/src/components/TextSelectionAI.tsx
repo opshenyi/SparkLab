@@ -128,7 +128,8 @@ export default function TextSelectionAI({ containerId, contentRef }: TextSelecti
       });
 
       if (!response.ok) {
-        throw new Error('AI请求失败');
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || 'AI请求失败');
       }
 
       const data = await response.json();
@@ -136,8 +137,9 @@ export default function TextSelectionAI({ containerId, contentRef }: TextSelecti
       setConversationHistory(prev => [...prev, { role: 'assistant', content: data.answer || '抱歉，我无法回答这个问题。' }]);
     } catch (error) {
       console.error('AI请求错误:', error);
-      setAiResponse('抱歉，AI服务暂时不可用，请稍后再试。');
-      setConversationHistory(prev => [...prev, { role: 'assistant', content: '抱歉，AI服务暂时不可用，请稍后再试。' }]);
+      const message = error instanceof Error ? error.message : '抱歉，AI服务暂时不可用，请稍后再试。';
+      setAiResponse(message);
+      setConversationHistory(prev => [...prev, { role: 'assistant', content: message }]);
     } finally {
       setIsLoading(false);
     }
@@ -165,14 +167,16 @@ export default function TextSelectionAI({ containerId, contentRef }: TextSelecti
       });
 
       if (!response.ok) {
-        throw new Error('AI请求失败');
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || 'AI请求失败');
       }
 
       const data = await response.json();
       setConversationHistory(prev => [...prev, { role: 'assistant', content: data.answer || '抱歉，我无法回答这个问题。' }]);
     } catch (error) {
       console.error('AI请求错误:', error);
-      setConversationHistory(prev => [...prev, { role: 'assistant', content: '抱歉，AI服务暂时不可用，请稍后再试。' }]);
+      const message = error instanceof Error ? error.message : '抱歉，AI服务暂时不可用，请稍后再试。';
+      setConversationHistory(prev => [...prev, { role: 'assistant', content: message }]);
     } finally {
       setIsLoading(false);
     }
