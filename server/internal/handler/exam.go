@@ -26,8 +26,8 @@ func (h *Handler) GetExamQuestions(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Course not found"})
 		return
 	}
-	if !h.userCanViewCourse(co, uid, role, hasUser) {
-		c.JSON(http.StatusForbidden, gin.H{"message": "无权访问"})
+	if !h.userCanPerformTrainingAction(co, uid, role, hasUser) {
+		c.JSON(http.StatusForbidden, gin.H{"message": "请先报名课程后再查看试卷题目"})
 		return
 	}
 

@@ -50,6 +50,7 @@ async function proxyRequest(
     const path = pathSegments.join('/');
     const searchParams = request.nextUrl.searchParams.toString();
     const serverUrl = `${SERVER_URL}/${path}${searchParams ? `?${searchParams}` : ''}`;
+    const isUnsafeMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
 
     if (isDev) {
       console.log(`[Proxy] ${method} ${serverUrl}`);
@@ -87,8 +88,23 @@ async function proxyRequest(
         headers[key] = value;
       }
     });
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && !headers.Origin && !headers.origin) {
-      headers.Origin = request.nextUrl.origin;
+    const cookie = headers.Cookie || headers.cookie || '';
+    const accessToken = accessTokenFromCookie(cookie);
+    if (isUnsafeMethod && accessToken) {
+      delete headers.Cookie;
+      delete headers.cookie;
+      if (!headers.Authorization && !headers.authorization) {
+        headers.Authorization = `Bearer ${accessToken}`;
+      }
+    }
+    if (isUnsafeMethod) {
+      if (!headers.Origin && !headers.origin) {
+        headers.Origin = request.nextUrl.origin;
+      }
+      if (!headers.Referer && !headers.referer) {
+        headers.Referer = `${request.nextUrl.origin}/`;
+      }
+      headers['X-SparkLab-Proxy-Origin'] = request.nextUrl.origin;
     }
 
     // Make request to server
@@ -96,7 +112,7 @@ async function proxyRequest(
       method,
       headers,
       body,
-      credentials: 'include',
+      credentials: 'omit',
     });
 
     if (isDev) {
@@ -151,4 +167,15 @@ async function proxyRequest(
       { status: 502 }
     );
   }
+}
+
+function accessTokenFromCookie(cookie: string) {
+  if (!cookie) return '';
+  for (const part of cookie.split(';')) {
+    const [rawName, ...rawValue] = part.trim().split('=');
+    if (rawName === 'access_token') {
+      return decodeURIComponent(rawValue.join('='));
+    }
+  }
+  return '';
 }

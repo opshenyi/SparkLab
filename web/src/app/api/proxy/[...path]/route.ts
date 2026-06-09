@@ -51,6 +51,7 @@ async function proxyRequest(
     const path = pathSegments.join('/');
     const url = new URL(request.url);
     const backendUrl = `${BACKEND_URL}/${path}${url.search}`;
+    const isUnsafeMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
     const isMaterialFileDownload =
       method === 'GET' &&
       pathSegments[0] === 'course-materials' &&
@@ -77,13 +78,16 @@ async function proxyRequest(
     } else if (['POST', 'PUT', 'PATCH'].includes(method)) {
       headers['Content-Type'] = 'application/json';
     }
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    if (isUnsafeMethod) {
       headers['Origin'] = url.origin;
+      headers['Referer'] = `${url.origin}/`;
+      headers['X-SparkLab-Proxy-Origin'] = url.origin;
     }
 
     // Forward cookies (important for authentication)
     const cookie = request.headers.get('cookie');
-    if (cookie) {
+    const accessToken = accessTokenFromCookie(cookie);
+    if (cookie && (!isUnsafeMethod || !accessToken)) {
       headers['Cookie'] = cookie;
     }
 
@@ -91,6 +95,8 @@ async function proxyRequest(
     const auth = request.headers.get('authorization');
     if (auth) {
       headers['Authorization'] = auth;
+    } else if (isUnsafeMethod && accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
     }
 
     // Make the request to backend
@@ -98,7 +104,7 @@ async function proxyRequest(
       method,
       headers,
       body,
-      credentials: 'include',
+      credentials: 'omit',
     });
 
     const responseBody = isMaterialFileDownload
@@ -121,4 +127,15 @@ async function proxyRequest(
         : { message: 'Proxy request failed' };
     return NextResponse.json(body, { status: 500 });
   }
+}
+
+function accessTokenFromCookie(cookie: string | null) {
+  if (!cookie) return '';
+  for (const part of cookie.split(';')) {
+    const [rawName, ...rawValue] = part.trim().split('=');
+    if (rawName === 'access_token') {
+      return decodeURIComponent(rawValue.join('='));
+    }
+  }
+  return '';
 }
