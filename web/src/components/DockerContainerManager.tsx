@@ -6,6 +6,8 @@ import { usePollWhileVisible } from '@/lib/usePollWhileVisible';
 
 interface DockerContainer {
   id: string;
+  displayId?: string;
+  managed?: boolean;
   name: string[];
   image: string;
   status: string;
@@ -110,6 +112,7 @@ export default function DockerContainerManager() {
           {containers.map((container) => {
             const busy = actionLoading === container.id;
             const running = container.state.toLowerCase() === 'running';
+            const managed = container.managed !== false;
             return (
               <div key={container.id} className="rounded-lg bg-surface-low p-4 shadow-[var(--shadow-ring)]">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -121,16 +124,25 @@ export default function DockerContainerManager() {
                       <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${stateBadgeClass(container.state)}`}>
                         {container.state}
                       </span>
+                      {!managed ? (
+                        <span className="rounded-full bg-status-neutral-bg px-2.5 py-1 text-xs font-medium text-status-neutral-text">
+                          只读
+                        </span>
+                      ) : null}
                     </div>
                     <div className="space-y-1 text-sm text-on-surface-variant">
-                      <p className="break-all font-mono text-xs">ID: {container.id}</p>
+                      <p className="break-all font-mono text-xs">ID: {container.displayId || container.id}</p>
                       <p className="break-all">Image: {container.image}</p>
                       <p>Status: {container.status}</p>
                     </div>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    {!running ? (
+                    {!managed ? (
+                      <span className="self-center text-sm text-on-surface-variant">
+                        系统容器仅展示基础状态
+                      </span>
+                    ) : !running ? (
                       <button
                         onClick={() => handleAction(container.id, 'start')}
                         disabled={busy}

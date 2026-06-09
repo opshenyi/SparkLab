@@ -289,6 +289,149 @@ func TestServerContainerActionsOperateManagedContainers(t *testing.T) {
 	}
 }
 
+func TestMonitorContainerEndpointsRejectUnmanagedAndCrossServerContainers(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := newAdminContainerTestHandler(t)
+	seedAdminContainerGraph(t, h, "monitor-cross")
+	otherServer := "other-docker"
+	now := time.Now()
+	mustCreate(t, h.db.Create(&model.Container{
+		ID:           "monitor-cross-container",
+		UserID:       "monitor-cross-user",
+		LabID:        "monitor-cross-lab",
+		ServerID:     &otherServer,
+		ContainerID:  "docker-monitor-cross",
+		Status:       "running",
+		CreatedAt:    now,
+		LastActiveAt: now,
+	}).Error)
+
+	endpoints := []struct {
+		name   string
+		method string
+		path   string
+		action string
+		call   func(*gin.Context)
+	}{
+		{name: "inspect", method: http.MethodGet, path: "/monitor/docker/containers/%s", call: h.InspectDockerContainer},
+		{name: "stats", method: http.MethodGet, path: "/monitor/docker/containers/%s/stats", call: h.GetDockerContainerStats},
+		{name: "logs", method: http.MethodGet, path: "/monitor/docker/containers/%s/logs", call: h.GetDockerContainerLogs},
+		{name: "stream", method: http.MethodGet, path: "/monitor/docker/containers/%s/stats/stream", call: h.StreamDockerContainerStats},
+		{name: "control", method: http.MethodPost, path: "/monitor/docker/containers/%s/stop", action: "stop", call: h.ControlDockerContainer},
+	}
+
+	for _, endpoint := range endpoints {
+		t.Run(endpoint.name+"/unmanaged", func(t *testing.T) {
+			w := performMonitorContainerAction(endpoint.method, endpoint.path, "host-nginx", endpoint.action, endpoint.call)
+			if w.Code != http.StatusNotFound {
+				t.Fatalf("expected 404, got %d body=%s", w.Code, w.Body.String())
+			}
+		})
+
+		t.Run(endpoint.name+"/cross-server", func(t *testing.T) {
+			w := performMonitorContainerAction(endpoint.method, endpoint.path, "docker-monitor-cross", endpoint.action, endpoint.call)
+			if w.Code != http.StatusForbidden {
+				t.Fatalf("expected 403, got %d body=%s", w.Code, w.Body.String())
+			}
+		})
+	}
+}
+
+func TestMonitorContainerControlOperatesOnlyManagedContainers(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := newAdminContainerTestHandler(t)
+	seedAdminContainerGraph(t, h, "monitor-managed")
+	serverID := "local-docker"
+	now := time.Now()
+	records := []model.Container{
+		{
+			ID:           "monitor-managed-start",
+			UserID:       "monitor-managed-user",
+			LabID:        "monitor-managed-lab",
+			ServerID:     &serverID,
+			ContainerID:  "docker-monitor-start",
+			Status:       "stopped",
+			CreatedAt:    now,
+			LastActiveAt: now,
+		},
+		{
+			ID:           "monitor-managed-stop",
+			UserID:       "monitor-managed-user",
+			LabID:        "monitor-managed-lab",
+			ServerID:     &serverID,
+			ContainerID:  "docker-monitor-stop",
+			Status:       "running",
+			CreatedAt:    now,
+			LastActiveAt: now,
+			AutoStopAt:   ptrTime(now.Add(time.Hour)),
+		},
+		{
+			ID:           "monitor-managed-restart",
+			UserID:       "monitor-managed-user",
+			LabID:        "monitor-managed-lab",
+			ServerID:     &serverID,
+			ContainerID:  "docker-monitor-restart",
+			Status:       "running",
+			CreatedAt:    now,
+			LastActiveAt: now,
+			AutoStopAt:   ptrTime(now.Add(time.Hour)),
+		},
+	}
+	for _, record := range records {
+		mustCreate(t, h.db.Create(&record).Error)
+	}
+
+	var seen atomic.Int32
+	dockerAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/containers/docker-monitor-start/start":
+		case r.Method == http.MethodPost && r.URL.Path == "/containers/docker-monitor-stop/stop" && r.URL.Query().Get("t") == "5":
+		case r.Method == http.MethodPost && r.URL.Path == "/containers/docker-monitor-restart/restart" && r.URL.Query().Get("t") == "5":
+		default:
+			t.Fatalf("unexpected docker request: %s %s", r.Method, r.URL.String())
+		}
+		seen.Add(1)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer dockerAPI.Close()
+	h.dockerHTTP = dockerAPI.Client()
+	h.dockerAPIBaseURL = dockerAPI.URL
+
+	start := performMonitorContainerAction(http.MethodPost, "/monitor/docker/containers/%s/start", "docker-monitor-start", "start", h.ControlDockerContainer)
+	if start.Code != http.StatusOK {
+		t.Fatalf("expected start 200, got %d body=%s", start.Code, start.Body.String())
+	}
+	stop := performMonitorContainerAction(http.MethodPost, "/monitor/docker/containers/%s/stop", "docker-monitor-stop", "stop", h.ControlDockerContainer)
+	if stop.Code != http.StatusOK {
+		t.Fatalf("expected stop 200, got %d body=%s", stop.Code, stop.Body.String())
+	}
+	restart := performMonitorContainerAction(http.MethodPost, "/monitor/docker/containers/%s/restart", "docker-monitor-restart", "restart", h.ControlDockerContainer)
+	if restart.Code != http.StatusOK {
+		t.Fatalf("expected restart 200, got %d body=%s", restart.Code, restart.Body.String())
+	}
+	if seen.Load() != 3 {
+		t.Fatalf("expected three Docker calls, got %d", seen.Load())
+	}
+
+	var started model.Container
+	mustCreate(t, h.db.Where("id = ?", "monitor-managed-start").Take(&started).Error)
+	if started.Status != "running" || started.AutoStopAt == nil || started.StoppedAt != nil {
+		t.Fatalf("expected started record to be running with auto stop, got status=%s autoStopAt=%#v stoppedAt=%#v", started.Status, started.AutoStopAt, started.StoppedAt)
+	}
+
+	var stopped model.Container
+	mustCreate(t, h.db.Where("id = ?", "monitor-managed-stop").Take(&stopped).Error)
+	if stopped.Status != "stopped" || stopped.StoppedAt == nil || stopped.AutoStopAt != nil {
+		t.Fatalf("expected stopped record with no auto stop, got status=%s stoppedAt=%#v autoStopAt=%#v", stopped.Status, stopped.StoppedAt, stopped.AutoStopAt)
+	}
+
+	var restarted model.Container
+	mustCreate(t, h.db.Where("id = ?", "monitor-managed-restart").Take(&restarted).Error)
+	if restarted.Status != "running" || restarted.AutoStopAt == nil || restarted.StoppedAt != nil {
+		t.Fatalf("expected restarted record to be running with auto stop, got status=%s autoStopAt=%#v stoppedAt=%#v", restarted.Status, restarted.AutoStopAt, restarted.StoppedAt)
+	}
+}
+
 func newAdminContainerTestHandler(t *testing.T) *Handler {
 	t.Helper()
 	database, err := db.Open(filepath.Join(t.TempDir(), "sparklab-admin-container-test.db"))
@@ -330,6 +473,18 @@ func performServerContainerAction(method, path, serverID, containerID string, ca
 	c.Params = gin.Params{
 		{Key: "id", Value: serverID},
 		{Key: "containerId", Value: containerID},
+	}
+	call(c)
+	return w
+}
+
+func performMonitorContainerAction(method, pathFormat, containerID, action string, call func(*gin.Context)) *httptest.ResponseRecorder {
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(method, strings.Replace(pathFormat, "%s", containerID, 1), nil)
+	c.Params = gin.Params{{Key: "id", Value: containerID}}
+	if action != "" {
+		c.Params = append(c.Params, gin.Param{Key: "action", Value: action})
 	}
 	call(c)
 	return w

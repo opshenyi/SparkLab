@@ -1,17 +1,29 @@
 {
   "appId": "sparklab",
-  "version": "0.4.33",
+  "version": "0.4.34",
   "channel": "main",
-  "releasedAt": "2026-06-09T12:37:28+08:00",
-  "title": "压缩系统更新界面",
+  "releasedAt": "2026-06-09T12:51:10+08:00",
+  "title": "收紧监控 Docker 容器边界",
   "mandatory": false,
   "announcement": {
     "enabled": true,
-    "level": "info",
-    "title": "管理后台更新界面已收敛",
-    "message": "系统更新区域改为更紧凑的状态条，默认只展示关键状态，版本详情和更新说明可按需展开。"
+    "level": "warning",
+    "title": "Docker 监控入口已加固",
+    "message": "监控页的容器详情、日志、统计和控制操作现在会先校验 SparkLab 受管容器，系统容器仅只读展示。"
   },
   "changelog": [
+    {
+      "version": "0.4.34",
+      "date": "2026-06-09",
+      "title": "收紧监控 Docker 容器边界",
+      "items": [
+        "监控 Docker 容器详情、日志、统计和实时统计流会先校验容器是否属于 SparkLab 本机受管记录。",
+        "监控页 start、stop、restart 操作改为复用本机 Docker API 客户端和受管容器校验，未知宿主机容器不能再被控制。",
+        "受管容器通过监控入口启动、停止或重启后，会同步更新数据库运行状态、停止时间和自动停止时间。",
+        "Docker 容器列表新增 managed 和 displayId 字段，前端对系统容器显示只读状态并隐藏控制按钮。",
+        "新增后端测试覆盖未知容器、跨节点容器拒绝，以及受管容器控制成功路径。"
+      ]
+    },
     {
       "version": "0.4.33",
       "date": "2026-06-09",
