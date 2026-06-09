@@ -19,6 +19,12 @@ interface DockerImage {
   tags: string[];
 }
 
+const LOCAL_DOCKER_SERVER: ServerInfo = {
+  id: 'local-docker',
+  name: '本机 Docker',
+  status: 'unknown',
+};
+
 interface PortMapping {
   containerPort: number;
   hostPort?: number;
@@ -63,6 +69,18 @@ export default function TeacherCourseLabsPage() {
   const [materialModalTitle, setMaterialModalTitle] = useState('');
   const [materialModalFile, setMaterialModalFile] = useState<File | null>(null);
   const [materialUploading, setMaterialUploading] = useState(false);
+  const baseServerOptions = servers.length > 0 ? servers : [LOCAL_DOCKER_SERVER];
+  const serverOptions =
+    selectedServer && !baseServerOptions.some((server) => server.id === selectedServer)
+      ? [...baseServerOptions, { ...LOCAL_DOCKER_SERVER, id: selectedServer }]
+      : baseServerOptions;
+  const imageSuggestions = Array.from(new Set(images.flatMap((img) => {
+    const tags = img.tags?.filter((tag) => tag && tag !== '<none>:<none>') || [];
+    return tags.length > 0 ? tags : [img.id.slice(0, 12)];
+  })));
+  const selectedServerName =
+    serverOptions.find((server) => server.id === selectedServer)?.name || LOCAL_DOCKER_SERVER.name;
+  const defaultServerId = () => serverOptions[0]?.id || LOCAL_DOCKER_SERVER.id;
 
   useEffect(() => {
     checkAuth();
@@ -159,12 +177,13 @@ export default function TeacherCourseLabsPage() {
   const loadServers = async () => {
     try {
       const { data } = await teacherAPI.listServers();
-      const list = Array.isArray(data) ? data : [];
+      const list = Array.isArray(data) && data.length > 0 ? data : [LOCAL_DOCKER_SERVER];
       setServers(list);
-      setSelectedServer((prev) => prev || list[0]?.id || '');
+      setSelectedServer((prev) => prev || list[0]?.id || LOCAL_DOCKER_SERVER.id);
     } catch (error) {
       console.error('Failed to load servers:', error);
-      setServers([]);
+      setServers([LOCAL_DOCKER_SERVER]);
+      setSelectedServer((prev) => prev || LOCAL_DOCKER_SERVER.id);
     }
   };
 
@@ -185,12 +204,17 @@ export default function TeacherCourseLabsPage() {
   };
 
   const loadImages = async () => {
-    if (!selectedServer) return;
+    if (!selectedServer) {
+      setImages([]);
+      return;
+    }
+    setImages([]);
     try {
       const { data } = await teacherAPI.serverImages(selectedServer);
-      setImages(data.images || []);
+      setImages(Array.isArray(data.images) ? data.images : []);
     } catch (error) {
       console.error('Failed to load images:', error);
+      setImages([]);
     }
   };
 
@@ -198,8 +222,8 @@ export default function TeacherCourseLabsPage() {
     setEditingLab(lab);
     if (lab.serverId) {
       setSelectedServer(lab.serverId);
-    } else if (servers[0]?.id) {
-      setSelectedServer(servers[0].id);
+    } else {
+      setSelectedServer(defaultServerId());
     }
     if (lab.videoUrl) {
       setVideoPreviewUrl(lab.videoUrl);
@@ -216,7 +240,7 @@ export default function TeacherCourseLabsPage() {
 
   const handleCancelEdit = () => {
     setEditingLab(null);
-    setSelectedServer(servers[0]?.id || '');
+    setSelectedServer(defaultServerId());
     setImages([]);
     setPortMappings([]);
     setEnvironmentVars([]);
@@ -252,7 +276,11 @@ export default function TeacherCourseLabsPage() {
     // 实验特定字段
     if (labType === 'lab') {
       data.serverId = formData.get('serverId') as string || null;
-      data.dockerImage = formData.get('dockerImage') as string;
+      data.dockerImage = ((formData.get('dockerImage') as string) || '').trim();
+      if (!data.dockerImage) {
+        alert('请填写 Docker 镜像');
+        return;
+      }
       data.cpuLimit = parseFloat(formData.get('cpuLimit') as string);
       data.memoryLimit = parseInt(formData.get('memoryLimit') as string);
       data.shellCommand = formData.get('shellCommand') as string || '/bin/bash';
@@ -567,7 +595,7 @@ export default function TeacherCourseLabsPage() {
                           label: '实验',
                           onSelect: () => {
                             setEditingLab({ type: 'lab' });
-                            setSelectedServer(servers[0]?.id || '');
+                            setSelectedServer(defaultServerId());
                             setImages([]);
                             setPortMappings([]);
                             setEnvironmentVars([]);
@@ -578,7 +606,7 @@ export default function TeacherCourseLabsPage() {
                           label: '视频',
                           onSelect: () => {
                             setEditingLab({ type: 'video' });
-                            setSelectedServer(servers[0]?.id || '');
+                            setSelectedServer(defaultServerId());
                             setImages([]);
                             setPortMappings([]);
                             setEnvironmentVars([]);
@@ -589,7 +617,7 @@ export default function TeacherCourseLabsPage() {
                           label: '试卷',
                           onSelect: () => {
                             setEditingLab({ type: 'exam' });
-                            setSelectedServer(servers[0]?.id || '');
+                            setSelectedServer(defaultServerId());
                             setImages([]);
                             setPortMappings([]);
                             setEnvironmentVars([]);
@@ -1022,52 +1050,36 @@ export default function TeacherCourseLabsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm text-on-surface-variant mb-2">本机 Docker</label>
-                      <input type="hidden" name="serverId" value={selectedServer} />
+                      <input type="hidden" name="serverId" value={selectedServer || LOCAL_DOCKER_SERVER.id} />
                       <select
-                        value={selectedServer}
+                        value={selectedServer || LOCAL_DOCKER_SERVER.id}
                         onChange={(e) => setSelectedServer(e.target.value)}
                         disabled
                         className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                       >
-                        {servers.filter(s => s.status === 'online').map(server => (
+                        {serverOptions.map(server => (
                           <option key={server.id} value={server.id}>
-                            {server.name}
+                            {server.name || selectedServerName}
                           </option>
                         ))}
-                        {servers.filter(s => s.status === 'online').length === 0 && (
-                          <option value="">本机 Docker 暂不可用</option>
-                        )}
                       </select>
                     </div>
 
                     <div>
                       <label className="block text-sm text-on-surface-variant mb-2">Docker 镜像 *</label>
-                      {selectedServer ? (
-                        <select
-                          name="dockerImage"
-                          defaultValue={editingLab.dockerImage || ''}
-                          required
-                          className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                        >
-                          {images.length === 0 ? (
-                            <option value="">本机 Docker 暂无镜像</option>
-                          ) : (
-                            images.map((img) => (
-                              <option key={img.id} value={img.tags?.[0] || img.id.slice(0, 12)}>
-                                {img.tags?.[0] || img.id.slice(0, 12)}
-                              </option>
-                            ))
-                          )}
-                        </select>
-                      ) : (
-                        <input
-                          name="dockerImage"
-                          defaultValue={editingLab.dockerImage || 'ubuntu:22.04'}
-                          required
-                          placeholder="ubuntu:22.04"
-                          className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
-                      )}
+                      <input
+                        name="dockerImage"
+                        list="teacher-lab-docker-images"
+                        defaultValue={editingLab.dockerImage || 'ubuntu:22.04'}
+                        required
+                        placeholder="ubuntu:22.04"
+                        className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <datalist id="teacher-lab-docker-images">
+                        {imageSuggestions.map((image) => (
+                          <option key={image} value={image} />
+                        ))}
+                      </datalist>
                     </div>
 
                     <div>
