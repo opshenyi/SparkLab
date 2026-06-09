@@ -260,6 +260,7 @@ func (h *Handler) SubmitExam(c *gin.Context) {
 	}
 
 	totalScore := 0
+	requiresManualGrading := false
 
 	// 处理每个答案
 	for _, ans := range req.Answers {
@@ -298,6 +299,7 @@ func (h *Handler) SubmitExam(c *gin.Context) {
 			}
 		case "essay":
 			// 简答题：不自动判分，需要人工批改
+			requiresManualGrading = true
 			isCorrect = false
 			score = 0
 		}
@@ -328,7 +330,9 @@ func (h *Handler) SubmitExam(c *gin.Context) {
 
 	// 更新提交记录的分数
 	submission.Score = totalScore
-	if totalScore >= int(float64(lab.Points)*0.6) {
+	if requiresManualGrading {
+		submission.Status = "pending"
+	} else if totalScore >= int(float64(lab.Points)*0.6) {
 		submission.Status = "passed"
 	} else {
 		submission.Status = "failed"
