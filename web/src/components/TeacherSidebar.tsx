@@ -23,7 +23,7 @@ const navLinkItems = [
 ] as const;
 
 export default function TeacherSidebar() {
-  const pathname = usePathname();
+  const pathname = usePathname() || '';
   const router = useRouter();
   const { user, logout, isLoggingOut } = useAuthStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

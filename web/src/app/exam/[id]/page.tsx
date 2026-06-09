@@ -24,7 +24,7 @@ interface Answer {
 export default function ExamPage() {
   const params = useParams();
   const router = useRouter();
-  const examId = params.id as string;
+  const examId = (params?.id ?? '') as string;
   const { user, isAuthenticated, isLoading, checkAuth } = useAuthStore();
   
   const [exam, setExam] = useState<any>(null);

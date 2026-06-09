@@ -25,7 +25,7 @@ const adminNavItems = [
 const teacherNavItems = [{ label: '学情分析大屏', href: '/teacher' }];
 
 export default function Sidebar() {
-  const pathname = usePathname();
+  const pathname = usePathname() || '';
   const router = useRouter();
   const { user, logout, isLoggingOut } = useAuthStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

@@ -50,7 +50,7 @@ interface Submission {
 export default function ExamResultPage() {
   const params = useParams();
   const router = useRouter();
-  const submissionId = params.submissionId as string;
+  const submissionId = (params?.submissionId ?? '') as string;
   const { user, isAuthenticated, isLoading, checkAuth } = useAuthStore();
   
   const [submission, setSubmission] = useState<Submission | null>(null);

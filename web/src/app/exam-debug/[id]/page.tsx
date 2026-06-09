@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 
 export default function ExamDebugPage() {
   const params = useParams();
-  const examId = params.id as string;
+  const examId = (params?.id ?? '') as string;
   const { user, isAuthenticated, checkAuth } = useAuthStore();
   
   const [examData, setExamData] = useState<any>(null);

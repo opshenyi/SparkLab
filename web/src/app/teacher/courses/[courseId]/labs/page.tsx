@@ -39,7 +39,7 @@ interface VolumeMount {
 export default function TeacherCourseLabsPage() {
   const params = useParams();
   const router = useRouter();
-  const courseId = params.courseId as string;
+  const courseId = (params?.courseId ?? '') as string;
   const { user, isAuthenticated, isLoading, isLoggingOut, checkAuth } = useAuthStore();
   const [selectedCourse, setSelectedCourse] = useState<any>(null);
   const [labs, setLabs] = useState<any[]>([]);

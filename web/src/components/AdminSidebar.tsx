@@ -21,7 +21,7 @@ const adminNavItems = [
 ];
 
 export default function AdminSidebar() {
-  const pathname = usePathname();
+  const pathname = usePathname() || '';
   const router = useRouter();
   const { user, logout, isLoggingOut } = useAuthStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

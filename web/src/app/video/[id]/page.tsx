@@ -10,7 +10,7 @@ import ReactMarkdown from 'react-markdown';
 export default function VideoPage() {
   const router = useRouter();
   const params = useParams();
-  const videoId = params.id as string;
+  const videoId = (params?.id ?? '') as string;
   const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
   const [video, setVideo] = useState<any>(null);
   const [isPlaying, setIsPlaying] = useState(false);

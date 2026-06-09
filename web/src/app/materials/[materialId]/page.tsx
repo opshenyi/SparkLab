@@ -5,6 +5,6 @@ import CourseMaterialViewerPageInner from '@/components/CourseMaterialViewerPage
 
 export default function MaterialViewerPage() {
   const params = useParams();
-  const materialId = params.materialId as string;
+  const materialId = (params?.materialId ?? '') as string;
   return <CourseMaterialViewerPageInner materialId={materialId} />;
 }

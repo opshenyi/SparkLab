@@ -10,7 +10,7 @@ import LoadingBar from '@/components/LoadingBar';
 /** 管理员不再编排课程实验；旧链接引导至老师端对应路径。 */
 export default function AdminCourseLabsRedirectPage() {
   const params = useParams();
-  const courseId = params.courseId as string;
+  const courseId = (params?.courseId ?? '') as string;
   const router = useRouter();
   const { user, isAuthenticated, isLoading, isLoggingOut, checkAuth } = useAuthStore();
 

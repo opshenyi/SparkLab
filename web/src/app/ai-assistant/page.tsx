@@ -708,7 +708,7 @@ function AIAssistantPageInner({ embed }: { embed: boolean }) {
 
 function AIAssistantWithSearchParams() {
   const sp = useSearchParams();
-  const embed = sp.get('embed') === '1';
+  const embed = sp?.get('embed') === '1';
   return <AIAssistantPageInner embed={embed} />;
 }
 

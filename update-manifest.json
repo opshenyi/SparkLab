@@ -1,17 +1,29 @@
 {
   "appId": "sparklab",
-  "version": "0.4.48",
+  "version": "0.4.49",
   "channel": "main",
-  "releasedAt": "2026-06-09T22:26:39+08:00",
-  "title": "恢复默认管理员并强制改密",
+  "releasedAt": "2026-06-10T00:20:42+08:00",
+  "title": "修复前端代理登录 403",
   "mandatory": true,
   "announcement": {
     "enabled": true,
     "level": "warning",
-    "title": "默认管理员登录已调整",
-    "message": "默认管理员账号恢复为 admin/admin123。首次登录后必须立即修改密码，修改完成前不能进入管理后台。"
+    "title": "前端登录代理已修复",
+    "message": "修复生产环境前端 /api/proxy/auth/login 写请求空 403。默认管理员仍为 admin/admin123，首次登录后会进入强制改密。"
   },
   "changelog": [
+    {
+      "version": "0.4.49",
+      "date": "2026-06-10",
+      "title": "修复前端代理登录 403",
+      "items": [
+        "登录、改密、创建等写请求不再走 Next App Route 代理，改为传统 Node Pages API 代理，避免生产环境 POST 被空 403 拦截。",
+        "前端代理继续统一转发 Cookie、Authorization 和同源保护头，保留后端跨站写请求防护，不放宽安全策略。",
+        "代理会过滤 Expect、content-encoding、content-length 等不适合转发给 Node fetch 的传输层头，避免登录请求进入代理后变成 500。",
+        "新增 Pages Router 兼容后，补齐 useParams、useSearchParams、usePathname 的空值安全处理，保证生产构建稳定通过。",
+        "本地生产模式已验证：后端 /auth/login 返回 200，前端 /api/proxy/auth/login 也返回 200，并正确带回 mustChangePassword。"
+      ]
+    },
     {
       "version": "0.4.48",
       "date": "2026-06-09",

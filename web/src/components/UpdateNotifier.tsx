@@ -32,7 +32,7 @@ type UpdateInfo = {
 export default function UpdateNotifier() {
   const [info, setInfo] = useState<UpdateInfo | null>(null);
   const [dismissed, setDismissed] = useState(false);
-  const pathname = usePathname();
+  const pathname = usePathname() || '';
 
   useEffect(() => {
     let alive = true;

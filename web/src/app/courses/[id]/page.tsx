@@ -11,7 +11,7 @@ import { courseMetaSubtitles } from '@/lib/courseMetaSubtitles';
 export default function CoursePage() {
   const router = useRouter();
   const params = useParams();
-  const courseId = params.id as string;
+  const courseId = (params?.id ?? '') as string;
   const { user, isAuthenticated, isLoading, checkAuth } = useAuthStore();
   const [course, setCourse] = useState<any>(null);
   const [labs, setLabs] = useState<any[]>([]);

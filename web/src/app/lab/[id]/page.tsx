@@ -23,7 +23,7 @@ const buildContainerWebUrl = (hostPort: string | number) => {
 export default function LabPage() {
   const router = useRouter();
   const params = useParams();
-  const labId = params.id as string;
+  const labId = (params?.id ?? '') as string;
   const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
   const [lab, setLab] = useState<any>(null);
   const [container, setContainer] = useState<any>(null);
