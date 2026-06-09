@@ -1,9 +1,9 @@
 {
   "appId": "sparklab",
-  "version": "0.4.55",
+  "version": "0.4.56",
   "channel": "main",
-  "releasedAt": "2026-06-10T02:24:47+08:00",
-  "title": "修复系统更新进度卡住",
+  "releasedAt": "2026-06-10T03:22:53+08:00",
+  "title": "修复教师实验镜像输入",
   "mandatory": true,
   "announcement": {
     "enabled": false,
@@ -12,6 +12,16 @@
     "message": ""
   },
   "changelog": [
+    {
+      "version": "0.4.56",
+      "date": "2026-06-10",
+      "title": "修复教师实验镜像输入",
+      "items": [
+        "教师端新建和编辑实验时，本机 Docker 不再因为在线状态短暂延迟被过滤掉。",
+        "Docker 镜像字段改为可手动输入，并使用本机镜像列表作为输入建议。",
+        "镜像列表接口读取失败或本机暂无镜像时，仍可填写镜像名并保存实验配置。"
+      ]
+    },
     {
       "version": "0.4.55",
       "date": "2026-06-10",
